@@ -114,6 +114,7 @@ func New(loader tmplutil.Loader, options *Options) (
 		"zero":              zeroFn,
 		"init":              initFn,
 		"initnew":           initnewFn,
+		"declare":           declareFn,
 		"addrof":            addrofFn,
 		"flatten":           flattenFn,
 		"fieldvalue":        fieldvalueFn,
@@ -221,8 +222,8 @@ func (r *Renderer) RenderCode(root *ir.Root, dialects []sql.Dialect) (
 	}
 
 	// Render any result structs for multi-field reads
-	result_structs := map[string]*Struct{}
-	result_struct_names := []string{}
+	extra_structs := map[string]*Struct{}
+	extra_struct_names := []string{}
 	for _, read := range root.Reads {
 		if read.View == ir.Count || read.View == ir.Has {
 			continue
@@ -231,15 +232,26 @@ func (r *Renderer) RenderCode(root *ir.Root, dialects []sql.Dialect) (
 			continue
 		}
 		s := ResultStructFromRead(read)
-		if result_structs[s.Name] != nil {
+		if extra_structs[s.Name] != nil {
 			continue
 		}
-		result_structs[s.Name] = s
-		result_struct_names = append(result_struct_names, s.Name)
+		extra_structs[s.Name] = s
+		extra_struct_names = append(extra_struct_names, s.Name)
 	}
-	sort.Strings(result_struct_names)
-	for _, name := range result_struct_names {
-		if err := r.renderStruct(&buf, result_structs[name]); err != nil {
+	for _, read := range root.Reads {
+		if read.View != ir.Paged {
+			continue
+		}
+		s := ContinuationStructFromRead(read)
+		if extra_structs[s.Name] != nil {
+			continue
+		}
+		extra_structs[s.Name] = s
+		extra_struct_names = append(extra_struct_names, s.Name)
+	}
+	sort.Strings(extra_struct_names)
+	for _, name := range extra_struct_names {
+		if err := r.renderStruct(&buf, extra_structs[name]); err != nil {
 			return nil, err
 		}
 	}

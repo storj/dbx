@@ -140,7 +140,7 @@ func StructVar(name string, typ string, vars []*Var) *Var {
 		Type:    typ,
 		Fields:  vars,
 		InitVal: fmt.Sprintf("&%s{}", typ),
-		ZeroVal: "nil",
+		ZeroVal: fmt.Sprintf("(*%s)(nil)", typ),
 	}
 }
 
@@ -166,6 +166,10 @@ func (v *Var) Init() string {
 
 func (v *Var) InitNew() string {
 	return fmt.Sprintf("%s := %s", v.Name, v.InitVal)
+}
+
+func (v *Var) Declare() string {
+	return fmt.Sprintf("var %s %s", v.Name, v.Type)
 }
 
 func (v *Var) Zero() string {

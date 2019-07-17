@@ -83,7 +83,7 @@ func SelectFromIRRead(ir_read *ir.Read, dialect Dialect) *Select {
 		sel.Limit = "?"
 		sel.Offset = "?"
 	case ir.Paged:
-		pk := ir_read.From.BasicPrimaryKey()
+		pk := ir_read.From.PagablePrimaryKey()
 		sel.Where = append(sel.Where, WhereSQL([]*ir.Where{&ir.Where{
 			Left: &ir.Expr{
 				Field: pk,

@@ -76,6 +76,14 @@ func initnewFn(intf interface{}) (string, error) {
 	return strings.Join(vs, "\n"), nil
 }
 
+func declareFn(intf interface{}) (string, error) {
+	vs, err := forVars(intf, (*Var).Declare)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(vs, "\n"), nil
+}
+
 func zeroFn(intf interface{}) (string, error) {
 	vs, err := forVars(intf, (*Var).Zero)
 	if err != nil {

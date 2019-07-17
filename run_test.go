@@ -18,9 +18,7 @@ func TestRun(t *testing.T) {
 	tw := testutil.Wrap(t)
 	tw.Parallel()
 
-	data_dir := filepath.Join("testdata", "run")
-
-	names, err := filepath.Glob(filepath.Join(data_dir, "*.dbx"))
+	names, err := filepath.Glob(filepath.Join("testdata", "run", "*", "*.dbx"))
 	tw.AssertNoError(err)
 
 	for _, name := range names {

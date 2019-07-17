@@ -2,6 +2,7 @@ module gopkg.in/spacemonkeygo/dbx.v1
 
 require (
 	bitbucket.org/pkg/inflect v0.0.0-20130829110746-8961c3750a47
+	github.com/go-bindata/go-bindata v3.1.2+incompatible // indirect
 	github.com/jawher/mow.cli v1.0.4
 	github.com/lib/pq v1.0.0
 	github.com/mattn/go-sqlite3 v1.10.0

@@ -51,7 +51,9 @@ func (f *Field) Unique() bool {
 
 func (f *Field) IsInt() bool {
 	switch f.Type {
-	case consts.SerialField, consts.Serial64Field, consts.IntField, consts.Int64Field:
+	case consts.SerialField, consts.Serial64Field,
+		consts.IntField, consts.Int64Field,
+		consts.UintField, consts.Uint64Field:
 		return true
 	default:
 		return false

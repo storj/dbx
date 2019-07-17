@@ -15,6 +15,7 @@
 package golang
 
 import (
+	"fmt"
 	"strings"
 
 	"gopkg.in/spacemonkeygo/dbx.v1/ir"
@@ -24,10 +25,11 @@ import (
 
 type Get struct {
 	PartitionedArgs
-	Info   sqlembedgo.Info
-	Suffix string
-	Row    *Var
-	LastPk *Var
+	Info         sqlembedgo.Info
+	Suffix       string
+	Row          *Var
+	FirstInfo    sqlembedgo.Info
+	Continuation *Var
 }
 
 func GetFromIR(ir_read *ir.Read, dialect sql.Dialect) *Get {
@@ -36,14 +38,16 @@ func GetFromIR(ir_read *ir.Read, dialect sql.Dialect) *Get {
 		PartitionedArgs: PartitionedArgsFromWheres(ir_read.Where),
 		Info:            sqlembedgo.Embed("__", select_sql),
 		Suffix:          convertSuffix(ir_read.Suffix),
+		Row:             GetRowFromIR(ir_read),
 	}
 
-	get.Row = GetRowFromIR(ir_read)
-
 	if ir_read.View == ir.Paged {
-		pk_var := VarFromField(ir_read.From.BasicPrimaryKey())
-		pk_var.Name = "__" + pk_var.Name
-		get.LastPk = pk_var
+		// hack: remove the last where clause before generating the sql
+		first_select := sql.SelectFromIRRead(ir_read, dialect)
+		first_select.Where = first_select.Where[:len(first_select.Where)-1]
+		first_sql := sql.SQLFromSelect(first_select)
+		get.FirstInfo = sqlembedgo.Embed("__", first_sql)
+		get.Continuation = MakeContinuationVar(ir_read)
 	}
 
 	return get
@@ -53,8 +57,28 @@ func GetRowFromIR(ir_read *ir.Read) *Var {
 	if model := ir_read.SelectedModel(); model != nil {
 		return VarFromModel(model)
 	}
-
 	return MakeResultVar(ir_read.Selectables)
+}
+
+func StructFromVar(v *Var) *Struct {
+	s := &Struct{Name: v.Type}
+	for _, field := range v.Fields {
+		s.Fields = append(s.Fields, Field{
+			Name: field.Name,
+			Type: field.Type,
+		})
+	}
+	return s
+}
+
+func MakeContinuationVar(ir_read *ir.Read) *Var {
+	return StructVar(
+		"__continuation",
+		fmt.Sprintf("Paged_%s_Continuation", convertSuffix(ir_read.Suffix)),
+		[]*Var{
+			{Name: "_value", Type: VarFromField(ir_read.From.PagablePrimaryKey()).Type},
+			{Name: "_set", Type: "bool"},
+		})
 }
 
 func MakeResultVar(selectables []ir.Selectable) *Var {
@@ -70,24 +94,17 @@ func MakeResultVar(selectables []ir.Selectable) *Var {
 	return StructVar("row", name, vars)
 }
 
+func ContinuationStructFromRead(ir_read *ir.Read) *Struct {
+	if ir_read.View != ir.Paged {
+		return nil
+	}
+	return StructFromVar(MakeContinuationVar(ir_read))
+}
+
 func ResultStructFromRead(ir_read *ir.Read) *Struct {
 	// no result struct if there is just a single model selected
 	if ir_read.SelectedModel() != nil {
 		return nil
 	}
-
-	result := MakeResultVar(ir_read.Selectables)
-
-	s := &Struct{
-		Name: result.Type,
-	}
-
-	for _, field := range result.Fields {
-		s.Fields = append(s.Fields, Field{
-			Name: field.Name,
-			Type: field.Type,
-		})
-	}
-
-	return s
+	return StructFromVar(MakeResultVar(ir_read.Selectables))
 }

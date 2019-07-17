@@ -1,20 +1,17 @@
 {{- define "signature" -}}
 Paged_{{ .Suffix }}({{ ctxparam .AllArgs }},
-	limit int, ctoken string) (
-	rows {{ sliceof .Row }}, ctokenout string, err error)
+	limit int, start *{{ .Continuation.Type }}) (
+	rows {{ sliceof .Row }}, next *{{ .Continuation.Type }}, err error)
 {{- end -}}
 
 {{- define "invoke" -}}
-Paged_{{ .Suffix }}({{ ctxarg .AllArgs }}, limit, ctoken)
+Paged_{{ .Suffix }}({{ ctxarg .AllArgs }}, limit, start)
 {{- end -}}
 
 {{- define "body" }}
-	if ctoken == "" {
-		ctoken = "0"
-	}
-
 	{{ embedplaceholders .Info }}
 	{{ embedsql .Info "__embed_stmt" }}
+	{{ embedsql .FirstInfo "__embed_first_stmt" }}
 
 	var __values []interface{}
 	__values = append(__values, {{ fieldvalue .StaticArgs }})
@@ -26,37 +23,37 @@ Paged_{{ .Suffix }}({{ ctxarg .AllArgs }}, limit, ctoken)
 	}
 	{{ end }}
 
-	__values = append(__values, ctoken, limit)
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
+	var __stmt string
+	if start != nil && start._set {
+		__values = append(__values, start._value, limit)
+		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
+	} else {
+		__values = append(__values, limit)
+		__stmt = __sqlbundle_Render(obj.dialect, __embed_first_stmt)
+	}
 	obj.logStmt(__stmt, __values...)
 
 	__rows, err := obj.driver.Query(__stmt, __values...)
 	if err != nil {
-		return nil, "", obj.makeErr(err)
+		return nil, nil, obj.makeErr(err)
 	}
 	defer __rows.Close()
 
-	{{ initnew .LastPk }}
+	{{ declare .Continuation }}
+	{{ .Continuation.Name }}._set = true
+
 	for __rows.Next() {
 		{{ initnew .Row }}
-		err = __rows.Scan({{ addrof (flatten .Row) | comma }}{{ addrof .LastPk }})
+		err = __rows.Scan({{ addrof (flatten .Row) | comma }}{{ addrof .Continuation }}._value)
 		if err != nil {
-			return nil, "", obj.makeErr(err)
+			return nil, nil, obj.makeErr(err)
 		}
 		rows = append(rows, {{ arg .Row }})
+		next = {{ addrof .Continuation }}
 	}
 	if err := __rows.Err(); err != nil {
-		return nil, "", obj.makeErr(err)
+		return nil, nil, obj.makeErr(err)
 	}
 
-	if limit > 0 {
-		if len(rows) == limit {
-			ctokenout = fmt.Sprint({{ arg .LastPk }})
-		}
-	} else {
-		ctokenout = ctoken
-	}
-
-	return rows, ctokenout, nil
+	return rows, next, nil
 {{ end -}}
