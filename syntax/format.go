@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"strings"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
+	"storj.io/dbx/errutil"
 )
 
 func Format(path string, data []byte) (formatted []byte, err error) {

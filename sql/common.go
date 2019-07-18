@@ -14,7 +14,7 @@
 
 package sql
 
-import "gopkg.in/spacemonkeygo/dbx.v1/ir"
+import "storj.io/dbx/ir"
 
 type Features struct {
 	// Supports the RETURNING syntax on INSERT/UPDATE

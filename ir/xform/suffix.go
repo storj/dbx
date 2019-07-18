@@ -14,7 +14,7 @@
 
 package xform
 
-import "gopkg.in/spacemonkeygo/dbx.v1/ast"
+import "storj.io/dbx/ast"
 
 func transformSuffix(suffix *ast.Suffix) []string {
 	var parts []string

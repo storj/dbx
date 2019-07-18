@@ -14,7 +14,7 @@
 
 package syntax
 
-import "gopkg.in/spacemonkeygo/dbx.v1/ast"
+import "storj.io/dbx/ast"
 
 func parseView(node *tupleNode) (*ast.View, error) {
 	view := new(ast.View)

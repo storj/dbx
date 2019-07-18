@@ -17,9 +17,9 @@ package sql
 import (
 	"fmt"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen"
-	. "gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqlhelpers"
+	"storj.io/dbx/ir"
+	"storj.io/dbx/sqlgen"
+	. "storj.io/dbx/sqlgen/sqlhelpers"
 )
 
 func ExprSQL(expr *ir.Expr, dialect Dialect) sqlgen.SQL {

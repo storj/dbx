@@ -14,7 +14,7 @@
 
 package syntax
 
-import "gopkg.in/spacemonkeygo/dbx.v1/ast"
+import "storj.io/dbx/ast"
 
 func parseCreate(node *tupleNode) (*ast.Create, error) {
 	cre := new(ast.Create)

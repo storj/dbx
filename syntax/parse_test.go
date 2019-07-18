@@ -17,7 +17,7 @@ package syntax
 import (
 	"testing"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/testutil"
+	"storj.io/dbx/testutil"
 )
 
 func TestEmptyParse(t *testing.T) {

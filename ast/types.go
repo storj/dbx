@@ -19,7 +19,7 @@ import (
 	"strings"
 	"text/scanner"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
+	"storj.io/dbx/consts"
 )
 
 type Root struct {

@@ -14,7 +14,7 @@
 
 package syntax
 
-import "gopkg.in/spacemonkeygo/dbx.v1/ast"
+import "storj.io/dbx/ast"
 
 func parseIndex(node *tupleNode) (*ast.Index, error) {
 	index := new(ast.Index)

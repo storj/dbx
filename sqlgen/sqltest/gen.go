@@ -19,8 +19,8 @@ import (
 	"math/rand"
 	"time"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen"
-	"gopkg.in/spacemonkeygo/dbx.v1/testutil"
+	"storj.io/dbx/sqlgen"
+	"storj.io/dbx/testutil"
 )
 
 type Generator struct {

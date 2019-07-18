@@ -19,8 +19,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/consts"
+	"storj.io/dbx/ir"
 )
 
 type postgres struct {

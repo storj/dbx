@@ -15,9 +15,9 @@
 package xform
 
 import (
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/consts"
+	"storj.io/dbx/errutil"
+	"storj.io/dbx/ir"
 )
 
 func transformField(lookup *lookup, field_entry *fieldEntry) (err error) {

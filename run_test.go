@@ -11,7 +11,7 @@ import (
 	"runtime/debug"
 	"testing"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/testutil"
+	"storj.io/dbx/testutil"
 )
 
 func TestRun(t *testing.T) {

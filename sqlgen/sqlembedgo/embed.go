@@ -18,8 +18,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen"
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqlbundle"
+	"storj.io/dbx/sqlgen"
+	"storj.io/dbx/sqlgen/sqlbundle"
 )
 
 type Condition struct {

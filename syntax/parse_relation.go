@@ -15,8 +15,8 @@
 package syntax
 
 import (
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
+	"storj.io/dbx/ast"
+	"storj.io/dbx/consts"
 )
 
 func parseRelation(node *tupleNode, field *ast.Field) error {

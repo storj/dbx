@@ -1,4 +1,4 @@
-module gopkg.in/spacemonkeygo/dbx.v1
+module storj.io/dbx
 
 require (
 	bitbucket.org/pkg/inflect v0.0.0-20130829110746-8961c3750a47

@@ -15,8 +15,8 @@
 package syntax
 
 import (
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
+	"storj.io/dbx/ast"
+	"storj.io/dbx/errutil"
 )
 
 func parseFieldRefs(node *tupleNode, needs_dot bool) (*ast.FieldRefs, error) {

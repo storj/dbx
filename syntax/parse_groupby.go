@@ -14,7 +14,7 @@
 
 package syntax
 
-import "gopkg.in/spacemonkeygo/dbx.v1/ast"
+import "storj.io/dbx/ast"
 
 func parseGroupBy(node *tupleNode) (*ast.GroupBy, error) {
 	group_by := new(ast.GroupBy)

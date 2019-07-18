@@ -14,7 +14,7 @@
 
 package syntax
 
-import "gopkg.in/spacemonkeygo/dbx.v1/ast"
+import "storj.io/dbx/ast"
 
 func parseOrderBy(node *tupleNode) (*ast.OrderBy, error) {
 	order_by := new(ast.OrderBy)

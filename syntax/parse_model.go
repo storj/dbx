@@ -15,7 +15,7 @@
 package syntax
 
 import (
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
+	"storj.io/dbx/ast"
 )
 
 func parseModel(node *tupleNode) (*ast.Model, error) {

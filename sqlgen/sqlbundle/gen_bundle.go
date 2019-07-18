@@ -83,9 +83,9 @@ func loadCopyright() string {
 
 func loadBundle() string {
 	source, err := exec.Command("bundle",
-		"-dst", "gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqlbundle",
+		"-dst", "storj.io/dbx/sqlgen/sqlbundle",
 		"-prefix", prefix,
-		"gopkg.in/spacemonkeygo/dbx.v1/sqlgen").Output()
+		"storj.io/dbx/sqlgen").Output()
 	if err != nil {
 		fmt.Fprintln(os.Stdout, `ensure "golang.org/x/tools/cmd/bundle" is installed`)
 		panic(err)

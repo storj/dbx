@@ -14,7 +14,7 @@
 
 package ir
 
-import "gopkg.in/spacemonkeygo/dbx.v1/consts"
+import "storj.io/dbx/consts"
 
 type Where struct {
 	Left  *Expr

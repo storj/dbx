@@ -25,13 +25,13 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/code"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
-	"gopkg.in/spacemonkeygo/dbx.v1/sql"
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen"
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqlbundle"
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqlembedgo"
-	"gopkg.in/spacemonkeygo/dbx.v1/tmplutil"
+	"storj.io/dbx/code"
+	"storj.io/dbx/ir"
+	"storj.io/dbx/sql"
+	"storj.io/dbx/sqlgen"
+	"storj.io/dbx/sqlgen/sqlbundle"
+	"storj.io/dbx/sqlgen/sqlembedgo"
+	"storj.io/dbx/tmplutil"
 )
 
 var (

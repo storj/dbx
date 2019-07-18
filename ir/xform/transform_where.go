@@ -17,8 +17,8 @@ package xform
 import (
 	"text/scanner"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/ast"
+	"storj.io/dbx/ir"
 )
 
 func transformWheres(lookup *lookup, models map[string]scanner.Position,

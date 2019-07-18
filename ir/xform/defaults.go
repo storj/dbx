@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/consts"
+	"storj.io/dbx/ir"
 )
 
 func DefaultIndexName(i *ir.Index) string {

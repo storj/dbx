@@ -15,9 +15,9 @@
 package xform
 
 import (
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/ast"
+	"storj.io/dbx/errutil"
+	"storj.io/dbx/ir"
 )
 
 func transformUpdate(lookup *lookup, ast_upd *ast.Update) (

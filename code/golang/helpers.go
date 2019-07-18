@@ -20,8 +20,8 @@ import (
 	"strings"
 
 	"bitbucket.org/pkg/inflect"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqlembedgo"
+	"storj.io/dbx/ir"
+	"storj.io/dbx/sqlgen/sqlembedgo"
 )
 
 func cleanSignature(in string) (out string) {

@@ -17,8 +17,8 @@ package sqlcompile
 import (
 	"testing"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqltest"
-	"gopkg.in/spacemonkeygo/dbx.v1/testutil"
+	"storj.io/dbx/sqlgen/sqltest"
+	"storj.io/dbx/testutil"
 )
 
 func TestCompile(t *testing.T) {

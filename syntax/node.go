@@ -20,7 +20,7 @@ import (
 	"strings"
 	"text/scanner"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
+	"storj.io/dbx/errutil"
 )
 
 type node interface {

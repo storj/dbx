@@ -17,9 +17,9 @@ package golang
 import (
 	"fmt"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
-	"gopkg.in/spacemonkeygo/dbx.v1/sql"
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqlembedgo"
+	"storj.io/dbx/ir"
+	"storj.io/dbx/sql"
+	"storj.io/dbx/sqlgen/sqlembedgo"
 )
 
 type RawCreate struct {

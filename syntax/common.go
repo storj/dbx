@@ -18,8 +18,8 @@ import (
 	"sort"
 
 	"github.com/spacemonkeygo/errors"
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
+	"storj.io/dbx/ast"
+	"storj.io/dbx/consts"
 )
 
 var (

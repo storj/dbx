@@ -14,7 +14,7 @@
 
 package golang
 
-import "gopkg.in/spacemonkeygo/dbx.v1/ir"
+import "storj.io/dbx/ir"
 
 type PartitionedArgs struct {
 	AllArgs      []*Var

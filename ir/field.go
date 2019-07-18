@@ -17,7 +17,7 @@ package ir
 import (
 	"fmt"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
+	"storj.io/dbx/consts"
 )
 
 type Relation struct {

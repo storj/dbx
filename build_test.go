@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"golang.org/x/tools/go/packages"
-	"gopkg.in/spacemonkeygo/dbx.v1/testutil"
+	"storj.io/dbx/testutil"
 )
 
 func TestBuild(t *testing.T) {

@@ -14,7 +14,7 @@
 
 package syntax
 
-import "gopkg.in/spacemonkeygo/dbx.v1/ast"
+import "storj.io/dbx/ast"
 
 func Parse(path string, data []byte) (root *ast.Root, err error) {
 	scanner, err := NewScanner(path, data)

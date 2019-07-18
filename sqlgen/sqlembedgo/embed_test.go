@@ -18,10 +18,10 @@ import (
 	"go/parser"
 	"testing"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen"
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqlcompile"
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen/sqltest"
-	"gopkg.in/spacemonkeygo/dbx.v1/testutil"
+	"storj.io/dbx/sqlgen"
+	"storj.io/dbx/sqlgen/sqlcompile"
+	"storj.io/dbx/sqlgen/sqltest"
+	"storj.io/dbx/testutil"
 )
 
 func TestGolang(t *testing.T) {

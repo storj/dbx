@@ -17,8 +17,8 @@ package golang
 import (
 	"fmt"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/consts"
+	"storj.io/dbx/ir"
 )
 
 // Struct is used for generating go structures

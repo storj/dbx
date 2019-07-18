@@ -18,9 +18,9 @@ import (
 	"fmt"
 
 	"bitbucket.org/pkg/inflect"
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/ast"
+	"storj.io/dbx/errutil"
+	"storj.io/dbx/ir"
 )
 
 func transformModel(lookup *lookup, model_entry *modelEntry) (err error) {

@@ -17,7 +17,7 @@ package sqlgen
 import (
 	"testing"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/testutil"
+	"storj.io/dbx/testutil"
 )
 
 func TestTypes(t *testing.T) {

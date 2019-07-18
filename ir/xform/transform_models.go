@@ -15,9 +15,9 @@
 package xform
 
 import (
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/ast"
+	"storj.io/dbx/errutil"
+	"storj.io/dbx/ir"
 )
 
 func transformModels(lookup *lookup, ast_models []*ast.Model) (

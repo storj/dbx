@@ -17,7 +17,7 @@ package syntax
 import (
 	"text/scanner"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
+	"storj.io/dbx/errutil"
 )
 
 func expectedKeyword(pos scanner.Position, actual string, expected ...string) (

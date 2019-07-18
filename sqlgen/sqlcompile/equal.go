@@ -14,7 +14,7 @@
 
 package sqlcompile
 
-import "gopkg.in/spacemonkeygo/dbx.v1/sqlgen"
+import "storj.io/dbx/sqlgen"
 
 func sqlEqual(a, b sqlgen.SQL) bool {
 	switch a := a.(type) {

@@ -17,7 +17,7 @@ package sqlhelpers
 import (
 	"fmt"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/sqlgen"
+	"storj.io/dbx/sqlgen"
 )
 
 // ls is the basic primitive for constructing larger SQLs. The first argument

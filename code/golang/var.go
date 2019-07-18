@@ -18,8 +18,8 @@ import (
 	"fmt"
 
 	"bitbucket.org/pkg/inflect"
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/consts"
+	"storj.io/dbx/ir"
 )
 
 func VarFromSelectable(selectable ir.Selectable, full_name bool) (v *Var) {

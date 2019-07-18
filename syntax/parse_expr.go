@@ -17,8 +17,8 @@ package syntax
 import (
 	"strconv"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
+	"storj.io/dbx/ast"
+	"storj.io/dbx/errutil"
 )
 
 func parseExpr(node *tupleNode) (*ast.Expr, error) {

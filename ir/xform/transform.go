@@ -15,8 +15,8 @@
 package xform
 
 import (
-	"gopkg.in/spacemonkeygo/dbx.v1/ast"
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
+	"storj.io/dbx/ast"
+	"storj.io/dbx/ir"
 )
 
 func Transform(ast_root *ast.Root) (root *ir.Root, err error) {

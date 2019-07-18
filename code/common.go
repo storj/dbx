@@ -15,8 +15,8 @@
 package code
 
 import (
-	"gopkg.in/spacemonkeygo/dbx.v1/ir"
-	"gopkg.in/spacemonkeygo/dbx.v1/sql"
+	"storj.io/dbx/ir"
+	"storj.io/dbx/sql"
 )
 
 type Renderer interface {

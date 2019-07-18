@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/testutil"
+	"storj.io/dbx/testutil"
 )
 
 func linedSource(source []byte) string {

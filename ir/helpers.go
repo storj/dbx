@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"sort"
 
-	"gopkg.in/spacemonkeygo/dbx.v1/consts"
-	"gopkg.in/spacemonkeygo/dbx.v1/errutil"
+	"storj.io/dbx/consts"
+	"storj.io/dbx/errutil"
 )
 
 // returns true if left is a subset of right

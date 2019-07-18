@@ -12,7 +12,7 @@ and can generate code to interact with sql databases.
 ## Installing
 
 ```
-go get gopkg.in/spacemonkeygo/dbx.v1
+go get storj.io/dbx
 ```
 
 ## Basic Example
@@ -41,17 +41,17 @@ If we place this model in a file called `example.dbx`, we can build some go
 source with the command
 
 ```
-$ dbx.v1 golang example.dbx .
+$ dbx golang example.dbx .
 ```
 
 This will create an `example.go` file in the current directory. Check the
-output of `dbx.v1 golang` for more options like controling the package name or
+output of `dbx golang` for more options like controling the package name or
 other features of the generated code.
 
 Generating a schema is also straightforward:
 
 ```
-$ dbx.v1 schema examples.dbx .
+$ dbx schema examples.dbx .
 ```
 
 This creates an `example.dbx.postgres.sql` file in the current directory with
@@ -203,7 +203,7 @@ func createUser(ctx context.Context, db *DB) (user *User, err error) {
 		}
 	}()
 
-	return tx.Create_User(ctx, 
+	return tx.Create_User(ctx,
 		User_Id("some unique id i just generated"),
 		User_Name("Donny B. Xavier"))
 }
@@ -257,8 +257,8 @@ of the above commands can be passed the `--dialect` (or, shorthand `-d`) flag
 to specify additional dialects. For example, running
 
 ```
-dbx.v1 schema -d postgres -d sqlite3 example.dbx .
-dbx.v1 golang -d postgres -d sqlite3 example.dbx .
+dbx schema -d postgres -d sqlite3 example.dbx .
+dbx golang -d postgres -d sqlite3 example.dbx .
 ```
 
 will create both `example.dbx.postgres.sql` and `example.dbx.sqlite3.sql` with
@@ -271,8 +271,8 @@ All of these commands are intended to normally be used with `//go:generate`
 directives, such as:
 
 ```
-//go:generate dbx.v1 golang -d postgres -d sqlite3 example.dbx .
-//go:generate dbx.v1 schema -d postgres -d sqlite3 example.dbx .
+//go:generate dbx golang -d postgres -d sqlite3 example.dbx .
+//go:generate dbx schema -d postgres -d sqlite3 example.dbx .
 ```
 
 A great spot to put them would be in the file that modifies the hooks and adds
@@ -333,29 +333,29 @@ model <name> (
 	// be either a single field or a multiple fields for a composite primary
 	// key.
 	key <field names>
-	
+
 	// unique constraints are optional and on any number of fields. you can
 	// have as many unique constraints as you want.
 	unique <field names>
-	
+
 	// indexes are optional and you can have as many as you want.
 	index (
 		// the name of the index.
 		// BUG: we only allow one empty name index :)
 		name <name>
-		
+
 		// fields describes which fields are in the index
 		fields <fields>
-		
+
 		// when set, the index will have a unique constraint
 		unique
 	)
-	
+
 	// field declares a normal field to have the name and type. attributes is
 	// an optional list that can be used to tune specific details about the
 	// field like nullable. see the section on attributes to see the full list.
 	field <name> <type> ( attributes )
-	
+
 	// a model can have foreign key relations to another model's field. the
 	// relation describes what happens on delete: if the related field's row is
 	// removed, what do we do to the row that describes this model? as normal
@@ -421,7 +421,7 @@ A foreign key can have these attributes
 create <model> (
 	// raw will cause the generation of a "raw" create that exposes every field
 	raw
-	
+
 	// suffix will cause the generated create method to have the desired value
 	suffix <parts>
 )
@@ -454,11 +454,11 @@ read <views> (
 	// specify either models or just a field of a model, like "user" or
 	// "project.id"
 	select <field refs>
-	
+
 	// a read can have any number of where clauses. the clause refers to an
 	// expression, an operation like "!=" or "<=", and another expression. if
 	// the right side field has a placeholder (?), the read will fill it in
-	// with an argument and be generated with a parameter for that argument. 
+	// with an argument and be generated with a parameter for that argument.
 	// multiple where clauses will be joined by "and"s.
 	//
 	// <expr> can be one of the following:
@@ -484,16 +484,16 @@ read <views> (
 	// a model field reference, optionally wrapped in one or more function
 	// calls.
 	where <limited-expr> <op> <expr>
-	
+
 	// a join describes a join for the read. it brings the right hand side
 	// model into scope for the selects, and the joins must be in a consistent
 	// order.
 	join <model.field> = <model.field>
-	
+
 	// orderby controls the order the rows are returned. direction has to be
 	// either "asc" or "desc".
 	orderby <direction> <model.field>
-	
+
 	// suffix will cause the generated read methods to have the desired value
 	suffix <parts>
 )

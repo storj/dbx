@@ -14,7 +14,7 @@
 
 package sqlcompile
 
-import "gopkg.in/spacemonkeygo/dbx.v1/sqlgen"
+import "storj.io/dbx/sqlgen"
 
 // Compile reduces the sql expression to normal form
 func Compile(sql sqlgen.SQL) sqlgen.SQL {
