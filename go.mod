@@ -1,5 +1,7 @@
 module storj.io/dbx
 
+go 1.12
+
 require (
 	bitbucket.org/pkg/inflect v0.0.0-20130829110746-8961c3750a47
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
