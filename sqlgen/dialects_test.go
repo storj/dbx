@@ -30,6 +30,7 @@ func TestDialects(t *testing.T) {
 	tw.Parallel()
 	tw.Runp("postgres", testDialectsPostgres)
 	tw.Runp("sqlite3", testDialectsSQLite3)
+	tw.Runp("cockroach", testDialectsCockroach)
 }
 
 func testDialectsPostgres(tw *testutil.T) {
@@ -53,5 +54,17 @@ func testDialectsSQLite3Rebind(tw *testutil.T) {
 		{in: "", out: ""},
 		{in: "? foo bar ? baz", out: "? foo bar ? baz"},
 		{in: "? ? ?", out: "? ? ?"},
+	})
+}
+
+func testDialectsCockroach(tw *testutil.T) {
+	tw.Runp("rebind", testDialectsCockroachRebind)
+}
+
+func testDialectsCockroachRebind(tw *testutil.T) {
+	testDialectsRebind(tw, cockroach{}, []rebindTestCase{
+		{in: "", out: ""},
+		{in: "? foo bar ? baz", out: "$1 foo bar $2 baz"},
+		{in: "? ? ?", out: "$1 $2 $3"},
 	})
 }

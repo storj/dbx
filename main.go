@@ -213,6 +213,8 @@ func createDialects(which []string) (out []sql.Dialect, err error) {
 			d = sql.Postgres()
 		case "sqlite3":
 			d = sql.SQLite3()
+		case "cockroach":
+			d = sql.Cockroach()
 		default:
 			return nil, fmt.Errorf("unknown dialect %q", name)
 		}

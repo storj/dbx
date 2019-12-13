@@ -6,6 +6,7 @@
 // golang.delete-all.tmpl
 // golang.delete-world.tmpl
 // golang.delete.tmpl
+// golang.dialect-cockroach.tmpl
 // golang.dialect-postgres.tmpl
 // golang.dialect-sqlite3.tmpl
 // golang.footer.tmpl
@@ -215,6 +216,26 @@ func golangDeleteTmpl() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "golang.delete.tmpl", size: 875, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _golangDialectCockroachTmpl = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x74\x91\xcd\xae\x9b\x30\x10\x85\xd7\xf8\x29\x4e\xbd\x82\x2b\x42\xa4\x76\xd7\x2a\x9b\xa6\x5d\x57\xea\x1b\x38\x66\x00\xeb\x12\x9b\xcc\x98\x56\x15\xe2\xdd\x2b\x3b\xe4\x6f\x71\x25\x36\xcc\xcc\x37\x67\xce\xf1\xb2\xec\xd0\x52\xe7\x3c\x41\xbb\xf3\x14\x38\x6a\xac\xab\x2a\x74\xef\xe2\x30\x9f\x1a\x1b\xce\xfb\xd1\x9d\xf6\xd3\x45\xab\x65\x01\xf9\x16\xbb\x75\x55\xea\x85\x93\x9d\x0d\x5e\x22\x1b\xe7\xe3\x8e\x98\x03\xe7\x25\xdd\xec\x2d\x4a\x77\x9e\x46\x2c\x0b\x9a\xdf\x64\xc9\xfd\x21\xc6\xba\x56\x70\x72\xbc\x23\x3f\x13\x51\x12\x33\x32\x5b\xa1\x54\xc5\x63\x21\x24\xb2\xf3\x7d\x8d\xf0\x8e\x53\x08\x63\x85\x45\x15\xae\x03\xe5\xca\xd7\x43\x82\x9a\xf2\x6d\xba\x34\x79\x4f\xf5\x2d\x95\x17\x55\x14\x79\xa8\x39\x86\x96\x9a\xe3\x68\x44\xca\x0a\x87\x03\xf4\xe7\x2f\xfa\xda\x2e\x98\xe2\xcc\x3e\xcf\xdc\xc4\x6a\x44\x9e\x29\x75\x57\x95\xbe\x6d\x44\xeb\x1a\x9d\x19\x85\xd4\xfa\x61\x0a\x61\x22\xff\xb0\x9d\xfe\x6c\xb0\xef\x1c\x8c\x1d\x4a\x09\x33\x5b\xda\x9c\x54\x28\xdf\xe4\x32\x36\x3f\xbe\xd7\x37\xc3\x8b\x2a\xf6\x7b\x44\xfe\x87\xce\xb1\x44\xfc\x75\x71\x80\xbe\xf3\x1a\x46\x60\xd0\x72\x8e\xcf\x79\x58\x23\x04\x09\x67\x0a\x9e\x30\x18\x01\x53\xef\x24\x12\x53\x9b\x37\xa5\x16\x64\x22\xeb\xcc\x08\x89\x73\xd7\x35\x70\x1d\xe2\x60\x22\x3a\xe3\x46\xa9\x11\x07\xf2\x59\xd1\xf4\xc6\xf9\x4d\x71\x0a\x12\x7b\x26\x49\x82\xd7\x93\x06\xda\x64\x1b\x55\xb4\xa7\x7c\x70\xca\x3c\xdd\xff\x6b\x22\x5f\x3e\x1d\x59\xe3\x6a\xb3\xba\x3e\x0f\x33\x3e\x1d\xe0\xdd\x98\xd3\xbe\xb1\xcf\xe8\x5d\xed\x89\x7c\x64\xbe\x11\xaf\x89\xff\x0f\x00\x00\xff\xff\x62\xb9\xbc\x1a\xaf\x02\x00\x00")
+
+func golangDialectCockroachTmplBytes() ([]byte, error) {
+	return bindataRead(
+		_golangDialectCockroachTmpl,
+		"golang.dialect-cockroach.tmpl",
+	)
+}
+
+func golangDialectCockroachTmpl() (*asset, error) {
+	bytes, err := golangDialectCockroachTmplBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "golang.dialect-cockroach.tmpl", size: 687, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -611,29 +632,30 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"golang.create-raw.tmpl":       golangCreateRawTmpl,
-	"golang.create.tmpl":           golangCreateTmpl,
-	"golang.decl.tmpl":             golangDeclTmpl,
-	"golang.delete-all.tmpl":       golangDeleteAllTmpl,
-	"golang.delete-world.tmpl":     golangDeleteWorldTmpl,
-	"golang.delete.tmpl":           golangDeleteTmpl,
-	"golang.dialect-postgres.tmpl": golangDialectPostgresTmpl,
-	"golang.dialect-sqlite3.tmpl":  golangDialectSqlite3Tmpl,
-	"golang.footer.tmpl":           golangFooterTmpl,
-	"golang.get-all.tmpl":          golangGetAllTmpl,
-	"golang.get-count.tmpl":        golangGetCountTmpl,
-	"golang.get-first.tmpl":        golangGetFirstTmpl,
-	"golang.get-has.tmpl":          golangGetHasTmpl,
-	"golang.get-last.tmpl":         golangGetLastTmpl,
-	"golang.get-limitoffset.tmpl":  golangGetLimitoffsetTmpl,
-	"golang.get-one-all.tmpl":      golangGetOneAllTmpl,
-	"golang.get-one.tmpl":          golangGetOneTmpl,
-	"golang.get-paged.tmpl":        golangGetPagedTmpl,
-	"golang.get-scalar-all.tmpl":   golangGetScalarAllTmpl,
-	"golang.get-scalar.tmpl":       golangGetScalarTmpl,
-	"golang.header.tmpl":           golangHeaderTmpl,
-	"golang.misc.tmpl":             golangMiscTmpl,
-	"golang.update.tmpl":           golangUpdateTmpl,
+	"golang.create-raw.tmpl":        golangCreateRawTmpl,
+	"golang.create.tmpl":            golangCreateTmpl,
+	"golang.decl.tmpl":              golangDeclTmpl,
+	"golang.delete-all.tmpl":        golangDeleteAllTmpl,
+	"golang.delete-world.tmpl":      golangDeleteWorldTmpl,
+	"golang.delete.tmpl":            golangDeleteTmpl,
+	"golang.dialect-cockroach.tmpl": golangDialectCockroachTmpl,
+	"golang.dialect-postgres.tmpl":  golangDialectPostgresTmpl,
+	"golang.dialect-sqlite3.tmpl":   golangDialectSqlite3Tmpl,
+	"golang.footer.tmpl":            golangFooterTmpl,
+	"golang.get-all.tmpl":           golangGetAllTmpl,
+	"golang.get-count.tmpl":         golangGetCountTmpl,
+	"golang.get-first.tmpl":         golangGetFirstTmpl,
+	"golang.get-has.tmpl":           golangGetHasTmpl,
+	"golang.get-last.tmpl":          golangGetLastTmpl,
+	"golang.get-limitoffset.tmpl":   golangGetLimitoffsetTmpl,
+	"golang.get-one-all.tmpl":       golangGetOneAllTmpl,
+	"golang.get-one.tmpl":           golangGetOneTmpl,
+	"golang.get-paged.tmpl":         golangGetPagedTmpl,
+	"golang.get-scalar-all.tmpl":    golangGetScalarAllTmpl,
+	"golang.get-scalar.tmpl":        golangGetScalarTmpl,
+	"golang.header.tmpl":            golangHeaderTmpl,
+	"golang.misc.tmpl":              golangMiscTmpl,
+	"golang.update.tmpl":            golangUpdateTmpl,
 }
 
 // AssetDir returns the file names below a certain
@@ -677,29 +699,30 @@ type bintree struct {
 }
 
 var _bintree = &bintree{nil, map[string]*bintree{
-	"golang.create-raw.tmpl":       &bintree{golangCreateRawTmpl, map[string]*bintree{}},
-	"golang.create.tmpl":           &bintree{golangCreateTmpl, map[string]*bintree{}},
-	"golang.decl.tmpl":             &bintree{golangDeclTmpl, map[string]*bintree{}},
-	"golang.delete-all.tmpl":       &bintree{golangDeleteAllTmpl, map[string]*bintree{}},
-	"golang.delete-world.tmpl":     &bintree{golangDeleteWorldTmpl, map[string]*bintree{}},
-	"golang.delete.tmpl":           &bintree{golangDeleteTmpl, map[string]*bintree{}},
-	"golang.dialect-postgres.tmpl": &bintree{golangDialectPostgresTmpl, map[string]*bintree{}},
-	"golang.dialect-sqlite3.tmpl":  &bintree{golangDialectSqlite3Tmpl, map[string]*bintree{}},
-	"golang.footer.tmpl":           &bintree{golangFooterTmpl, map[string]*bintree{}},
-	"golang.get-all.tmpl":          &bintree{golangGetAllTmpl, map[string]*bintree{}},
-	"golang.get-count.tmpl":        &bintree{golangGetCountTmpl, map[string]*bintree{}},
-	"golang.get-first.tmpl":        &bintree{golangGetFirstTmpl, map[string]*bintree{}},
-	"golang.get-has.tmpl":          &bintree{golangGetHasTmpl, map[string]*bintree{}},
-	"golang.get-last.tmpl":         &bintree{golangGetLastTmpl, map[string]*bintree{}},
-	"golang.get-limitoffset.tmpl":  &bintree{golangGetLimitoffsetTmpl, map[string]*bintree{}},
-	"golang.get-one-all.tmpl":      &bintree{golangGetOneAllTmpl, map[string]*bintree{}},
-	"golang.get-one.tmpl":          &bintree{golangGetOneTmpl, map[string]*bintree{}},
-	"golang.get-paged.tmpl":        &bintree{golangGetPagedTmpl, map[string]*bintree{}},
-	"golang.get-scalar-all.tmpl":   &bintree{golangGetScalarAllTmpl, map[string]*bintree{}},
-	"golang.get-scalar.tmpl":       &bintree{golangGetScalarTmpl, map[string]*bintree{}},
-	"golang.header.tmpl":           &bintree{golangHeaderTmpl, map[string]*bintree{}},
-	"golang.misc.tmpl":             &bintree{golangMiscTmpl, map[string]*bintree{}},
-	"golang.update.tmpl":           &bintree{golangUpdateTmpl, map[string]*bintree{}},
+	"golang.create-raw.tmpl":        &bintree{golangCreateRawTmpl, map[string]*bintree{}},
+	"golang.create.tmpl":            &bintree{golangCreateTmpl, map[string]*bintree{}},
+	"golang.decl.tmpl":              &bintree{golangDeclTmpl, map[string]*bintree{}},
+	"golang.delete-all.tmpl":        &bintree{golangDeleteAllTmpl, map[string]*bintree{}},
+	"golang.delete-world.tmpl":      &bintree{golangDeleteWorldTmpl, map[string]*bintree{}},
+	"golang.delete.tmpl":            &bintree{golangDeleteTmpl, map[string]*bintree{}},
+	"golang.dialect-cockroach.tmpl": &bintree{golangDialectCockroachTmpl, map[string]*bintree{}},
+	"golang.dialect-postgres.tmpl":  &bintree{golangDialectPostgresTmpl, map[string]*bintree{}},
+	"golang.dialect-sqlite3.tmpl":   &bintree{golangDialectSqlite3Tmpl, map[string]*bintree{}},
+	"golang.footer.tmpl":            &bintree{golangFooterTmpl, map[string]*bintree{}},
+	"golang.get-all.tmpl":           &bintree{golangGetAllTmpl, map[string]*bintree{}},
+	"golang.get-count.tmpl":         &bintree{golangGetCountTmpl, map[string]*bintree{}},
+	"golang.get-first.tmpl":         &bintree{golangGetFirstTmpl, map[string]*bintree{}},
+	"golang.get-has.tmpl":           &bintree{golangGetHasTmpl, map[string]*bintree{}},
+	"golang.get-last.tmpl":          &bintree{golangGetLastTmpl, map[string]*bintree{}},
+	"golang.get-limitoffset.tmpl":   &bintree{golangGetLimitoffsetTmpl, map[string]*bintree{}},
+	"golang.get-one-all.tmpl":       &bintree{golangGetOneAllTmpl, map[string]*bintree{}},
+	"golang.get-one.tmpl":           &bintree{golangGetOneTmpl, map[string]*bintree{}},
+	"golang.get-paged.tmpl":         &bintree{golangGetPagedTmpl, map[string]*bintree{}},
+	"golang.get-scalar-all.tmpl":    &bintree{golangGetScalarAllTmpl, map[string]*bintree{}},
+	"golang.get-scalar.tmpl":        &bintree{golangGetScalarTmpl, map[string]*bintree{}},
+	"golang.header.tmpl":            &bintree{golangHeaderTmpl, map[string]*bintree{}},
+	"golang.misc.tmpl":              &bintree{golangMiscTmpl, map[string]*bintree{}},
+	"golang.update.tmpl":            &bintree{golangUpdateTmpl, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory

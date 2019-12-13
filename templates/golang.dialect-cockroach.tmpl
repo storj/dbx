@@ -1,0 +1,28 @@
+{{- define "import" }}
+	"github.com/lib/pq"
+{{ end -}}
+
+{{- define "is-constraint-error" }}
+func (impl {{ .Receiver }}) isConstraintError(err error) (
+	constraint string, ok bool) {
+	if e, ok := err.(*pq.Error); ok {
+			if e.Code.Class() == "23" {
+				return e.Constraint, true
+			}
+	}
+	return "", false
+}
+{{ end -}}
+
+{{- define "open" }}
+func opencockroach(source string) (*sql.DB, error) {
+	// try first with "cockroach" as a driver in case someone has registered
+	// some special stuff. if that fails, then try again with "postgres" as
+	// the driver.
+	db, err := sql.Open("cockroach", source)
+	if err != nil {
+		db, err = sql.Open("postgres", source)
+	}
+	return db, err
+}
+{{ end -}}
