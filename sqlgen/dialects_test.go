@@ -42,6 +42,11 @@ func testDialectsPostgresRebind(tw *testutil.T) {
 		{in: "", out: ""},
 		{in: "? foo bar ? baz", out: "$1 foo bar $2 baz"},
 		{in: "? ? ?", out: "$1 $2 $3"},
+		{in: "?,?,?,?,?,?,?,?,?,?", out: "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10"},
+		{
+			in:  "select ?like?, 'question?''?' as \"quotedcolname?\"\"?\", -- comment?\nbar from table\nwhere x=-? and y='-?'",
+			out: "select $1like$2, 'question?''?' as \"quotedcolname?\"\"?\", -- comment?\nbar from table\nwhere x=-$3 and y='-?'",
+		},
 	})
 }
 
@@ -66,5 +71,10 @@ func testDialectsCockroachRebind(tw *testutil.T) {
 		{in: "", out: ""},
 		{in: "? foo bar ? baz", out: "$1 foo bar $2 baz"},
 		{in: "? ? ?", out: "$1 $2 $3"},
+		{in: "?,?,?,?,?,?,?,?,?,?", out: "$1,$2,$3,$4,$5,$6,$7,$8,$9,$10"},
+		{
+			in:  "select ?like?, 'question?''?' as \"quotedcolname?\"\"?\", -- comment?\nbar from table\nwhere x=-? and y='-?'",
+			out: "select $1like$2, 'question?''?' as \"quotedcolname?\"\"?\", -- comment?\nbar from table\nwhere x=-$3 and y='-?'",
+		},
 	})
 }
