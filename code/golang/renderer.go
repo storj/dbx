@@ -11,6 +11,7 @@ import (
 	"io"
 	"regexp"
 	"sort"
+	"strings"
 	"text/template"
 	"unicode"
 	"unicode/utf8"
@@ -336,6 +337,7 @@ func (r *Renderer) renderHeader(w io.Writer, root *ir.Root,
 		SQLSupport: sqlbundle.Source,
 	}
 
+	extra_imports := make(map[string]struct{})
 	for _, dialect := range dialects {
 		dialect_schema := sqlgen.Render(dialect,
 			sql.SchemaSQL(root, dialect),
@@ -351,13 +353,20 @@ func (r *Renderer) renderHeader(w io.Writer, root *ir.Root,
 		if err != nil {
 			return err
 		}
+		for _, extra_import := range strings.Split(dialect_import, "\n") {
+			extra_imports[strings.TrimSpace(extra_import)] = struct{}{}
+		}
 
-		params.ExtraImports = append(params.ExtraImports, dialect_import)
 		params.Dialects = append(params.Dialects, headerDialect{
 			Name:      dialect.Name(),
 			SchemaSQL: dialect_schema,
 		})
 	}
+
+	for extra_import := range extra_imports {
+		params.ExtraImports = append(params.ExtraImports, extra_import)
+	}
+	sort.Strings(params.ExtraImports)
 
 	return tmplutil.Render(r.header, w, "", params)
 }
