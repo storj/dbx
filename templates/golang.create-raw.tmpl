@@ -1,5 +1,5 @@
 {{- define "name" -}}
-RawCreate{{ if not .Return }}NoReturn{{ end }}_{{ .Suffix }}
+Raw{{ if .Replace }}Replace{{ else }}Create{{ end }}{{ if not .Return }}NoReturn{{ end }}_{{ .Suffix }}
 {{- end -}}
 
 {{- define "signature" -}}

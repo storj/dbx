@@ -11,6 +11,7 @@ type Create struct {
 	Model    *Model
 	Raw      bool
 	NoReturn bool
+	Replace  bool
 }
 
 func (cre *Create) Signature() string {
@@ -20,6 +21,9 @@ func (cre *Create) Signature() string {
 	}
 	if cre.NoReturn {
 		prefix += "_NORETURN"
+	}
+	if cre.Replace {
+		prefix += "_REPLACE"
 	}
 	return fmt.Sprintf("%s(%q)", prefix, cre.Suffix)
 }

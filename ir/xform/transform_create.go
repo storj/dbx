@@ -6,6 +6,7 @@ package xform
 
 import (
 	"storj.io/dbx/ast"
+	"storj.io/dbx/errutil"
 	"storj.io/dbx/ir"
 )
 
@@ -21,10 +22,16 @@ func transformCreate(lookup *lookup, ast_cre *ast.Create) (
 		Model:    model,
 		Raw:      ast_cre.Raw.Get(),
 		NoReturn: ast_cre.NoReturn.Get(),
+		Replace:  ast_cre.Replace.Get(),
 		Suffix:   transformSuffix(ast_cre.Suffix),
 	}
 	if cre.Suffix == nil {
 		cre.Suffix = DefaultCreateSuffix(cre)
+	}
+
+	if cre.Replace && !cre.Raw && cre.Model.BasicPrimaryKey() != nil {
+		return nil, errutil.New(ast_cre.Replace.Pos,
+			"non-raw replace with basic primary key guarantees no replace can happen")
 	}
 
 	return cre, nil

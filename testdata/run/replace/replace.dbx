@@ -1,0 +1,15 @@
+model kv (
+	key key
+
+	field key text
+	field val text
+)
+
+create kv ( replace, noreturn )
+
+read all ( select kv )
+
+read one (
+	select kv
+	where kv.key = ?
+)

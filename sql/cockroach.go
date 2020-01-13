@@ -29,6 +29,7 @@ func (p *cockroach) Features() Features {
 		Returning:           true,
 		PositionalArguments: true,
 		NoLimitToken:        "ALL",
+		ReplaceStyle:        ReplaceStyle_Upsert,
 	}
 }
 

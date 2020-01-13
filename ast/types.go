@@ -198,6 +198,7 @@ type Create struct {
 	Model    *ModelRef
 	Raw      *Bool
 	NoReturn *Bool
+	Replace  *Bool
 	Suffix   *Suffix
 }
 

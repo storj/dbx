@@ -16,16 +16,21 @@ func InsertSQL(ir_cre *ir.Create, dialect Dialect) sqlgen.SQL {
 }
 
 type Insert struct {
-	Table     string
-	Columns   []string
-	Returning []string
+	Table        string
+	Columns      []string
+	Returning    []string
+	ReplaceStyle *ReplaceStyle
 }
 
 func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
+	features := dialect.Features()
 	ins := &Insert{
 		Table: ir_cre.Model.Table,
 	}
-	if dialect.Features().Returning && !ir_cre.NoReturn {
+	if ir_cre.Replace {
+		ins.ReplaceStyle = &features.ReplaceStyle
+	}
+	if features.Returning && !ir_cre.NoReturn {
 		ins.Returning = ir_cre.Model.SelectRefs()
 	}
 	for _, field := range ir_cre.Fields() {
@@ -34,17 +39,44 @@ func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
 		}
 		ins.Columns = append(ins.Columns, field.Column)
 	}
+
 	return ins
 }
 
 func SQLFromInsert(insert *Insert) sqlgen.SQL {
-	stmt := Build(Lf("INSERT INTO %s", insert.Table))
+	verb := "INSERT"
+	if insert.ReplaceStyle != nil {
+		switch *insert.ReplaceStyle {
+		case ReplaceStyle_OnConflictUpdate:
+		case ReplaceStyle_Replace:
+			verb = "REPLACE"
+		case ReplaceStyle_Upsert:
+			verb = "UPSERT"
+		}
+	}
 
-	if cols := insert.Columns; len(cols) > 0 {
+	stmt := Build(Lf("%s INTO %s", verb, insert.Table))
+	cols := insert.Columns
+
+	if len(cols) > 0 {
 		stmt.Add(L("("), J(", ", Strings(cols)...), L(")"))
 		stmt.Add(L("VALUES ("), J(", ", Placeholders(len(cols))...), L(")"))
 	} else {
 		stmt.Add(L("DEFAULT VALUES"))
+	}
+
+	if insert.ReplaceStyle != nil && *insert.ReplaceStyle == ReplaceStyle_OnConflictUpdate {
+		stmt.Add(L("ON CONFLICT"))
+		if len(cols) > 0 {
+			stmt.Add(L("DO UPDATE SET"))
+			var excluded []sqlgen.SQL
+			for _, col := range cols {
+				excluded = append(excluded, Lf("%s = EXCLUDED.%s", col, col))
+			}
+			stmt.Add(J(", ", excluded...))
+		} else {
+			stmt.Add(L("DO NOTHING"))
+		}
 	}
 
 	if rets := insert.Returning; len(rets) > 0 {

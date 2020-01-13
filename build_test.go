@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"golang.org/x/tools/go/packages"
+
 	"storj.io/dbx/testutil"
 )
 

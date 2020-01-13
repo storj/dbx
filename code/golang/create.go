@@ -14,6 +14,7 @@ import (
 
 type RawCreate struct {
 	Info              sqlembedgo.Info
+	Replace           bool
 	Suffix            string
 	Return            *Var
 	Arg               *Var
@@ -25,6 +26,7 @@ func RawCreateFromIR(ir_cre *ir.Create, dialect sql.Dialect) *RawCreate {
 	insert_sql := sql.InsertSQL(ir_cre, dialect)
 	ins := &RawCreate{
 		Info:              sqlembedgo.Embed("__", insert_sql),
+		Replace:           ir_cre.Replace,
 		Suffix:            convertSuffix(ir_cre.Suffix),
 		SupportsReturning: dialect.Features().Returning,
 	}
@@ -56,6 +58,7 @@ func RawCreateFromIR(ir_cre *ir.Create, dialect sql.Dialect) *RawCreate {
 
 type Create struct {
 	Info              sqlembedgo.Info
+	Replace           bool
 	Suffix            string
 	Return            *Var
 	Args              []*Var
@@ -68,6 +71,7 @@ func CreateFromIR(ir_cre *ir.Create, dialect sql.Dialect) *Create {
 	insert_sql := sql.InsertSQL(ir_cre, dialect)
 	ins := &Create{
 		Info:              sqlembedgo.Embed("__", insert_sql),
+		Replace:           ir_cre.Replace,
 		Suffix:            convertSuffix(ir_cre.Suffix),
 		SupportsReturning: dialect.Features().Returning,
 	}

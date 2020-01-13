@@ -15,7 +15,18 @@ type Features struct {
 
 	// Token used with LIMIT to mean "no limit"
 	NoLimitToken string
+
+	// What style the database uses to handle replacement creates
+	ReplaceStyle ReplaceStyle
 }
+
+type ReplaceStyle int
+
+const (
+	ReplaceStyle_Replace ReplaceStyle = iota
+	ReplaceStyle_OnConflictUpdate
+	ReplaceStyle_Upsert
+)
 
 type Dialect interface {
 	Name() string

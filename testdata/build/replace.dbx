@@ -1,0 +1,17 @@
+model foo (
+	key pk
+	field pk   blob
+	field data text
+)
+
+create foo ( noreturn, replace )
+create foo ( replace )
+
+model bar (
+	key pk
+	field pk   serial64
+	field data text
+)
+
+create bar ( raw, replace )
+create bar ( raw, noreturn, replace )

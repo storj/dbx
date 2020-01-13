@@ -27,6 +27,7 @@ func (s *sqlite3) Features() Features {
 	return Features{
 		Returning:    false,
 		NoLimitToken: "-1",
+		ReplaceStyle: ReplaceStyle_Replace,
 	}
 }
 
