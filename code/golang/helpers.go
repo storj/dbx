@@ -7,6 +7,7 @@ package golang
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"bitbucket.org/pkg/inflect"
@@ -14,8 +15,10 @@ import (
 	"storj.io/dbx/sqlgen/sqlembedgo"
 )
 
-func cleanSignature(in string) (out string) {
-	return reCollapseSpace.ReplaceAllString(strings.TrimSpace(in), " ")
+func renameFn(name string, v *Var) *Var {
+	vc := v.Copy()
+	vc.Name = name
+	return vc
 }
 
 func sliceofFn(intf interface{}) (string, error) {
@@ -36,6 +39,14 @@ func paramFn(intf interface{}) (string, error) {
 
 func argFn(intf interface{}) (string, error) {
 	vs, err := forVars(intf, (*Var).Arg)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(vs, ", "), nil
+}
+
+func valueFn(intf interface{}) (string, error) {
+	vs, err := forVars(intf, (*Var).Value)
 	if err != nil {
 		return "", err
 	}
@@ -96,14 +107,6 @@ func flattenFn(intf interface{}) (flattened []*Var, err error) {
 	return flattened, nil
 }
 
-func fieldvalueFn(vars []*Var) string {
-	var values []string
-	for _, v := range vars {
-		values = append(values, fmt.Sprintf("%s.value()", v.Name))
-	}
-	return strings.Join(values, ", ")
-}
-
 func ctxparamFn(intf interface{}) (string, error) {
 	param, err := paramFn(intf)
 	if err != nil {
@@ -133,9 +136,33 @@ func commaFn(in string) string {
 	return in + ", "
 }
 
+func doubleFn(vs []*Var) (out []*Var) {
+	for _, v := range vs {
+		out = append(out, v, v)
+	}
+	return out
+}
+
+func sliceFn(start, end int, intf interface{}) interface{} {
+	rv := reflect.ValueOf(intf)
+	if start < 0 {
+		start += rv.Len()
+	}
+	if end < 0 {
+		end += rv.Len()
+	}
+	return rv.Slice(start, end).Interface()
+}
+
 func forVars(intf interface{}, fn func(v *Var) string) ([]string, error) {
 	var elems []string
 	switch obj := intf.(type) {
+	case ConditionArg:
+		elems = append(elems, fn(obj.Var))
+	case []ConditionArg:
+		for _, arg := range obj {
+			elems = append(elems, fn(arg.Var))
+		}
 	case *Var:
 		elems = append(elems, fn(obj))
 	case []*Var:
@@ -180,4 +207,29 @@ func embedplaceholdersFn(info sqlembedgo.Info) string {
 
 func embedsqlFn(info sqlembedgo.Info, name string) string {
 	return fmt.Sprintf("var %s = %s\n", name, info.Expression)
+}
+
+func embedvaluesFn(args []ConditionArg, name string) string {
+	var out bytes.Buffer
+	var run []string
+
+	for _, arg := range args {
+		if arg.IsCondition {
+			if len(run) > 0 {
+				fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+				run = run[:0]
+			}
+			fmt.Fprintf(&out, "if !%s.isnull() {\n", arg.Var.Name)
+			fmt.Fprintf(&out, "\t__cond_%d.Null = false\n", arg.Condition)
+			fmt.Fprintf(&out, "\t%s = append(%s, %s.value())\n", name, name, arg.Var.Name)
+			fmt.Fprintf(&out, "}\n")
+		} else {
+			run = append(run, fmt.Sprintf("%s.value()", arg.Var.Name))
+		}
+	}
+	if len(run) > 0 {
+		fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+	}
+
+	return out.String()
 }

@@ -1,10 +1,10 @@
 {{- define "signature" -}}
-Count_{{ .Suffix }}({{ ctxparam .AllArgs }}) (
+Count_{{ .Suffix }}({{ ctxparam .Args }}) (
 	count int64, err error)
 {{- end -}}
 
 {{- define "invoke" -}}
-Count_{{ .Suffix }}({{ ctxarg .AllArgs }})
+Count_{{ .Suffix }}({{ ctxarg .Args }})
 {{- end -}}
 
 {{- define "body" }}
@@ -12,14 +12,7 @@ Count_{{ .Suffix }}({{ ctxarg .AllArgs }})
 	{{ embedsql .Info "__embed_stmt" }}
 
 	var __values []interface{}
-	__values = append(__values, {{ fieldvalue .StaticArgs }})
-
-	{{ range $i, $arg := .NullableArgs }}
-	if !{{ $arg.Name }}.isnull() {
-		__cond_{{ $i }}.Null = false
-		__values = append(__values, {{ $arg.Name }}.value())
-	}
-	{{ end }}
+	{{ embedvalues .Args "__values" }}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)

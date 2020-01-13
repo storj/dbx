@@ -7,14 +7,20 @@ package ir
 import "storj.io/dbx/consts"
 
 type Where struct {
+	Clause *Clause
+	Or     *[2]*Where
+	And    *[2]*Where
+}
+
+type Clause struct {
 	Left  *Expr
 	Op    consts.Operator
 	Right *Expr
 }
 
-func (w *Where) NeedsCondition() bool {
+func (c *Clause) NeedsCondition() bool {
 	// only EQ and NE need a condition to switch on "=" v.s. "is", etc.
-	switch w.Op {
+	switch c.Op {
 	case consts.EQ, consts.NE:
 	default:
 		return false
@@ -22,9 +28,9 @@ func (w *Where) NeedsCondition() bool {
 
 	// null values are fixed and don't need a runtime condition to render
 	// appropriately
-	if w.Left.Null || w.Right.Null {
+	if c.Left.Null || c.Right.Null {
 		return false
 	}
 
-	return w.Left.Nullable() && w.Right.Nullable()
+	return c.Left.Nullable() && c.Right.Nullable()
 }

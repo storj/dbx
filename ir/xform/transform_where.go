@@ -37,9 +37,11 @@ func transformWhere(lookup *lookup, models map[string]scanner.Position,
 		return nil, err
 	}
 
-	return &ir.Where{
+	// TODO: it's easier to support `or` in the grammar now
+
+	return &ir.Where{Clause: &ir.Clause{
 		Left:  lexpr,
 		Op:    ast_where.Op.Value,
 		Right: rexpr,
-	}, nil
+	}}, nil
 }

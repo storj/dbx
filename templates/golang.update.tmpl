@@ -3,13 +3,13 @@ Update{{ if not .Return }}NoReturn{{ end }}_{{ .Suffix }}
 {{- end -}}
 
 {{- define "signature" -}}
-{{- template "name" . }}({{ ctxparam .AllArgs }},
+{{- template "name" . }}({{ ctxparam .Args }},
 	update {{ .Struct.UpdateStructName }}) (
 	{{ if .Return }}{{ param .Return }}, {{ end }}err error)
 {{- end -}}
 
 {{- define "invoke" -}}
-{{- template "name" . }}({{ ctxarg .AllArgs }}, update)
+{{- template "name" . }}({{ ctxarg .Args }}, update)
 {{- end -}}
 
 {{- define "body" -}}
@@ -45,14 +45,7 @@ Update{{ if not .Return }}NoReturn{{ end }}_{{ .Suffix }}
 	}
 	{{ end }}
 
-	__args = append(__args, {{ fieldvalue .StaticArgs }})
-
-	{{ range $i, $arg := .NullableArgs }}
-	if !{{ $arg.Name }}.isnull() {
-		__cond_{{ $i }}.Null = false
-		__args = append(__args, {{ $arg.Name }}.value())
-	}
-	{{ end }}
+	{{ embedvalues .Args "__args" }}
 
 	__values = append(__values, __args...)
 	__sets.SQL = __sets_sql

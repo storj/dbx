@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"go/format"
 	"io"
-	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -23,10 +22,6 @@ import (
 	"storj.io/dbx/sqlgen/sqlbundle"
 	"storj.io/dbx/sqlgen/sqlembedgo"
 	"storj.io/dbx/tmplutil"
-)
-
-var (
-	reCollapseSpace = regexp.MustCompile(`\s+`)
 )
 
 type publicMethod struct {
@@ -102,18 +97,22 @@ func New(loader tmplutil.Loader, options *Options) (
 		"sliceof":           sliceofFn,
 		"param":             paramFn,
 		"arg":               argFn,
+		"value":             valueFn,
 		"zero":              zeroFn,
 		"init":              initFn,
 		"initnew":           initnewFn,
 		"declare":           declareFn,
 		"addrof":            addrofFn,
 		"flatten":           flattenFn,
-		"fieldvalue":        fieldvalueFn,
 		"comma":             commaFn,
 		"ctxparam":          ctxparamFn,
 		"ctxarg":            ctxargFn,
 		"embedsql":          embedsqlFn,
 		"embedplaceholders": embedplaceholdersFn,
+		"embedvalues":       embedvaluesFn,
+		"rename":            renameFn,
+		"double":            doubleFn,
+		"slice":             sliceFn,
 	}
 
 	r.cre, err = loader.Load("golang.create.tmpl", funcs)
@@ -540,7 +539,7 @@ func (r *Renderer) renderFooter(w io.Writer) error {
 	for key := range r.methods {
 		keys = append(keys, key)
 	}
-	sort.Sort(sort.StringSlice(keys))
+	sort.Strings(keys)
 
 	type footerData struct {
 		SupportRx bool

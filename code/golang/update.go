@@ -11,7 +11,7 @@ import (
 )
 
 type Update struct {
-	PartitionedArgs
+	Args              []ConditionArg
 	Info              sqlembedgo.Info
 	InfoGet           sqlembedgo.Info
 	Suffix            string
@@ -25,7 +25,7 @@ type Update struct {
 func UpdateFromIR(ir_upd *ir.Update, dialect sql.Dialect) *Update {
 	update_sql := sql.UpdateSQL(ir_upd, dialect)
 	upd := &Update{
-		PartitionedArgs:   PartitionedArgsFromWheres(ir_upd.Where),
+		Args:              ConditionArgsFromWheres(ir_upd.Where),
 		Info:              sqlembedgo.Embed("__", update_sql),
 		Suffix:            convertSuffix(ir_upd.Suffix),
 		Struct:            ModelStructFromIR(ir_upd.Model),

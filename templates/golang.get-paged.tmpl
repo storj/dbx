@@ -1,11 +1,11 @@
 {{- define "signature" -}}
-Paged_{{ .Suffix }}({{ ctxparam .AllArgs }},
+Paged_{{ .Suffix }}({{ ctxparam .Args }},
 	limit int, start *{{ .Continuation.Type }}) (
 	rows {{ sliceof .Row }}, next *{{ .Continuation.Type }}, err error)
 {{- end -}}
 
 {{- define "invoke" -}}
-Paged_{{ .Suffix }}({{ ctxarg .AllArgs }}, limit, start)
+Paged_{{ .Suffix }}({{ ctxarg .Args }}, limit, start)
 {{- end -}}
 
 {{- define "body" }}
@@ -14,18 +14,11 @@ Paged_{{ .Suffix }}({{ ctxarg .AllArgs }}, limit, start)
 	{{ embedsql .FirstInfo "__embed_first_stmt" }}
 
 	var __values []interface{}
-	__values = append(__values, {{ fieldvalue .StaticArgs }})
-
-	{{ range $i, $arg := .NullableArgs }}
-	if !{{ $arg.Name }}.isnull() {
-		__cond_{{ $i }}.Null = false
-		__values = append(__values, {{ $arg.Name }}.value())
-	}
-	{{ end }}
+	{{ embedvalues .Args "__values" }}
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value, limit)
+		__values = append(__values, {{ .Continuation | rename "start" | flatten | double | slice 0 -3 | value | comma }}limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -44,7 +37,7 @@ Paged_{{ .Suffix }}({{ ctxarg .AllArgs }}, limit, start)
 
 	for __rows.Next() {
 		{{ initnew .Row }}
-		err = __rows.Scan({{ addrof (flatten .Row) | comma }}{{ addrof .Continuation }}._value)
+		err = __rows.Scan({{ .Row | flatten | addrof | comma }}{{ .Continuation | flatten | slice 0 -1 | addrof }})
 		if err != nil {
 			return nil, nil, obj.makeErr(err)
 		}

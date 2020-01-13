@@ -4,8 +4,6 @@
 
 package ir
 
-import "storj.io/dbx/consts"
-
 type Model struct {
 	Name       string
 	Table      string
@@ -13,13 +11,6 @@ type Model struct {
 	PrimaryKey []*Field
 	Unique     [][]*Field
 	Indexes    []*Index
-}
-
-func (m *Model) PagablePrimaryKey() *Field {
-	if len(m.PrimaryKey) == 1 && m.PrimaryKey[0].Type != consts.BoolField {
-		return m.PrimaryKey[0]
-	}
-	return nil
 }
 
 func (m *Model) BasicPrimaryKey() *Field {

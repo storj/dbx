@@ -73,21 +73,16 @@ func SelectFromIRRead(ir_read *ir.Read, dialect Dialect) *Select {
 		sel.Limit = "?"
 		sel.Offset = "?"
 	case ir.Paged:
-		pk := ir_read.From.PagablePrimaryKey()
-		sel.Where = append(sel.Where, WhereSQL([]*ir.Where{&ir.Where{
-			Left: &ir.Expr{
-				Field: pk,
-			},
-			Op: consts.GT,
-			Right: &ir.Expr{
-				Placeholder: true,
-			},
-		}}, dialect)...)
-		sel.OrderBy = &OrderBy{
-			Fields: []string{pk.ColumnRef()},
+		pk := ir_read.From.PrimaryKey
+		sel.Where = append(sel.Where, WhereSQL([]*ir.Where{pagedWhereFromPK(pk)}, dialect)...)
+		sel.OrderBy = new(OrderBy)
+		for _, field := range pk {
+			sel.OrderBy.Fields = append(sel.OrderBy.Fields, field.ColumnRef())
 		}
 		sel.Limit = "?"
-		sel.Fields = append(sel.Fields, pk.SelectRefs()...)
+		for _, field := range pk {
+			sel.Fields = append(sel.Fields, field.ColumnRef())
+		}
 	case ir.Has:
 		sel.Has = true
 		sel.Fields = hasFields
@@ -103,6 +98,28 @@ func SelectFromIRRead(ir_read *ir.Read, dialect Dialect) *Select {
 	}
 
 	return sel
+}
+
+func pagedWhereFromPK(pk []*ir.Field) *ir.Where {
+	where := &ir.Where{Clause: &ir.Clause{
+		Left:  &ir.Expr{Field: pk[0]},
+		Op:    consts.GT,
+		Right: &ir.Expr{Placeholder: true},
+	}}
+	if len(pk) == 1 {
+		return where
+	}
+	return &ir.Where{Or: &[2]*ir.Where{
+		where,
+		&ir.Where{And: &[2]*ir.Where{
+			&ir.Where{Clause: &ir.Clause{
+				Left:  &ir.Expr{Field: pk[0]},
+				Op:    consts.EQ,
+				Right: &ir.Expr{Placeholder: true},
+			}},
+			pagedWhereFromPK(pk[1:]),
+		}},
+	}}
 }
 
 func SQLFromSelect(sel *Select) sqlgen.SQL {

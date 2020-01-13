@@ -1,0 +1,19 @@
+model consumed_serial (
+	key expires_at storage_node_id project_id bucket_name action serial_number
+
+	field expires_at      utimestamp
+	field storage_node_id blob
+	field project_id      blob
+	field bucket_name     blob
+	field action          uint
+	field serial_number   blob
+
+	field settled uint64
+)
+
+create consumed_serial ( noreturn )
+
+read paged (
+	select consumed_serial
+	where consumed_serial.expires_at > ?
+)

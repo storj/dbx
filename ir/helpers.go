@@ -29,34 +29,22 @@ lcols:
 	return true
 }
 
-// returns true if left and right are equivalent (order agnostic)
-func fieldSetEquivalent(left, right []*Field) bool {
-	if len(left) != len(right) {
-		return false
-	}
-	return fieldSetSubset(left, right)
-}
-
-// returns true if left is a subset of right
-func fieldSetPrune(all, bad []*Field) (out []*Field) {
-	for i := range all {
-		if fieldSetSubset(all[i:i+1], bad) {
-			continue
-		}
-		out = append(out, all[i])
-	}
-	return out
-}
-
 func whereUnique(wheres []*Where) (unique map[string]bool) {
 	fields := map[*Model][]*Field{}
 	for _, where := range wheres {
-		if where.Op != consts.EQ {
+		// TODO: do a better job when these can be nil. we may need to re-evaluate
+		// how we determine uniqueness or if we need it.
+		clause := where.Clause
+		if clause == nil {
 			continue
 		}
 
-		left := where.Left.Field
-		right := where.Right.Field
+		if clause.Op != consts.EQ {
+			continue
+		}
+
+		left := clause.Left.Field
+		right := clause.Right.Field
 
 		if left != nil {
 			fields[left.Model] = append(fields[left.Model], left)
@@ -222,7 +210,7 @@ func distinctModels(models []*Model) (distinct []*Model) {
 		set[model.Name] = model
 		names = append(names, model.Name)
 	}
-	sort.Sort(sort.StringSlice(names))
+	sort.Strings(names)
 
 	for _, name := range names {
 		distinct = append(distinct, set[name])

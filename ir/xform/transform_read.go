@@ -197,11 +197,6 @@ func transformRead(lookup *lookup, ast_read *ast.Read) (
 				"cannot page on model %q with group by",
 				tmpl.From.Name)
 		}
-		if tmpl.From.PagablePrimaryKey() == nil {
-			return nil, errutil.New(view.Paged.Pos,
-				"cannot page on model %q with unsupported primary key type",
-				tmpl.From.Name)
-		}
 		addView(ir.Paged)
 	}
 	if view.Scalar.Get() {

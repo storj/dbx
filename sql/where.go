@@ -15,34 +15,51 @@ import (
 )
 
 func WhereSQL(wheres []*ir.Where, dialect Dialect) (out []sqlgen.SQL) {
-	// we put all the condition wheres at the end for ease of template
-	// generation later.
-
+	gen := new(whereGenerator)
 	for _, where := range wheres {
-		if where.NeedsCondition() {
-			continue
-		}
-		out = append(out,
-			J(" ", ExprSQL(where.Left, dialect),
-				opSQL(where.Op, where.Left, where.Right),
-				ExprSQL(where.Right, dialect)))
+		out = append(out, gen.whereSQL(where, dialect))
 	}
-
-	conditions := 0
-	for _, where := range wheres {
-		if !where.NeedsCondition() {
-			continue
-		}
-		out = append(out, &sqlgen.Condition{
-			Name:  fmt.Sprintf("cond_%d", conditions),
-			Left:  ExprSQL(where.Left, dialect).Render(),
-			Equal: where.Op == "=",
-			Right: ExprSQL(where.Right, dialect).Render(),
-		})
-		conditions++
-	}
-
 	return out
+}
+
+type whereGenerator struct {
+	conditions int
+}
+
+func (g *whereGenerator) whereSQL(where *ir.Where, dialect Dialect) sqlgen.SQL {
+	switch {
+	case where.Clause != nil:
+		return g.clauseSQL(where.Clause, dialect)
+
+	case where.And != nil:
+		left := g.whereSQL(where.And[0], dialect)
+		right := g.whereSQL(where.And[1], dialect)
+		return J("", L("("), left, L(" AND "), right, L(")"))
+
+	case where.Or != nil:
+		left := g.whereSQL(where.Or[0], dialect)
+		right := g.whereSQL(where.Or[1], dialect)
+		return J("", L("("), left, L(" OR "), right, L(")"))
+
+	default:
+		panic("exhaustive match")
+	}
+}
+
+func (g *whereGenerator) clauseSQL(clause *ir.Clause, dialect Dialect) sqlgen.SQL {
+	if clause.NeedsCondition() {
+		g.conditions++
+		return &sqlgen.Condition{
+			Name:  fmt.Sprintf("cond_%d", g.conditions-1),
+			Left:  ExprSQL(clause.Left, dialect).Render(),
+			Equal: clause.Op == "=",
+			Right: ExprSQL(clause.Right, dialect).Render(),
+		}
+	}
+	return J(" ",
+		ExprSQL(clause.Left, dialect),
+		opSQL(clause.Op, clause.Left, clause.Right),
+		ExprSQL(clause.Right, dialect))
 }
 
 func opSQL(op consts.Operator, left, right *ir.Expr) sqlgen.SQL {

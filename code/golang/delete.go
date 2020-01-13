@@ -11,7 +11,7 @@ import (
 )
 
 type Delete struct {
-	PartitionedArgs
+	Args   []ConditionArg
 	Info   sqlembedgo.Info
 	Suffix string
 	Result *Var
@@ -20,9 +20,9 @@ type Delete struct {
 func DeleteFromIR(ir_del *ir.Delete, dialect sql.Dialect) *Delete {
 	delete_sql := sql.DeleteSQL(ir_del, dialect)
 	del := &Delete{
-		PartitionedArgs: PartitionedArgsFromWheres(ir_del.Where),
-		Info:            sqlembedgo.Embed("__", delete_sql),
-		Suffix:          convertSuffix(ir_del.Suffix),
+		Args:   ConditionArgsFromWheres(ir_del.Where),
+		Info:   sqlembedgo.Embed("__", delete_sql),
+		Suffix: convertSuffix(ir_del.Suffix),
 	}
 
 	if ir_del.Distinct() {

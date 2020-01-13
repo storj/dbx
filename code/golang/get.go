@@ -14,7 +14,7 @@ import (
 )
 
 type Get struct {
-	PartitionedArgs
+	Args         []ConditionArg
 	Info         sqlembedgo.Info
 	Suffix       string
 	Row          *Var
@@ -25,10 +25,10 @@ type Get struct {
 func GetFromIR(ir_read *ir.Read, dialect sql.Dialect) *Get {
 	select_sql := sql.SelectSQL(ir_read, dialect)
 	get := &Get{
-		PartitionedArgs: PartitionedArgsFromWheres(ir_read.Where),
-		Info:            sqlembedgo.Embed("__", select_sql),
-		Suffix:          convertSuffix(ir_read.Suffix),
-		Row:             GetRowFromIR(ir_read),
+		Args:   ConditionArgsFromWheres(ir_read.Where),
+		Info:   sqlembedgo.Embed("__", select_sql),
+		Suffix: convertSuffix(ir_read.Suffix),
+		Row:    GetRowFromIR(ir_read),
 	}
 
 	if ir_read.View == ir.Paged {
@@ -62,13 +62,19 @@ func StructFromVar(v *Var) *Struct {
 }
 
 func MakeContinuationVar(ir_read *ir.Read) *Var {
+	var vars []*Var
+	for _, field := range ir_read.From.PrimaryKey {
+		vars = append(vars, &Var{
+			Name: fmt.Sprintf("_value_%s", field.Name),
+			Type: VarFromField(field).Type,
+		})
+	}
+	vars = append(vars, &Var{Name: "_set", Type: "bool"})
+
 	return StructVar(
 		"__continuation",
 		fmt.Sprintf("Paged_%s_Continuation", convertSuffix(ir_read.Suffix)),
-		[]*Var{
-			{Name: "_value", Type: VarFromField(ir_read.From.PagablePrimaryKey()).Type},
-			{Name: "_set", Type: "bool"},
-		})
+		vars)
 }
 
 func MakeResultVar(selectables []ir.Selectable) *Var {

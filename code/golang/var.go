@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"bitbucket.org/pkg/inflect"
-	"storj.io/dbx/consts"
+
 	"storj.io/dbx/ir"
 )
 
@@ -101,29 +101,6 @@ func ArgFromField(field *ir.Field) *Var {
 	}
 }
 
-func ArgFromWhere(where *ir.Where) *Var {
-	// TODO: clean this up when we do full expression type evaluation.
-	// assume for now that the left hand side evaluates eventually to a single
-	// field wrapped in zero or more function calls since that is all that is
-	// possible via the xform package.
-	expr := where.Left
-	for expr.Field == nil {
-		expr = expr.FuncCall.Args[0]
-	}
-
-	name := expr.Field.UnderRef()
-	if where.Op != consts.EQ {
-		name += "_" + where.Op.Suffix()
-	}
-
-	// we don't set ZeroVal or InitVal because these args should only be used
-	// as incoming arguments to function calls.
-	return &Var{
-		Name: name,
-		Type: ModelFieldFromIR(expr.Field).StructName(),
-	}
-}
-
 func StructVar(name string, typ string, vars []*Var) *Var {
 	return &Var{
 		Name:    name,
@@ -140,6 +117,19 @@ type Var struct {
 	ZeroVal string
 	InitVal string
 	Fields  []*Var
+}
+
+func (v *Var) Copy() *Var {
+	out := &Var{
+		Name:    v.Name,
+		Type:    v.Type,
+		ZeroVal: v.ZeroVal,
+		InitVal: v.InitVal,
+	}
+	for _, field := range v.Fields {
+		out.Fields = append(out.Fields, field.Copy())
+	}
+	return out
 }
 
 func (v *Var) Value() string {

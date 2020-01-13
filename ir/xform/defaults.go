@@ -96,14 +96,20 @@ func whereSuffix(wheres []*ir.Where, full bool) (parts []string) {
 			parts = append(parts, "and")
 		}
 
-		left := exprSuffix(where.Left, full)
-		right := exprSuffix(where.Right, full)
+		// TODO: do a better job with naming complicated wheres when we support it
+		clause := where.Clause
+		if clause == nil {
+			continue
+		}
+
+		left := exprSuffix(clause.Left, full)
+		right := exprSuffix(clause.Right, full)
 
 		parts = append(parts, left...)
-		if len(right) > 0 || where.Op != consts.EQ {
-			op := where.Op.Suffix()
-			nulloperand := where.Left.Null || where.Right.Null
-			switch where.Op {
+		if len(right) > 0 || clause.Op != consts.EQ {
+			op := clause.Op.Suffix()
+			nulloperand := clause.Left.Null || clause.Right.Null
+			switch clause.Op {
 			case consts.EQ:
 				if nulloperand {
 					parts = append(parts, "is")
