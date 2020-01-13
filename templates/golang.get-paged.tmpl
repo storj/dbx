@@ -33,7 +33,7 @@ Paged_{{ .Suffix }}({{ ctxarg .AllArgs }}, limit, start)
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.Query(__stmt, __values...)
+	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
 	if err != nil {
 		return nil, nil, obj.makeErr(err)
 	}

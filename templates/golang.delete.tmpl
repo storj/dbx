@@ -24,7 +24,7 @@ Delete_{{ .Suffix }}({{ ctxarg .AllArgs }})
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.Exec(__stmt, __values...)
+	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
