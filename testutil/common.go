@@ -40,6 +40,14 @@ func (t *T) dumpContext() {
 	}
 }
 
+func (t *T) Assert(that bool) {
+	t.Helper()
+	if !that {
+		t.dumpContext()
+		t.Fatalf("expected condition to be true.")
+	}
+}
+
 func (t *T) AssertNoError(err error) {
 	t.Helper()
 	if err != nil {

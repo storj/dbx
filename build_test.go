@@ -18,6 +18,14 @@ import (
 	"storj.io/dbx/testutil"
 )
 
+var buildConfig = &packages.Config{
+	Mode: 0 |
+		packages.NeedTypes |
+		packages.NeedImports |
+		packages.NeedDeps |
+		packages.NeedCompiledGoFiles,
+}
+
 func TestBuild(t *testing.T) {
 	tw := testutil.Wrap(t)
 	tw.Parallel()
@@ -84,12 +92,13 @@ func testBuildFile(t *testutil.T, file string) {
 		t.AssertNoError(err)
 
 		t.Logf("[%s] compiling...", file)
-		_, err = packages.Load(nil, go_file)
+		pkg, err := packages.Load(buildConfig, go_file)
 
 		if d.has("fail") {
 			t.AssertError(err, d.get("fail"))
 		} else {
 			t.AssertNoError(err)
+			t.Assert(!pkg[0].IllTyped)
 		}
 	}
 

@@ -5,6 +5,8 @@
 package golang
 
 import (
+	"fmt"
+
 	"storj.io/dbx/consts"
 	"storj.io/dbx/ir"
 )
@@ -16,7 +18,7 @@ type ConditionArg struct {
 }
 
 func ConditionArgsFromWheres(wheres []*ir.Where) (out []ConditionArg) {
-	gen := new(conditionArgGenerator)
+	gen := newConditionArgGenerator()
 	for _, where := range wheres {
 		out = append(out, gen.FromWhere(where)...)
 	}
@@ -25,6 +27,11 @@ func ConditionArgsFromWheres(wheres []*ir.Where) (out []ConditionArg) {
 
 type conditionArgGenerator struct {
 	condition int
+	names     map[string]int
+}
+
+func newConditionArgGenerator() *conditionArgGenerator {
+	return &conditionArgGenerator{names: make(map[string]int)}
 }
 
 func (c *conditionArgGenerator) FromClause(clause *ir.Clause) *ConditionArg {
@@ -61,6 +68,11 @@ func (c *conditionArgGenerator) FromClause(clause *ir.Clause) *ConditionArg {
 		arg.IsCondition = true
 		arg.Condition = c.condition
 		c.condition++
+	}
+
+	c.names[arg.Var.Name]++
+	if count := c.names[arg.Var.Name]; count > 1 {
+		arg.Var.Name += fmt.Sprintf("_%d", count)
 	}
 
 	return arg
