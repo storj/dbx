@@ -17,6 +17,7 @@ func InsertSQL(ir_cre *ir.Create, dialect Dialect) sqlgen.SQL {
 
 type Insert struct {
 	Table        string
+	PrimaryKey   []string
 	Columns      []string
 	Returning    []string
 	ReplaceStyle *ReplaceStyle
@@ -26,6 +27,9 @@ func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
 	features := dialect.Features()
 	ins := &Insert{
 		Table: ir_cre.Model.Table,
+	}
+	for _, field := range ir_cre.Model.PrimaryKey {
+		ins.PrimaryKey = append(ins.PrimaryKey, field.Column)
 	}
 	if ir_cre.Replace {
 		ins.ReplaceStyle = &features.ReplaceStyle
@@ -66,7 +70,7 @@ func SQLFromInsert(insert *Insert) sqlgen.SQL {
 	}
 
 	if insert.ReplaceStyle != nil && *insert.ReplaceStyle == ReplaceStyle_OnConflictUpdate {
-		stmt.Add(L("ON CONFLICT"))
+		stmt.Add(L("ON CONFLICT ("), J(", ", Strings(insert.PrimaryKey)...), L(")"))
 		if len(cols) > 0 {
 			stmt.Add(L("DO UPDATE SET"))
 			var excluded []sqlgen.SQL
