@@ -121,9 +121,9 @@ func constraintViolation(err error, constraint string) error {
 }
 
 type driver interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
 var (
@@ -185,7 +185,7 @@ func (obj *DB) Close() (err error) {
 }
 
 func (obj *DB) Open(ctx context.Context) (*Tx, error) {
-	tx, err := obj.DB.BeginTx(ctx, nil)
+	tx, err := obj.DB.Begin()
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
