@@ -89,6 +89,7 @@ type Field struct {
 	AutoInsert *Bool
 	AutoUpdate *Bool
 	Length     *Int
+	Default    *String
 
 	// Only make sense on a relation
 	Relation     *FieldRef

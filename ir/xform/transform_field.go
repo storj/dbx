@@ -21,6 +21,7 @@ func transformField(lookup *lookup, field_entry *fieldEntry) (err error) {
 	field.AutoInsert = ast_field.AutoInsert.Get()
 	field.AutoUpdate = ast_field.AutoUpdate.Get()
 	field.Length = ast_field.Length.Get()
+	field.Default = ast_field.Default.Get()
 
 	if field.AutoUpdate {
 		field.Updatable = true

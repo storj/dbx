@@ -34,6 +34,7 @@ type Column struct {
 	Name      string
 	Type      string
 	NotNull   bool
+	Default   string
 	Reference *Reference
 }
 
@@ -72,6 +73,7 @@ func SchemaFromIRModels(ir_models []*ir.Model, dialect Dialect) *Schema {
 				Name:    ir_field.Column,
 				Type:    dialect.ColumnType(ir_field),
 				NotNull: !ir_field.Nullable,
+				Default: ir_field.Default,
 			}
 			if ir_field.Relation != nil {
 				column.Reference = &Reference{
@@ -119,6 +121,9 @@ func SQLFromSchema(schema *Schema) sqlgen.SQL {
 
 		for _, column := range table.Columns {
 			dir := Build(Lf("%s %s", column.Name, column.Type))
+			if column.Default != "" {
+				dir.Add(Lf("DEFAULT %s", column.Default))
+			}
 			if column.NotNull {
 				dir.Add(L("NOT NULL"))
 			}

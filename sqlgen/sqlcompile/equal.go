@@ -51,8 +51,11 @@ func sqlsEqual(as, bs []sqlgen.SQL) bool {
 
 func sqlNormalForm(sql sqlgen.SQL) bool {
 	switch sql := sql.(type) {
-	case sqlgen.Literal, *sqlgen.Condition, *sqlgen.Hole:
+	case sqlgen.Literal, *sqlgen.Condition:
 		return true
+
+	case *sqlgen.Hole:
+		return sql.SQL == nil || sqlNormalForm(sql.SQL)
 
 	case sqlgen.Literals:
 		if sql.Join != "" {

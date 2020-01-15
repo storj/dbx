@@ -103,6 +103,13 @@ func testEqualNormalForm(tw *testutil.T) {
 			}},
 			normal: true,
 		},
+		{
+			in: &sqlgen.Hole{SQL: sqlgen.Literals{Join: "", SQLs: []sqlgen.SQL{
+				sqlgen.Literal("foo baz"),
+				sqlgen.Literal("bif bar"),
+			}}},
+			normal: false,
+		},
 	}
 	for i, test := range tests {
 		if got := sqlNormalForm(test.in); got != test.normal {

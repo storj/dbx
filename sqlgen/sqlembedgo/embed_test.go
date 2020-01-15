@@ -39,6 +39,10 @@ func testGolangBasicTypes(tw *testutil.T) {
 			sqlgen.Literal("another"),
 			&sqlgen.Condition{Name: "foo"},
 		}},
+
+		&sqlgen.Hole{Name: "foo", SQL: sqlgen.Literal("foo bar sql")},
+
+		&sqlgen.Hole{Name: "foo", SQL: &sqlgen.Hole{Name: "bar"}},
 	}
 	for i, test := range tests {
 		info := Embed("prefix_", test)

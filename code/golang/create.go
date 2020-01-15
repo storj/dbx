@@ -60,9 +60,11 @@ type Create struct {
 	Info              sqlembedgo.Info
 	Replace           bool
 	Suffix            string
+	Struct            *ModelStruct
 	Return            *Var
 	Args              []*Var
-	Fields            []*Var
+	RequiredArgs      []*Var
+	StaticFields      []*Var
 	SupportsReturning bool
 	NeedsNow          bool
 }
@@ -73,52 +75,36 @@ func CreateFromIR(ir_cre *ir.Create, dialect sql.Dialect) *Create {
 		Info:              sqlembedgo.Embed("__", insert_sql),
 		Replace:           ir_cre.Replace,
 		Suffix:            convertSuffix(ir_cre.Suffix),
+		Struct:            ModelStructFromIR(ir_cre.Model),
 		SupportsReturning: dialect.Features().Returning,
 	}
 	if !ir_cre.NoReturn {
 		ins.Return = VarFromModel(ir_cre.Model)
 	}
 
-	args := map[string]*Var{}
-
-	// All of the manual fields are arguments to the function. The Field struct
-	// type is used (pointer if nullable).
-	has_nullable := false
-	for _, field := range ir_cre.InsertableFields() {
+	for _, field := range ir_cre.InsertableStaticFields() {
 		arg := ArgFromField(field)
-		args[field.Name] = arg
-		if !field.Nullable {
+		v := VarFromField(field)
+		v.Name = fmt.Sprintf("__%s_val", v.Name)
+
+		if field.InsertableRequired() {
 			ins.Args = append(ins.Args, arg)
-		} else {
-			has_nullable = true
+			ins.RequiredArgs = append(ins.RequiredArgs, arg)
+			v.InitVal = fmt.Sprintf("%s.value()", arg.Name)
+		} else if field.InsertableOptional() {
+			v.InitVal = fmt.Sprintf("optional.%s.value()", ModelFieldFromIR(field).Name)
+		} else { // must be autoinsert
+			ins.NeedsNow = ins.NeedsNow || field.IsTime()
 		}
+
+		ins.StaticFields = append(ins.StaticFields, v)
 	}
 
-	if has_nullable {
+	if len(ir_cre.InsertableOptionalFields()) > 0 {
 		ins.Args = append(ins.Args, &Var{
 			Name: "optional",
 			Type: ModelStructFromIR(ir_cre.Model).CreateStructName(),
 		})
-	}
-
-	// Now for each field
-	for _, field := range ir_cre.Fields() {
-		if field == ir_cre.Model.BasicPrimaryKey() {
-			continue
-		}
-		v := VarFromField(field)
-		v.Name = fmt.Sprintf("__%s_val", v.Name)
-		if arg := args[field.Name]; arg != nil {
-			if field.Nullable {
-				f := ModelFieldFromIR(field)
-				v.InitVal = fmt.Sprintf("optional.%s.value()", f.Name)
-			} else {
-				v.InitVal = fmt.Sprintf("%s.value()", arg.Name)
-			}
-		} else if field.IsTime() {
-			ins.NeedsNow = true
-		}
-		ins.Fields = append(ins.Fields, v)
 	}
 
 	return ins

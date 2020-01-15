@@ -14,7 +14,13 @@ func Compile(sql sqlgen.SQL) sqlgen.SQL {
 func sqlCompile(sql sqlgen.SQL) (out sqlgen.SQL) {
 	switch sql := sql.(type) {
 	// these cases cannot be compiled further
-	case sqlgen.Literal, *sqlgen.Condition, *sqlgen.Hole:
+	case sqlgen.Literal, *sqlgen.Condition:
+		return sql
+
+	case *sqlgen.Hole:
+		if sql.SQL != nil {
+			sql.SQL = sqlCompile(sql.SQL)
+		}
 		return sql
 
 	case sqlgen.Literals:

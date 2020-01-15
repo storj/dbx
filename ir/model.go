@@ -20,18 +20,36 @@ func (m *Model) BasicPrimaryKey() *Field {
 	return nil
 }
 
-func (m *Model) InsertableFields() (fields []*Field) {
+func (m *Model) InsertableStaticFields() (fields []*Field) {
 	for _, field := range m.Fields {
-		if field.Insertable() && !field.AutoInsert {
+		if field.Insertable() && field.InsertableStatic() {
 			fields = append(fields, field)
 		}
 	}
 	return fields
 }
 
-func (m *Model) AutoInsertableFields() (fields []*Field) {
+func (m *Model) InsertableDynamicFields() (fields []*Field) {
 	for _, field := range m.Fields {
-		if field.Insertable() && field.AutoInsert {
+		if field.Insertable() && field.InsertableDynamic() {
+			fields = append(fields, field)
+		}
+	}
+	return fields
+}
+
+func (m *Model) InsertableRequiredFields() (fields []*Field) {
+	for _, field := range m.Fields {
+		if field.Insertable() && field.InsertableRequired() {
+			fields = append(fields, field)
+		}
+	}
+	return fields
+}
+
+func (m *Model) InsertableOptionalFields() (fields []*Field) {
+	for _, field := range m.Fields {
+		if field.Insertable() && field.InsertableOptional() {
 			fields = append(fields, field)
 		}
 	}

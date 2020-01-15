@@ -1,0 +1,32 @@
+model foo (
+	key pk
+	field pk serial64
+	field a  int      ( autoinsert, default 10 )
+	field b  int      ( autoinsert )
+	field c  int      ( default 20 )
+)
+
+create foo ( noreturn )
+read one ( select foo, where foo.pk = ? )
+
+model bar (
+	key pk
+	field pk serial64
+	field a  int
+	field b  int
+	field c  int      ( default 40 )
+)
+
+create bar ( noreturn )
+read one ( select bar, where bar.pk = ? )
+
+model baz (
+	key pk
+	field pk serial64
+	field a  int      ( default 50 )
+	field b  int      ( default 60 )
+	field c  int      ( default 70 )
+)
+
+create baz ( noreturn )
+read one ( select baz, where baz.pk = ? )

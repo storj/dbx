@@ -12,18 +12,7 @@ import (
 	"storj.io/dbx/consts"
 )
 
-var (
-	Error = errors.NewClass("syntax")
-)
-
-func debugConsume(node *tupleNode) error {
-	for {
-		_, err := node.consume()
-		if err != nil {
-			return nil
-		}
-	}
-}
+var Error = errors.NewClass("syntax")
 
 func tupleFlagField(kind, field string, val **ast.Bool) func(*tupleNode) error {
 	return func(node *tupleNode) error {
@@ -84,13 +73,6 @@ func modelRefFromToken(node *tokenNode) *ast.ModelRef {
 func stringFromToken(node *tokenNode) *ast.String {
 	node.debugAssertToken(Ident)
 	return stringFromValue(node, node.text)
-}
-
-func stringsFromTokens(nodes []*tokenNode) (out []*ast.String) {
-	for _, node := range nodes {
-		out = append(out, stringFromToken(node))
-	}
-	return out
 }
 
 func fieldRefFromTokens(first, second *tokenNode) *ast.FieldRef {

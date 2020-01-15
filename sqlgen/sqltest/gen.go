@@ -55,7 +55,7 @@ func (g *Generator) hole() *sqlgen.Hole {
 		num := len(g.holes)
 		hole := &sqlgen.Hole{
 			Name: fmt.Sprintf("hole%d", num),
-			SQL:  g.literal(),
+			SQL:  g.genRecursive(1),
 		}
 		g.holes = append(g.holes, hole)
 		return hole

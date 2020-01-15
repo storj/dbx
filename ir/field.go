@@ -10,6 +10,11 @@ import (
 	"storj.io/dbx/consts"
 )
 
+type AutoInsert struct {
+	Value   bool
+	Default string
+}
+
 type Relation struct {
 	Field *Field
 	Kind  consts.RelationKind
@@ -26,6 +31,7 @@ type Field struct {
 	AutoUpdate bool
 	Updatable  bool
 	Length     int // Text only
+	Default    string
 }
 
 func (f *Field) Insertable() bool {
@@ -33,6 +39,22 @@ func (f *Field) Insertable() bool {
 		return true
 	}
 	return f.Type != consts.SerialField && f.Type != consts.Serial64Field
+}
+
+func (f *Field) InsertableStatic() bool {
+	return f.Default == ""
+}
+
+func (f *Field) InsertableDynamic() bool {
+	return !f.InsertableStatic()
+}
+
+func (f *Field) InsertableRequired() bool {
+	return !f.Nullable && f.Default == "" && !f.AutoInsert
+}
+
+func (f *Field) InsertableOptional() bool {
+	return !f.InsertableRequired() && !f.AutoInsert
 }
 
 func (f *Field) Unique() bool {

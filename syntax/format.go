@@ -27,7 +27,7 @@ func Format(path string, data []byte) (formatted []byte, err error) {
 		return nil, err
 	}
 
-	return formatted, nil
+	return formatted[:len(formatted)-1], nil
 }
 
 func formatRoot(node *listNode) (formatted []byte, err error) {
@@ -159,7 +159,7 @@ func stringifyTuple(tuple *tupleNode) (words []string, list *listNode,
 		switch node := token.(type) {
 		case *tokenNode:
 			switch node.tok {
-			case Ident:
+			case Ident, Int, String, Float:
 				if dot {
 					word += node.text
 					dot = false

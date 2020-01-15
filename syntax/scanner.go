@@ -16,7 +16,6 @@ const (
 	Ident       Token = "Ident"
 	Int         Token = "Int"
 	EOF         Token = "EOF"
-	Colon       Token = ":"
 	Dot         Token = "."
 	Comma       Token = ","
 	Equal       Token = "="
@@ -39,8 +38,6 @@ func (t Token) String() string {
 		return "Int"
 	case EOF:
 		return "EOF"
-	case Colon:
-		return "Colon"
 	case Dot:
 		return "Dot"
 	case Comma:
@@ -229,8 +226,6 @@ func convertToken(tok rune) Token {
 		return Float
 	case '!':
 		return Exclamation
-	case ':':
-		return Colon
 	case '.':
 		return Dot
 	case ',':

@@ -44,9 +44,36 @@ func (s *ModelStruct) UpdatableFields() (fields []*ModelField) {
 	return fields
 }
 
-func (s *ModelStruct) OptionalInsertFields() (fields []*ModelField) {
+func (s *ModelStruct) InsertableStaticFields() (fields []*ModelField) {
 	for _, field := range s.Fields {
-		if field.Insertable && !field.AutoInsert && field.Nullable {
+		if field.Insertable && field.InsertableStatic() {
+			fields = append(fields, field)
+		}
+	}
+	return fields
+}
+
+func (s *ModelStruct) InsertableDynamicFields() (fields []*ModelField) {
+	for _, field := range s.Fields {
+		if field.Insertable && field.InsertableDynamic() {
+			fields = append(fields, field)
+		}
+	}
+	return fields
+}
+
+func (s *ModelStruct) InsertableRequiredFields() (fields []*ModelField) {
+	for _, field := range s.Fields {
+		if field.Insertable && field.InsertableRequired() {
+			fields = append(fields, field)
+		}
+	}
+	return fields
+}
+
+func (s *ModelStruct) InsertableOptionalFields() (fields []*ModelField) {
+	for _, field := range s.Fields {
+		if field.Insertable && field.InsertableOptional() {
 			fields = append(fields, field)
 		}
 	}
@@ -69,6 +96,7 @@ type ModelField struct {
 	MutateFn   string
 	Column     string
 	Nullable   bool
+	Default    string
 	Insertable bool
 	AutoInsert bool
 	Updatable  bool
@@ -85,12 +113,29 @@ func ModelFieldFromIR(field *ir.Field) *ModelField {
 		MutateFn:   mutateFn(field.Type),
 		Column:     field.Column,
 		Nullable:   field.Nullable,
+		Default:    field.Default,
 		Insertable: true,
 		AutoInsert: field.AutoInsert,
 		Updatable:  field.Updatable,
 		AutoUpdate: field.AutoUpdate,
 		TakeAddr:   field.Nullable && field.Type != consts.BlobField,
 	}
+}
+
+func (f *ModelField) InsertableStatic() bool {
+	return f.AutoInsert || f.Default == ""
+}
+
+func (f *ModelField) InsertableDynamic() bool {
+	return !f.InsertableStatic()
+}
+
+func (f *ModelField) InsertableRequired() bool {
+	return !f.Nullable && f.Default == "" && !f.AutoInsert
+}
+
+func (f *ModelField) InsertableOptional() bool {
+	return !f.InsertableRequired() && !f.AutoInsert
 }
 
 func ModelFieldsFromIR(fields []*ir.Field) (out []*ModelField) {

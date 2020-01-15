@@ -4,7 +4,9 @@
 
 package sqlgen
 
-import "bytes"
+import (
+	"bytes"
+)
 
 type Literal string
 
@@ -72,10 +74,15 @@ type Hole struct {
 	// set at compiile/embed time
 	Name string
 
-	// set at runtime
+	// set at runtime or possibly embed time
 	SQL SQL
 }
 
 func (*Hole) private() {}
 
-func (h *Hole) Render() string { return h.SQL.Render() }
+func (h *Hole) Render() string {
+	if h.SQL == nil {
+		return ""
+	}
+	return h.SQL.Render()
+}

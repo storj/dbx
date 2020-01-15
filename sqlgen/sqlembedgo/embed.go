@@ -29,46 +29,67 @@ type Info struct {
 }
 
 func Embed(prefix string, sql sqlgen.SQL) Info {
+	return Info{
+		Expression: quote(prefix, sql, true),
+		Conditions: gatherConditions(prefix, sql),
+		Holes:      gatherHoles(prefix, sql),
+	}
+}
+
+//
+// quoting
+//
+
+func quote(prefix string, sql sqlgen.SQL, literal bool) string {
 	switch sql := sql.(type) {
 	case sqlgen.Literal:
-		return Info{
-			Expression: golangLiteral(sql),
-			Conditions: nil,
-		}
-
-	case sqlgen.Literals:
-		return golangLiterals(prefix, sql)
+		return quoteLiteral(sql)
 
 	case *sqlgen.Condition:
-		cond := golangCondition(prefix, sql)
-		return Info{
-			Expression: cond.Name,
-			Conditions: []Condition{cond},
-		}
+		return quoteCondition(sql)
 
 	case *sqlgen.Hole:
-		hole := golangHole(prefix, sql)
-		return Info{
-			Expression: hole.Name,
-			Holes:      []Hole{hole},
-		}
+		return quoteHole(prefix, sql, literal)
+
+	case sqlgen.Literals:
+		return quoteLiterals(prefix, sql)
 
 	default:
 		panic("unhandled sql type")
 	}
 }
 
-func golangLiteral(sql sqlgen.Literal) string {
+func quoteLiteral(sql sqlgen.Literal) string {
 	const format = "%[1]sLiteral(%[2]q)"
 
 	return fmt.Sprintf(format, sqlbundle.Prefix, string(sql))
 }
 
-func golangLiterals(prefix string, sql sqlgen.Literals) (info Info) {
+func quoteCondition(sql *sqlgen.Condition) string {
+	const format = "&%[1]sCondition{Left:%q, Equal:%t, Right: %q, Null:true}"
+
+	return fmt.Sprintf(format, sqlbundle.Prefix, sql.Left, sql.Equal, sql.Right)
+}
+
+func quoteHole(prefix string, sql *sqlgen.Hole, literal bool) string {
+	if !literal {
+		return prefix + sql.Name
+	}
+
+	if sql.SQL == nil {
+		const format = "&%[1]sHole{}"
+
+		return fmt.Sprintf(format, sqlbundle.Prefix)
+	}
+
+	const format = "&%[1]sHole{SQL: %[2]s}"
+
+	return fmt.Sprintf(format, sqlbundle.Prefix, quote(prefix, sql.SQL, false))
+}
+
+func quoteLiterals(prefix string, sql sqlgen.Literals) string {
 	const format = "%[1]sLiterals{Join:%[2]q,SQLs:[]%[1]sSQL{"
 
-	var conds []Condition
-	var holes []Hole
 	var expr bytes.Buffer
 	fmt.Fprintf(&expr, format, sqlbundle.Prefix, sql.Join)
 
@@ -78,59 +99,72 @@ func golangLiterals(prefix string, sql sqlgen.Literals) (info Info) {
 			expr.WriteString(",")
 		}
 		first = false
-
-		switch sql := sql.(type) {
-		case sqlgen.Literal:
-			expr.WriteString(golangLiteral(sql))
-
-		case *sqlgen.Condition:
-			cond := golangCondition(prefix, sql)
-			expr.WriteString(cond.Name)
-
-			// TODO(jeff): dedupe based on name?
-			conds = append(conds, cond)
-
-		case *sqlgen.Hole:
-			hole := golangHole(prefix, sql)
-			expr.WriteString(hole.Name)
-
-			// TODO(jeff): dedupe based on name?
-			holes = append(holes, hole)
-
-		case sqlgen.Literals:
-			panic("sql not in normal form")
-
-		default:
-			panic("unhandled sql type")
-		}
+		fmt.Fprint(&expr, quote(prefix, sql, false))
 	}
 	expr.WriteString("}}")
 
-	return Info{
-		Expression: expr.String(),
-		Conditions: conds,
-		Holes:      holes,
+	return expr.String()
+}
+
+//
+// gathering conditions
+//
+
+func gatherConditions(prefix string, sql sqlgen.SQL) []Condition {
+	switch sql := sql.(type) {
+	case sqlgen.Literal:
+		return nil
+
+	case *sqlgen.Hole:
+		return gatherConditions(prefix, sql.SQL)
+
+	case *sqlgen.Condition:
+		return []Condition{{
+			Name:       prefix + sql.Name,
+			Expression: quoteCondition(sql),
+		}}
+
+	case sqlgen.Literals:
+		var conds []Condition
+		for _, sql := range sql.SQLs {
+			conds = append(conds, gatherConditions(prefix, sql)...)
+		}
+		return conds
+
+	case nil:
+		return nil
+
+	default:
+		panic("unhandled sql type")
 	}
 }
 
-func golangCondition(prefix string, sql *sqlgen.Condition) Condition {
-	// start off conditions as null to shrink generated code some.
-	const format = "&%[1]sCondition{Left:%q, Equal:%t, Right: %q, Null:true}"
+//
+// gathering holes
+//
 
-	return Condition{
-		Name: prefix + sql.Name,
-		Expression: fmt.Sprintf(
-			format, sqlbundle.Prefix, sql.Left, sql.Equal, sql.Right),
-	}
-}
+func gatherHoles(prefix string, sql sqlgen.SQL) []Hole {
+	switch sql := sql.(type) {
+	case sqlgen.Literal, *sqlgen.Condition:
+		return nil
 
-func golangHole(prefix string, sql *sqlgen.Hole) Hole {
-	const format = "&%[1]sHole{}"
+	case *sqlgen.Hole:
+		return append(gatherHoles(prefix, sql.SQL), Hole{
+			Name:       prefix + sql.Name,
+			Expression: quoteHole(prefix, sql, true),
+		})
 
-	// TODO(jeff): embed what the hole is filled with? no use case yet.
+	case sqlgen.Literals:
+		var holes []Hole
+		for _, sql := range sql.SQLs {
+			holes = append(holes, gatherHoles(prefix, sql)...)
+		}
+		return holes
 
-	return Hole{
-		Name:       prefix + sql.Name,
-		Expression: fmt.Sprintf(format, sqlbundle.Prefix),
+	case nil:
+		return nil
+
+	default:
+		panic("unhandled sql type")
 	}
 }

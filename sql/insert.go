@@ -16,11 +16,12 @@ func InsertSQL(ir_cre *ir.Create, dialect Dialect) sqlgen.SQL {
 }
 
 type Insert struct {
-	Table        string
-	PrimaryKey   []string
-	Columns      []string
-	Returning    []string
-	ReplaceStyle *ReplaceStyle
+	Table          string
+	PrimaryKey     []string
+	StaticColumns  []string
+	DynamicColumns []string
+	Returning      []string
+	ReplaceStyle   *ReplaceStyle
 }
 
 func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
@@ -37,13 +38,12 @@ func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
 	if features.Returning && !ir_cre.NoReturn {
 		ins.Returning = ir_cre.Model.SelectRefs()
 	}
-	for _, field := range ir_cre.Fields() {
-		if field == ir_cre.Model.BasicPrimaryKey() && !ir_cre.Raw {
-			continue
-		}
-		ins.Columns = append(ins.Columns, field.Column)
+	for _, field := range ir_cre.InsertableStaticFields() {
+		ins.StaticColumns = append(ins.StaticColumns, field.Column)
 	}
-
+	for _, field := range ir_cre.InsertableDynamicFields() {
+		ins.DynamicColumns = append(ins.DynamicColumns, field.Column)
+	}
 	return ins
 }
 
@@ -60,21 +60,39 @@ func SQLFromInsert(insert *Insert) sqlgen.SQL {
 	}
 
 	stmt := Build(Lf("%s INTO %s", verb, insert.Table))
-	cols := insert.Columns
 
-	if len(cols) > 0 {
-		stmt.Add(L("("), J(", ", Strings(cols)...), L(")"))
-		stmt.Add(L("VALUES ("), J(", ", Placeholders(len(cols))...), L(")"))
-	} else {
+	switch {
+	case len(insert.StaticColumns)+len(insert.DynamicColumns) == 0:
 		stmt.Add(L("DEFAULT VALUES"))
+
+	case len(insert.DynamicColumns) == 0:
+		stmt.Add(L("("), J(", ", Strings(insert.StaticColumns)...), L(")"))
+		stmt.Add(L("VALUES"))
+		stmt.Add(L("("), J(", ", Placeholders(len(insert.StaticColumns))...), L(")"))
+
+	default:
+		columns := Hole("columns")
+		placeholders := Hole("placeholders")
+
+		if len(insert.StaticColumns) > 0 {
+			columns.SQL = J(", ", Strings(insert.StaticColumns)...)
+			placeholders.SQL = J(", ", Placeholders(len(insert.StaticColumns))...)
+		}
+
+		clause := Hole("clause")
+		clause.SQL = J("", L("("), columns, L(") VALUES ("), placeholders, L(")"))
+		stmt.Add(clause)
 	}
 
 	if insert.ReplaceStyle != nil && *insert.ReplaceStyle == ReplaceStyle_OnConflictUpdate {
 		stmt.Add(L("ON CONFLICT ("), J(", ", Strings(insert.PrimaryKey)...), L(")"))
-		if len(cols) > 0 {
+		if len(insert.StaticColumns)+len(insert.DynamicColumns) > 0 {
 			stmt.Add(L("DO UPDATE SET"))
 			var excluded []sqlgen.SQL
-			for _, col := range cols {
+			for _, col := range insert.StaticColumns {
+				excluded = append(excluded, Lf("%s = EXCLUDED.%s", col, col))
+			}
+			for _, col := range insert.DynamicColumns {
 				excluded = append(excluded, Lf("%s = EXCLUDED.%s", col, col))
 			}
 			stmt.Add(J(", ", excluded...))

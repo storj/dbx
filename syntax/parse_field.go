@@ -53,12 +53,12 @@ func parseField(node *tupleNode) (*ast.Field, error) {
 			},
 			"nullable": tupleFlagField("field", "nullable",
 				&field.Nullable),
-			"autoinsert": tupleFlagField("field", "autoinsert",
-				&field.AutoInsert),
 			"autoupdate": tupleFlagField("field", "autoupdate",
 				&field.AutoUpdate),
 			"updatable": tupleFlagField("field", "updatable",
 				&field.Updatable),
+			"autoinsert": tupleFlagField("field", "autoinsert",
+				&field.AutoInsert),
 			"length": func(node *tupleNode) error {
 				if field.Length != nil {
 					return previouslyDefined(node.getPos(), "field", "length",
@@ -79,11 +79,20 @@ func parseField(node *tupleNode) (*ast.Field, error) {
 
 				return nil
 			},
+			"default": func(node *tupleNode) error {
+				if field.Default != nil {
+					return previouslyDefined(node.getPos(), "field", "default",
+						field.Default.Pos)
+				}
 
-			// TODO(jeff): do something with these values instead of allowing
-			// anything.
-			"default":    debugConsume,
-			"sqldefault": debugConsume,
+				value, err := node.consumeToken()
+				if err != nil {
+					return err
+				}
+				field.Default = stringFromValue(value, value.text)
+
+				return nil
+			},
 		})
 		if err != nil {
 			return nil, err

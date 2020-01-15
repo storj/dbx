@@ -48,7 +48,7 @@ func (l listNode) String() string {
 }
 
 func (t tupleNode) String() string {
-	return fmt.Sprintf("%s", stringNodes(t.value, " "))
+	return stringNodes(t.value, " ")
 }
 
 func (t tokenNode) String() string {
@@ -317,7 +317,7 @@ func (t *tupleNode) consumeIfToken(kinds ...Token) *tokenNode {
 	if err := token.assertKind(kinds...); err != nil {
 		return nil
 	}
-	t.consume()
+	_, _ = t.consume()
 	return token
 }
 
@@ -347,7 +347,7 @@ func (t *tupleNode) consumeIfList() *listNode {
 	if err != nil {
 		return nil
 	}
-	t.consume()
+	_, _ = t.consume()
 	return list
 }
 

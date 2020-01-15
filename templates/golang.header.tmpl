@@ -362,10 +362,10 @@ type {{ $struct }} struct {
 
 func ({{ $struct }}) _Table() string { return "{{ .Table }}" }
 
-{{- if .OptionalInsertFields }}
+{{- if .InsertableOptionalFields }}
 
 type {{ $createstruct }} struct {
-{{- range .OptionalInsertFields }}
+{{- range .InsertableOptionalFields }}
 	{{ .Name }} {{ .StructName }}
 {{- end }}
 }

@@ -32,16 +32,30 @@ func (cre *Create) Fields() (fields []*Field) {
 	return cre.Model.Fields
 }
 
-func (cre *Create) InsertableFields() (fields []*Field) {
+func (cre *Create) InsertableStaticFields() (fields []*Field) {
 	if cre.Raw {
 		return cre.Model.Fields
 	}
-	return cre.Model.InsertableFields()
+	return cre.Model.InsertableStaticFields()
 }
 
-func (cre *Create) AutoInsertableFields() (fields []*Field) {
+func (cre *Create) InsertableDynamicFields() (fields []*Field) {
 	if cre.Raw {
 		return nil
 	}
-	return cre.Model.AutoInsertableFields()
+	return cre.Model.InsertableDynamicFields()
+}
+
+func (cre *Create) InsertableRequiredFields() (fields []*Field) {
+	if cre.Raw {
+		return cre.Model.Fields
+	}
+	return cre.Model.InsertableRequiredFields()
+}
+
+func (cre *Create) InsertableOptionalFields() (fields []*Field) {
+	if cre.Raw {
+		return nil
+	}
+	return cre.Model.InsertableOptionalFields()
 }
