@@ -46,7 +46,7 @@ func quote(prefix string, sql sqlgen.SQL, literal bool) string {
 		return quoteLiteral(sql)
 
 	case *sqlgen.Condition:
-		return quoteCondition(sql)
+		return quoteCondition(prefix, sql, literal)
 
 	case *sqlgen.Hole:
 		return quoteHole(prefix, sql, literal)
@@ -65,7 +65,11 @@ func quoteLiteral(sql sqlgen.Literal) string {
 	return fmt.Sprintf(format, sqlbundle.Prefix, string(sql))
 }
 
-func quoteCondition(sql *sqlgen.Condition) string {
+func quoteCondition(prefix string, sql *sqlgen.Condition, literal bool) string {
+	if !literal {
+		return prefix + sql.Name
+	}
+
 	const format = "&%[1]sCondition{Left:%q, Equal:%t, Right: %q, Null:true}"
 
 	return fmt.Sprintf(format, sqlbundle.Prefix, sql.Left, sql.Equal, sql.Right)
@@ -121,7 +125,7 @@ func gatherConditions(prefix string, sql sqlgen.SQL) []Condition {
 	case *sqlgen.Condition:
 		return []Condition{{
 			Name:       prefix + sql.Name,
-			Expression: quoteCondition(sql),
+			Expression: quoteCondition(prefix, sql, true),
 		}}
 
 	case sqlgen.Literals:
