@@ -20,7 +20,7 @@ Limited_{{ .Suffix }}({{ ctxarg .Args }}, limit, offset)
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.Query(__stmt, __values...)
+	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}

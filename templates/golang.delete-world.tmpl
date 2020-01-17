@@ -7,7 +7,7 @@ deleteAll(ctx context.Context) (count int64, err error)
 	var __count int64
 
 {{- range .SQLs }}
-	__res, err = obj.driver.Exec({{ printf "%q" . }})
+	__res, err = obj.driver.ExecContext(ctx, {{ printf "%q" . }})
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
