@@ -18,7 +18,7 @@ Paged_{{ .Suffix }}({{ ctxarg .Args }}, limit, start)
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, {{ .Continuation | rename "start" | flatten | double | slice 0 -3 | value | comma }}limit)
+		__values = append(__values, {{ .Continuation | rename "start" | flatten | slice 0 -1 | value | comma }}limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)

@@ -6,17 +6,18 @@ package ir
 
 type Expr struct {
 	Null        bool
-	Placeholder bool
+	Placeholder int
 	StringLit   *string
 	NumberLit   *string
 	BoolLit     *bool
 	Field       *Field
 	FuncCall    *FuncCall
+	Row         []*Field
 }
 
 func (e *Expr) Nullable() bool {
 	switch {
-	case e.Null, e.Placeholder:
+	case e.Null, e.Placeholder > 0:
 		return true
 	case e.Field != nil:
 		return e.Field.Nullable
@@ -28,7 +29,7 @@ func (e *Expr) Nullable() bool {
 }
 
 func (e *Expr) HasPlaceholder() bool {
-	if e.Placeholder {
+	if e.Placeholder > 0 {
 		return true
 	}
 	if e.FuncCall != nil {

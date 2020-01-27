@@ -144,7 +144,7 @@ func exprSuffix(expr *ir.Expr, full bool) (parts []string) {
 		parts = []string{"number"}
 	case expr.BoolLit != nil:
 		parts = []string{fmt.Sprint(*expr.BoolLit)}
-	case expr.Placeholder:
+	case expr.Placeholder > 0:
 	case expr.Field != nil:
 		if full {
 			parts = append(parts, expr.Field.Model.Name)

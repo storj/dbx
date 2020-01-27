@@ -115,7 +115,7 @@ func golangCreateRawTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.create-raw.tmpl", size: 1275, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.create-raw.tmpl", size: 1275, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -135,7 +135,7 @@ func golangCreateTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.create.tmpl", size: 2305, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.create.tmpl", size: 2305, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -155,7 +155,7 @@ func golangDeclTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.decl.tmpl", size: 101, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.decl.tmpl", size: 101, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -175,7 +175,7 @@ func golangDeleteAllTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.delete-all.tmpl", size: 667, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.delete-all.tmpl", size: 667, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -195,7 +195,7 @@ func golangDeleteWorldTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.delete-world.tmpl", size: 438, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.delete-world.tmpl", size: 438, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -215,7 +215,7 @@ func golangDeleteTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.delete.tmpl", size: 686, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.delete.tmpl", size: 686, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -235,7 +235,7 @@ func golangDialectCockroachTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.dialect-cockroach.tmpl", size: 687, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.dialect-cockroach.tmpl", size: 687, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -255,7 +255,7 @@ func golangDialectPostgresTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.dialect-postgres.tmpl", size: 440, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.dialect-postgres.tmpl", size: 440, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -275,7 +275,7 @@ func golangDialectSqlite3Tmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.dialect-sqlite3.tmpl", size: 1353, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.dialect-sqlite3.tmpl", size: 1353, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -295,7 +295,7 @@ func golangFooterTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.footer.tmpl", size: 1332, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.footer.tmpl", size: 1332, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -315,7 +315,7 @@ func golangGetAllTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-all.tmpl", size: 871, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-all.tmpl", size: 871, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -335,7 +335,7 @@ func golangGetCountTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-count.tmpl", size: 589, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-count.tmpl", size: 589, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -355,7 +355,7 @@ func golangGetFirstTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-first.tmpl", size: 855, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-first.tmpl", size: 855, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -375,7 +375,7 @@ func golangGetHasTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-has.tmpl", size: 581, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-has.tmpl", size: 581, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -395,7 +395,7 @@ func golangGetLastTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-last.tmpl", size: 526, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-last.tmpl", size: 526, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -415,7 +415,7 @@ func golangGetLimitoffsetTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-limitoffset.tmpl", size: 965, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-limitoffset.tmpl", size: 965, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -435,7 +435,7 @@ func golangGetOneAllTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-one-all.tmpl", size: 1020, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-one-all.tmpl", size: 1020, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -455,12 +455,12 @@ func golangGetOneTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-one.tmpl", size: 650, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-one.tmpl", size: 650, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _golangGetPagedTmpl = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x9c\x54\xcd\x6e\xdb\x3c\x10\x3c\x8b\x4f\xb1\x9f\x0f\x81\xfc\x41\x11\x5a\xf4\x96\xc2\x87\x22\x68\x81\x5e\x82\x36\xe9\xad\x28\x04\x5a\x5c\xb9\x6c\x28\xd2\x59\x52\x8e\x03\x9a\xef\x5e\x2c\xe5\xdf\x24\x48\x8a\x1c\x6c\x40\xe4\x70\x76\x76\x67\xc8\x18\xcf\x41\x61\xa7\x2d\xc2\xc4\xeb\x85\x95\x61\x20\x9c\xc0\x79\x4a\xe2\x9b\x5c\xa0\x6a\x62\x84\xfa\x66\xe8\x3a\xbd\x86\x94\xca\x18\xa1\x0d\xeb\xa5\x24\xd9\x43\xfd\x89\x16\x1e\x52\xaa\x44\x61\x74\xaf\x03\x68\x1b\x2a\xf0\x41\x52\x80\xff\xf9\xd8\xa5\xb3\x41\xdb\x41\x06\xed\x6c\xfd\xe3\x61\x89\x90\xd2\x14\x4a\x51\x90\xbb\xf7\x10\x23\x78\xa3\x5b\x74\x1d\xd4\xd7\xee\x9e\x89\xc0\xe2\xfa\x85\xb3\x15\x20\x11\xff\x1c\x4d\x05\x0b\x47\xab\xb2\x52\x71\xdc\x85\xb6\x2b\x77\xfb\x6a\x0b\x92\x16\x87\x06\x20\xeb\xdf\x6a\x7f\x81\x7a\xee\xd4\xc3\x04\x52\x12\x45\x8c\x80\xfd\x1c\xd5\xd2\xc8\x16\x7f\x3b\xa3\x90\x3c\xd4\x5f\x6d\xe7\x4e\xb6\xfd\x9d\xd9\xae\x4e\x9a\x26\xaf\x34\x3e\xf4\x61\xf2\x14\xf4\x45\x93\x0f\xa7\xc8\x8e\x97\x0e\x78\x51\xac\x24\x41\xd3\xac\xa4\x19\xd0\xc3\xcf\x5f\xda\x06\xa4\x4e\xb6\x18\x8f\xc8\xb6\xbb\x63\x6b\x93\x1d\xfa\x84\x80\x19\xc1\x07\xd2\x76\x21\x0a\xdd\x6d\x1d\xfb\x6f\x06\x56\x1b\x38\x3b\x1b\xbf\xeb\xc6\x63\x80\x28\x8a\x62\x5f\x71\x06\x72\xb9\x44\xab\xca\xdd\x4a\x05\x8f\x9d\x82\x0d\x10\x5a\xd9\x73\x98\x98\x65\x02\x1b\xe8\x8c\x0c\x01\x79\x4b\xb9\x61\x6e\x10\x36\xa3\xef\xf0\x0e\xce\x3f\xc0\x06\x32\x17\x6c\xa0\x75\x7d\x2f\x21\xa5\xec\xc5\x34\x17\xce\x4a\x67\x2c\xf9\xce\xcc\x07\xab\x0c\x36\xd7\x68\x15\x52\xe9\xe6\x7f\x6a\xa5\xa5\xc1\x36\x54\x70\x3c\xda\xa9\x28\x12\xa0\xf1\xf8\xaa\xf6\xb7\xd7\x39\x18\xc3\xd5\x44\xc1\x20\xe3\x16\x37\xa1\x0f\xe5\x48\x56\xed\x7d\xaa\xeb\x7a\x2a\x44\xd1\x34\x9c\xf9\x31\xc0\x17\x33\xc8\xb4\xa4\x57\x48\xf5\xf7\x01\xe9\x81\x67\x88\xeb\x50\xb6\x61\x5d\xc1\xb3\x14\x6c\x14\x1f\xde\xda\xc4\xcd\x11\x86\x81\x2c\x7f\x56\xe3\x1f\xb3\xf6\xf2\x16\x3f\x13\x95\x48\x34\x8a\x53\xd8\x21\xbb\xce\xf5\xeb\x4b\xe3\x3c\x96\x2c\x28\x46\x50\xd8\x1a\x49\xf8\xc8\xc1\x6d\x32\x4f\x2f\xe0\x15\x5b\x9a\xd2\x18\x8a\x19\x04\x1a\x50\x88\xa2\x73\x7b\xe2\x2b\x56\x3f\xcd\xb2\x62\x04\x6d\x75\xb0\x78\xbf\xbb\xd7\xa2\x28\x58\xfa\x6c\x07\xbe\x69\xa5\xe5\x6b\x98\xb7\x8f\x03\x22\x95\x22\xd7\x1d\x65\xe1\x99\x7c\x1d\xd0\xfb\x14\xbd\x3f\x1c\x4d\x89\x1d\x7d\x3a\xab\x7f\x19\x16\x4f\x6b\x7c\x9a\xf6\x69\x19\x4d\x8b\x11\xf2\x73\x31\x76\xc3\xc8\xfc\x4e\xcd\xf2\xc6\x58\xf7\xe9\x0c\xd3\xde\xb2\x8b\x7d\xe3\x5c\x6b\xfa\xf1\x4d\x3e\x8a\x1d\x6c\x94\xc4\x02\x32\x5a\xf0\xc5\xdf\xbe\x55\x7f\x03\x00\x00\xff\xff\x7d\xdf\x7d\x63\xcc\x05\x00\x00")
+var _golangGetPagedTmpl = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x9c\x54\xc1\x6e\xdb\x38\x10\x3d\x8b\x5f\x31\xeb\x43\x20\x2f\x14\x61\xf7\x9a\x85\x0f\x8b\xa0\x05\x7a\x09\xda\xa4\xb7\xa2\x10\x68\x71\xe4\xb2\xa1\x48\x67\x48\x39\x0e\x68\xfe\x7b\x31\x94\xec\xd8\x49\x9a\x14\x39\xd8\x80\xc8\xc7\x37\x6f\xe6\x3d\x32\xc6\x73\x50\xd8\x69\x8b\x30\xf3\x7a\x65\x65\x18\x08\x67\x70\x9e\x92\xf8\x2c\x57\xa8\x9a\x18\xa1\xbe\x19\xba\x4e\x6f\x21\xa5\x32\x46\x68\xc3\x76\x2d\x49\xf6\x50\xff\x4f\x2b\x0f\x29\x55\xa2\x30\xba\xd7\x01\xb4\x0d\x15\xf8\x20\x29\xc0\xdf\x7c\xec\xd2\xd9\xa0\xed\x20\x83\x76\xb6\xfe\xfa\xb0\x46\x48\x69\x0e\xa5\x28\xc8\xdd\x7b\x88\x11\xbc\xd1\x2d\xba\x0e\xea\x6b\x77\xcf\x44\x60\x71\xfb\xca\xd9\x0a\x90\x88\x7f\x8e\xe6\x82\x85\xa3\x55\x59\xa9\x38\xee\x42\xdb\x8d\xbb\x7d\xb3\x05\x49\xab\xc7\x06\x20\xeb\x9f\xb4\xbf\x42\xbd\x74\xea\x61\x06\x29\x89\x22\x46\xc0\x7e\x89\x6a\x6d\x64\x8b\x3f\x9c\x51\x48\x1e\xea\x4f\xb6\x73\x27\xdb\xfe\xce\x4c\xab\xb3\xa6\xc9\x2b\x8d\x0f\x7d\x98\x3d\x07\x7d\xd4\xe4\xc3\x29\xb2\xe3\xa5\x47\xbc\x28\x36\x92\xa0\x69\x36\xd2\x0c\xe8\xe1\xdb\x77\x6d\x03\x52\x27\x5b\x8c\x47\x64\xd3\xee\xd8\xda\x6c\x8f\x3e\x21\x60\x46\xf0\x81\xb4\x5d\x89\x42\x77\x93\x63\x7f\x2d\xc0\x6a\x03\x67\x67\xe3\x77\xdd\x78\x0c\x10\x45\x51\x1c\x2a\x2e\x40\xae\xd7\x68\x55\xb9\x5f\xa9\xe0\xa9\x53\xb0\x03\x42\x2b\x7b\x0e\x13\xb3\xcc\x60\x07\x9d\x91\x21\x20\x6f\x65\xbb\xe1\x1f\x38\xff\x17\x76\x90\x29\x60\x07\xad\xeb\x7b\x09\x29\x65\x0b\xe6\xb9\x5e\x16\xb8\x60\xa5\x77\x66\x39\x58\x65\xb0\xb9\x46\xab\x90\x4a\xb7\xfc\x59\x2b\x2d\x0d\xb6\xa1\x82\xe3\x89\xce\x45\x91\x00\x8d\xc7\x37\x25\xbf\xbf\xce\xa3\x1f\x5c\x4d\x14\x0c\x32\x6e\x75\x13\xfa\x50\x8e\x64\xd5\xc1\x9e\xba\xae\xe7\x42\x14\x4d\xc3\x51\x1f\x73\x7b\xb1\x80\x4c\x4b\x7a\x83\x54\x7f\x19\x90\x1e\x78\x74\xb8\x0d\x65\x1b\xb6\x15\xbc\x48\xc1\xfe\xf0\xe1\xc9\x1d\x6e\x8e\x30\x0c\x64\xf9\xb3\x1a\xff\x98\xb5\x97\xb7\xf8\x81\xa8\x44\xa2\x51\x9c\xc2\x0e\xd9\x6c\xae\x5f\x5f\x1a\xe7\xb1\x64\x41\x31\x82\xc2\xd6\x48\xc2\x27\xc6\x4d\x81\x3c\xbd\x77\x57\xec\x64\x4a\x63\x16\x16\x10\x68\x40\x21\x8a\xce\x1d\x88\xaf\x58\xfd\x3c\xcb\x8a\x11\xb4\xd5\xc1\xe2\xfd\xfe\x3a\x8b\xa2\x60\xe9\x8b\x3d\xf8\xa6\x95\x96\x6f\x5f\xde\x3e\xce\x85\x54\x8a\x5c\x77\x94\x85\x17\x62\xf5\x9b\x14\x4d\x47\x53\x62\x47\x9f\xcf\xea\x4f\x86\xc5\xd3\x1a\x5f\xa4\x43\x5a\x46\xd3\x62\x84\xfc\x4a\x8c\xdd\x30\x32\x3f\x4f\x8b\xbc\x31\xd6\x7d\x3e\xc3\x74\xb0\xec\xe2\xd0\x38\xd7\x9a\xff\xf7\x2e\x1f\xc5\x1e\x36\x4a\x62\x01\x19\x2d\xf8\xbe\x4f\x4f\xd4\xaf\x00\x00\x00\xff\xff\x35\xb9\xb9\xe2\xc3\x05\x00\x00")
 
 func golangGetPagedTmplBytes() ([]byte, error) {
 	return bindataRead(
@@ -475,7 +475,7 @@ func golangGetPagedTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-paged.tmpl", size: 1484, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-paged.tmpl", size: 1475, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -495,7 +495,7 @@ func golangGetScalarAllTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-scalar-all.tmpl", size: 1003, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-scalar-all.tmpl", size: 1003, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -515,7 +515,7 @@ func golangGetScalarTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.get-scalar.tmpl", size: 712, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.get-scalar.tmpl", size: 712, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -535,7 +535,7 @@ func golangHeaderTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.header.tmpl", size: 8261, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.header.tmpl", size: 8261, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -555,7 +555,7 @@ func golangMiscTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.misc.tmpl", size: 267, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.misc.tmpl", size: 267, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -575,7 +575,7 @@ func golangUpdateTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "golang.update.tmpl", size: 2343, mode: os.FileMode(438), modTime: time.Unix(946710000, 0)}
+	info := bindataFileInfo{name: "golang.update.tmpl", size: 2343, mode: os.FileMode(420), modTime: time.Unix(946710000, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

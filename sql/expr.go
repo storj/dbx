@@ -22,8 +22,10 @@ func ExprSQL(expr *ir.Expr, dialect Dialect) sqlgen.SQL {
 		return L(*expr.NumberLit)
 	case expr.BoolLit != nil:
 		return L(dialect.BoolLit(*expr.BoolLit))
-	case expr.Placeholder:
+	case expr.Placeholder == 1:
 		return L("?")
+	case expr.Placeholder > 0:
+		return J("", L("("), J(", ", Placeholders(expr.Placeholder)...), L(")"))
 	case expr.Field != nil:
 		return L(expr.Field.ColumnRef())
 	case expr.FuncCall != nil:
@@ -32,6 +34,12 @@ func ExprSQL(expr *ir.Expr, dialect Dialect) sqlgen.SQL {
 			args = append(args, ExprSQL(arg, dialect))
 		}
 		return J("", L(expr.FuncCall.Name), L("("), J(", ", args...), L(")"))
+	case len(expr.Row) > 0:
+		refs := make([]string, 0, len(expr.Row))
+		for _, field := range expr.Row {
+			refs = append(refs, field.ColumnRef())
+		}
+		return J("", L("("), J(", ", Strings(refs)...), L(")"))
 	default:
 		panic(fmt.Sprintf("unhandled expression variant: %+v", expr))
 	}

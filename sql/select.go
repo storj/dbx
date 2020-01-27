@@ -101,24 +101,10 @@ func SelectFromIRRead(ir_read *ir.Read, dialect Dialect) *Select {
 }
 
 func pagedWhereFromPK(pk []*ir.Field) *ir.Where {
-	where := &ir.Where{Clause: &ir.Clause{
-		Left:  &ir.Expr{Field: pk[0]},
+	return &ir.Where{Clause: &ir.Clause{
+		Left:  &ir.Expr{Row: pk},
 		Op:    consts.GT,
-		Right: &ir.Expr{Placeholder: true},
-	}}
-	if len(pk) == 1 {
-		return where
-	}
-	return &ir.Where{Or: &[2]*ir.Where{
-		where,
-		&ir.Where{And: &[2]*ir.Where{
-			&ir.Where{Clause: &ir.Clause{
-				Left:  &ir.Expr{Field: pk[0]},
-				Op:    consts.EQ,
-				Right: &ir.Expr{Placeholder: true},
-			}},
-			pagedWhereFromPK(pk[1:]),
-		}},
+		Right: &ir.Expr{Placeholder: len(pk)},
 	}}
 }
 

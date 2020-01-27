@@ -55,7 +55,7 @@ func transformExpr(lookup *lookup, models map[string]scanner.Position,
 				"placeholders are not valid on the left side of a where clause")
 		}
 		return &ir.Expr{
-			Placeholder: true,
+			Placeholder: 1,
 		}, nil
 	case ast_expr.FieldRef != nil:
 		if _, ok := models[ast_expr.FieldRef.Model.Value]; !ok {
