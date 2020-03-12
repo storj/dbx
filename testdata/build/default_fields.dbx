@@ -1,9 +1,12 @@
 model foo (
 	key pk
 	field pk serial64
-	field a  int      ( autoinsert, default 10 )
-	field b  int      ( autoinsert )
-	field c  int      ( default 20 )
+	field a  int       ( autoinsert, default 10 )
+	field b  int       ( autoinsert )
+	field c  int       ( default 20 )
+	field d  int       ( default -1 )
+	field e  text      ( default "" )
+	field f  timestamp ( default "epoch" )
 )
 
 create foo ( noreturn )

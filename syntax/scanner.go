@@ -28,6 +28,7 @@ const (
 	String      Token = "String"
 	Float       Token = "Float"
 	Illegal     Token = "Illegal"
+	Negate      Token = "-"
 )
 
 func (t Token) String() string {
@@ -62,6 +63,8 @@ func (t Token) String() string {
 		return "Float"
 	case Illegal:
 		return "Illegal"
+	case Negate:
+		return "Negate"
 	default:
 		return "Unknown"
 	}
@@ -118,10 +121,22 @@ func NewScanner(filename string, data []byte) (*Scanner, error) {
 			}
 		}
 
+		// if it's a negative, roll it into an Int token
+		text := s.TokenText()
+		ctok := convertToken(tok)
+		if ctok == Negate {
+			ctok = convertToken(s.Scan())
+			if ctok != Int {
+				s.ErrorCount++
+				continue
+			}
+			text += s.TokenText()
+		}
+
 		tokens = append(tokens, token{
-			tok:  convertToken(tok),
+			tok:  ctok,
 			pos:  pos,
-			text: s.TokenText(),
+			text: text,
 		})
 	}
 
@@ -242,6 +257,8 @@ func convertToken(tok rune) Token {
 		return RightAngle
 	case '?':
 		return Question
+	case '-':
+		return Negate
 	default:
 		return Illegal
 	}

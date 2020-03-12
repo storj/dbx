@@ -76,3 +76,10 @@ func (p *sqlite3) BoolLit(v bool) string {
 	}
 	return "0"
 }
+
+func (p *sqlite3) DefaultLit(v string) string {
+	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		return `'` + p.EscapeString(v[1:len(v)-1]) + `'`
+	}
+	return v
+}

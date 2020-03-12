@@ -36,4 +36,5 @@ type Dialect interface {
 	Rebind(sql string) string
 	EscapeString(s string) string
 	BoolLit(v bool) string
+	DefaultLit(v string) string
 }

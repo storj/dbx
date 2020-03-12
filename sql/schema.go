@@ -73,7 +73,7 @@ func SchemaFromIRModels(ir_models []*ir.Model, dialect Dialect) *Schema {
 				Name:    ir_field.Column,
 				Type:    dialect.ColumnType(ir_field),
 				NotNull: !ir_field.Nullable,
-				Default: ir_field.Default,
+				Default: dialect.DefaultLit(ir_field.Default),
 			}
 			if ir_field.Relation != nil {
 				column.Reference = &Reference{

@@ -143,3 +143,10 @@ func (p *cockroach) BoolLit(v bool) string {
 	}
 	return "false"
 }
+
+func (p *cockroach) DefaultLit(v string) string {
+	if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+		return `'` + p.EscapeString(v[1:len(v)-1]) + `'`
+	}
+	return v
+}
