@@ -1,0 +1,14 @@
+model foo (
+	key pk
+
+	field pk serial64
+
+	field a text
+	field b text
+	field c text
+)
+
+read all (
+	select foo
+	where ( foo.a = ?, foo.b = ?, foo.c = ? )
+)

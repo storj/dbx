@@ -27,21 +27,27 @@ func transformWheres(lookup *lookup, models map[string]scanner.Position,
 func transformWhere(lookup *lookup, models map[string]scanner.Position,
 	ast_where *ast.Where) (where *ir.Where, err error) {
 
-	lexpr, err := transformExpr(lookup, models, ast_where.Left, true)
+	clauses, err := transformClauses(lookup, models, ast_where.Clauses)
 	if err != nil {
 		return nil, err
 	}
 
-	rexpr, err := transformExpr(lookup, models, ast_where.Right, false)
-	if err != nil {
-		return nil, err
+	// recursively construct a chain of or clauses
+	var xform func(clauses []*ir.Clause) *ir.Where
+	xform = func(clauses []*ir.Clause) *ir.Where {
+		if len(clauses) == 0 {
+			return where
+		} else if len(clauses) == 1 {
+			return &ir.Where{Clause: clauses[0]}
+		} else {
+			return &ir.Where{
+				Or: &[2]*ir.Where{
+					&ir.Where{Clause: clauses[0]},
+					xform(clauses[1:]),
+				},
+			}
+		}
 	}
 
-	// TODO: it's easier to support `or` in the grammar now
-
-	return &ir.Where{Clause: &ir.Clause{
-		Left:  lexpr,
-		Op:    ast_where.Op.Value,
-		Right: rexpr,
-	}}, nil
+	return xform(clauses), nil
 }

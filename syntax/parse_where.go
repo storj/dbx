@@ -6,59 +6,31 @@ package syntax
 
 import (
 	"storj.io/dbx/ast"
-	"storj.io/dbx/consts"
 )
 
 func parseWhere(node *tupleNode) (where *ast.Where, err error) {
 	where = new(ast.Where)
 	where.Pos = node.getPos()
 
-	where.Left, err = parseExpr(node)
-	if err != nil {
-		return nil, err
-	}
-
-	err = node.consumeTokenNamed(tokenCases{
-		Exclamation.tokenCase(): func(token *tokenNode) error {
-			_, err := node.consumeToken(Equal)
+	clauses := node.consumeIfList()
+	if clauses != nil {
+		for len(clauses.value) > 0 {
+			clauseTuple, err := clauses.consumeTuple()
 			if err != nil {
-				return err
+				return nil, err
 			}
-			where.Op = operatorFromValue(token, consts.NE)
-			return nil
-		},
-		{Ident, "like"}: func(token *tokenNode) error {
-			where.Op = operatorFromValue(token, consts.Like)
-			return nil
-		},
-		Equal.tokenCase(): func(token *tokenNode) error {
-			where.Op = operatorFromValue(token, consts.EQ)
-			return nil
-		},
-		LeftAngle.tokenCase(): func(token *tokenNode) error {
-			if node.consumeIfToken(Equal) != nil {
-				where.Op = operatorFromValue(token, consts.LE)
-			} else {
-				where.Op = operatorFromValue(token, consts.LT)
+			clause, err := parseClause(clauseTuple)
+			if err != nil {
+				return nil, err
 			}
-			return nil
-		},
-		RightAngle.tokenCase(): func(token *tokenNode) error {
-			if node.consumeIfToken(Equal) != nil {
-				where.Op = operatorFromValue(token, consts.GE)
-			} else {
-				where.Op = operatorFromValue(token, consts.GT)
-			}
-			return nil
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	where.Right, err = parseExpr(node)
-	if err != nil {
-		return nil, err
+			where.Clauses = append(where.Clauses, clause)
+		}
+	} else {
+		clause, err := parseClause(node)
+		if err != nil {
+			return nil, err
+		}
+		where.Clauses = append(where.Clauses, clause)
 	}
 
 	return where, nil

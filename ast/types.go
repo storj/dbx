@@ -240,14 +240,30 @@ func (j *JoinType) Get() consts.JoinType {
 }
 
 type Where struct {
+	Pos     scanner.Position
+	Clauses []*Clause // 2 or more joined by or
+}
+
+func (w *Where) String() string {
+	clauses := make([]string, 0, len(w.Clauses))
+	for _, clause := range w.Clauses {
+		clauses = append(clauses, clause.String())
+	}
+	if len(clauses) > 1 {
+		return "(" + strings.Join(clauses, " or ") + ")"
+	}
+	return strings.Join(clauses, " or ")
+}
+
+type Clause struct {
 	Pos   scanner.Position
 	Left  *Expr
 	Op    *Operator
 	Right *Expr
 }
 
-func (w *Where) String() string {
-	return fmt.Sprintf("%s %s %s", w.Left, w.Op, w.Right)
+func (c *Clause) String() string {
+	return fmt.Sprintf("%s %s %s", c.Left, c.Op, c.Right)
 }
 
 type Expr struct {

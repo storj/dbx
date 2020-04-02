@@ -95,42 +95,64 @@ func whereSuffix(wheres []*ir.Where, full bool) (parts []string) {
 		if i > 0 {
 			parts = append(parts, "and")
 		}
+		parts = append(parts, singleWhereSuffix(where, full)...)
+	}
+	return parts
+}
 
-		// TODO: do a better job with naming complicated wheres when we support it
-		clause := where.Clause
-		if clause == nil {
-			continue
-		}
+func singleWhereSuffix(where *ir.Where, full bool) (parts []string) {
+	switch {
+	case where.Clause != nil:
+		return clauseSuffix(where.Clause, full)
 
-		left := exprSuffix(clause.Left, full)
-		right := exprSuffix(clause.Right, full)
+	case where.And != nil:
+		parts = append(parts, "")
+		parts = append(parts, singleWhereSuffix(where.And[0], full)...)
+		parts = append(parts, "and")
+		parts = append(parts, singleWhereSuffix(where.And[1], full)...)
+		return parts
 
-		parts = append(parts, left...)
-		if len(right) > 0 || clause.Op != consts.EQ {
-			op := clause.Op.Suffix()
-			nulloperand := clause.Left.Null || clause.Right.Null
-			switch clause.Op {
-			case consts.EQ:
-				if nulloperand {
-					parts = append(parts, "is")
-				} else {
-					parts = append(parts, op)
-				}
-			case consts.NE:
-				if nulloperand {
-					parts = append(parts, "is not")
-				} else {
-					parts = append(parts, op)
-				}
-			default:
+	case where.Or != nil:
+		parts = append(parts, "")
+		parts = append(parts, singleWhereSuffix(where.Or[0], full)...)
+		parts = append(parts, "or")
+		parts = append(parts, singleWhereSuffix(where.Or[1], full)...)
+		return parts
+
+	default:
+		panic("invalid where")
+	}
+}
+
+func clauseSuffix(clause *ir.Clause, full bool) (parts []string) {
+	left := exprSuffix(clause.Left, full)
+	right := exprSuffix(clause.Right, full)
+
+	parts = append(parts, left...)
+	if len(right) > 0 || clause.Op != consts.EQ {
+		op := clause.Op.Suffix()
+		nulloperand := clause.Left.Null || clause.Right.Null
+		switch clause.Op {
+		case consts.EQ:
+			if nulloperand {
+				parts = append(parts, "is")
+			} else {
 				parts = append(parts, op)
 			}
+		case consts.NE:
+			if nulloperand {
+				parts = append(parts, "is not")
+			} else {
+				parts = append(parts, op)
+			}
+		default:
+			parts = append(parts, op)
 		}
-		if len(right) > 0 {
-			parts = append(parts, right...)
-		}
-
 	}
+	if len(right) > 0 {
+		parts = append(parts, right...)
+	}
+
 	return parts
 }
 
