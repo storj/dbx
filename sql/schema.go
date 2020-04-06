@@ -121,11 +121,11 @@ func SQLFromSchema(schema *Schema) sqlgen.SQL {
 
 		for _, column := range table.Columns {
 			dir := Build(Lf("%s %s", column.Name, column.Type))
-			if column.Default != "" {
-				dir.Add(Lf("DEFAULT %s", column.Default))
-			}
 			if column.NotNull {
 				dir.Add(L("NOT NULL"))
+			}
+			if column.Default != "" {
+				dir.Add(Lf("DEFAULT %s", column.Default))
 			}
 			if ref := column.Reference; ref != nil {
 				dir.Add(Lf("REFERENCES %s( %s )", ref.Table, ref.Column))
