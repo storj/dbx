@@ -59,7 +59,7 @@ func testBuildFile(t *testutil.T, file string) {
 	t.Context("dbx", linedSource(dbx_source))
 	d := loadDirectives(t, dbx_source)
 
-	dialects := []string{"postgres", "sqlite3", "cockroach"}
+	dialects := []string{"postgres", "sqlite3", "cockroach", "pgx", "pgxcockroach"}
 	if other := d.lookup("dialects"); other != nil {
 		dialects = other
 		t.Logf("using dialects: %q", dialects)
@@ -98,6 +98,13 @@ func testBuildFile(t *testutil.T, file string) {
 			t.AssertError(err, d.get("fail"))
 		} else {
 			t.AssertNoError(err)
+			if len(pkg[0].Errors) > 0 {
+				errMsg := ""
+				for _, err := range pkg[0].Errors {
+					errMsg += "    " + err.Error()
+				}
+				t.Logf("[%s] errors:\n%s", file, errMsg)
+			}
 			t.Assert(!pkg[0].IllTyped)
 		}
 	}

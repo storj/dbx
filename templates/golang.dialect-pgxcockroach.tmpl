@@ -1,0 +1,29 @@
+{{- define "import" }}
+	"github.com/jackc/pgconn"
+	_ "github.com/jackc/pgx/v4/stdlib"
+{{ end -}}
+
+{{- define "is-constraint-error" }}
+func (impl {{ .Receiver }}) isConstraintError(err error) (
+	constraint string, ok bool) {
+	if e, ok := err.(*pgconn.PgError); ok {
+			if e.Code[:2] == "23" {
+				return e.ConstraintName, true
+			}
+	}
+	return "", false
+}
+{{ end -}}
+
+{{- define "open" }}
+func openpgxcockroach(source string) (*sql.DB, error) {
+	// try first with "cockroach" as a driver in case someone has registered
+	// some special stuff. if that fails, then try again with "pgx" as
+	// the driver.
+	db, err := sql.Open("cockroach", source)
+	if err != nil {
+		db, err = sql.Open("pgx", source)
+	}
+	return db, err
+}
+{{ end -}}

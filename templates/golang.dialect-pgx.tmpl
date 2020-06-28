@@ -1,0 +1,22 @@
+{{- define "import" }}
+	"github.com/jackc/pgconn"
+	_ "github.com/jackc/pgx/v4/stdlib"
+{{ end -}}
+
+{{- define "is-constraint-error" }}
+func (impl {{ .Receiver }}) isConstraintError(err error) (
+	constraint string, ok bool) {
+	if e, ok := err.(*pgconn.PgError); ok {
+			if e.Code[:2] == "23" {
+				return e.ConstraintName, true
+			}
+	}
+	return "", false
+}
+{{ end -}}
+
+{{- define "open" }}
+func openpgx(source string) (*sql.DB, error) {
+	return sql.Open("pgx", source)
+}
+{{ end -}}
