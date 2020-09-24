@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	"bitbucket.org/pkg/inflect"
+	"storj.io/dbx/internal/inflect"
 	"storj.io/dbx/ir"
 	"storj.io/dbx/sqlgen/sqlembedgo"
 )

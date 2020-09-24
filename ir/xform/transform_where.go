@@ -42,7 +42,7 @@ func transformWhere(lookup *lookup, models map[string]scanner.Position,
 		} else {
 			return &ir.Where{
 				Or: &[2]*ir.Where{
-					&ir.Where{Clause: clauses[0]},
+					{Clause: clauses[0]},
 					xform(clauses[1:]),
 				},
 			}

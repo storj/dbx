@@ -3,7 +3,6 @@ module storj.io/dbx
 go 1.14
 
 require (
-	bitbucket.org/pkg/inflect v0.0.0-20130829110746-8961c3750a47
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/jackc/pgx/v4 v4.7.0
 	github.com/jawher/mow.cli v1.1.0

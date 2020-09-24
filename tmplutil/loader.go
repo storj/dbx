@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"bitbucket.org/pkg/inflect"
+	"storj.io/dbx/internal/inflect"
 )
 
 type Loader interface {

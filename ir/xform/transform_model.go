@@ -7,9 +7,9 @@ package xform
 import (
 	"fmt"
 
-	"bitbucket.org/pkg/inflect"
 	"storj.io/dbx/ast"
 	"storj.io/dbx/errutil"
+	"storj.io/dbx/internal/inflect"
 	"storj.io/dbx/ir"
 )
 
