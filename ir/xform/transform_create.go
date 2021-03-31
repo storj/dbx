@@ -29,9 +29,14 @@ func transformCreate(lookup *lookup, ast_cre *ast.Create) (
 		cre.Suffix = DefaultCreateSuffix(cre)
 	}
 
-	if cre.Replace && !cre.Raw && cre.Model.BasicPrimaryKey() != nil {
+	if cre.Replace &&
+		!cre.Raw &&
+		cre.Model.BasicPrimaryKey() != nil &&
+		len(cre.Model.Unique) == 0 {
+
 		return nil, errutil.New(ast_cre.Replace.Pos,
-			"non-raw replace with basic primary key guarantees no replace can happen")
+			`non-raw replace with basic primary key and no unique `+
+				`constraints guarantees no replace can happen`)
 	}
 
 	return cre, nil
