@@ -18,6 +18,9 @@ type Features struct {
 
 	// What style the database uses to handle replacement creates
 	ReplaceStyle ReplaceStyle
+
+	// Supports the STORING feature of indexes
+	Storing bool
 }
 
 type ReplaceStyle int

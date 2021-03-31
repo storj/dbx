@@ -50,6 +50,8 @@ type Index struct {
 	Table   string
 	Columns []string
 	Unique  bool
+	Where   []sqlgen.SQL
+	Storing []string
 }
 
 func SchemaFromIRModels(ir_models []*ir.Model, dialect Dialect) *Schema {
@@ -103,6 +105,12 @@ func SchemaFromIRModels(ir_models []*ir.Model, dialect Dialect) *Schema {
 				Name:   ir_index.Name,
 				Table:  ir_index.Model.Table,
 				Unique: ir_index.Unique,
+				Where:  WhereSQL(ir_index.Where, dialect),
+			}
+			if dialect.Features().Storing {
+				for _, ir_storing := range ir_index.Storing {
+					index.Storing = append(index.Storing, ir_storing.Column)
+				}
 			}
 			for _, ir_field := range ir_index.Fields {
 				index.Columns = append(index.Columns, ir_field.Column)
@@ -170,8 +178,14 @@ func SQLFromSchema(schema *Schema) sqlgen.SQL {
 			stmt.Add(L("UNIQUE"))
 		}
 		stmt.Add(Lf("INDEX %s ON %s (", index.Name, index.Table))
-		stmt.Add(J(", ", Strings(index.Columns)...))
-		stmt.Add(L(");"))
+		stmt.Add(J(", ", Strings(index.Columns)...), L(")"))
+		if len(index.Storing) > 0 {
+			stmt.Add(L("STORING ("), J(", ", Strings(index.Storing)...), L(")"))
+		}
+		if len(index.Where) > 0 {
+			stmt.Add(L("WHERE"), J(" AND ", index.Where...))
+		}
+		stmt.Add(L(";"))
 
 		stmts = append(stmts, stmt.SQL())
 	}
