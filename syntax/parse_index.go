@@ -45,6 +45,29 @@ func parseIndex(node *tupleNode) (*ast.Index, error) {
 			return nil
 		},
 		"unique": tupleFlagField("index", "unique", &index.Unique),
+		"storing": func(node *tupleNode) error {
+			if index.Storing != nil {
+				return previouslyDefined(node.getPos(), "index", "storing",
+					index.Storing.Pos)
+			}
+
+			storing, err := parseRelativeFieldRefs(node)
+			if err != nil {
+				return err
+			}
+			index.Storing = storing
+
+			return nil
+		},
+		"where": func(node *tupleNode) error {
+			where, err := parseWhere(node)
+			if err != nil {
+				return err
+			}
+			index.Where = append(index.Where, where)
+
+			return nil
+		},
 	})
 	if err != nil {
 		return nil, err

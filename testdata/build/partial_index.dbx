@@ -1,0 +1,15 @@
+model a (
+	key    pk
+	index  (
+		fields ctime mtime
+		storing id name
+		where a.id > "foo"
+		where a.name > "bar"
+	)
+
+	field pk    serial64
+	field ctime timestamp ( autoinsert )
+	field mtime timestamp ( autoinsert, autoupdate )
+	field id    text
+	field name  text
+)

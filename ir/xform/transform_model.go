@@ -6,6 +6,7 @@ package xform
 
 import (
 	"fmt"
+	"text/scanner"
 
 	"storj.io/dbx/ast"
 	"storj.io/dbx/errutil"
@@ -86,11 +87,28 @@ func transformModel(lookup *lookup, model_entry *modelEntry) (err error) {
 			return err
 		}
 
+		var storing []*ir.Field
+		if ast_index.Storing != nil {
+			storing, err = resolveRelativeFieldRefs(
+				model_entry, ast_index.Storing.Refs)
+			if err != nil {
+				return err
+			}
+		}
+
+		models := map[string]scanner.Position{model.Name: ast_model.Pos}
+		where, err := transformWheres(lookup, models, ast_index.Where)
+		if err != nil {
+			return err
+		}
+
 		index := &ir.Index{
-			Name:   ast_index.Name.Get(),
-			Model:  fields[0].Model,
-			Fields: fields,
-			Unique: ast_index.Unique.Get(),
+			Name:    ast_index.Name.Get(),
+			Model:   fields[0].Model,
+			Fields:  fields,
+			Unique:  ast_index.Unique.Get(),
+			Where:   where,
+			Storing: storing,
 		}
 
 		if index.Name == "" {

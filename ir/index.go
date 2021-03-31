@@ -5,8 +5,10 @@
 package ir
 
 type Index struct {
-	Name   string
-	Model  *Model
-	Fields []*Field
-	Unique bool
+	Name    string
+	Model   *Model
+	Fields  []*Field
+	Unique  bool
+	Where   []*Where
+	Storing []*Field
 }

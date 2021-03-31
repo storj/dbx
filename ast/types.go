@@ -160,10 +160,12 @@ func (m *ModelRef) String() string {
 }
 
 type Index struct {
-	Pos    scanner.Position
-	Name   *String
-	Fields *RelativeFieldRefs
-	Unique *Bool
+	Pos     scanner.Position
+	Name    *String
+	Fields  *RelativeFieldRefs
+	Unique  *Bool
+	Where   []*Where
+	Storing *RelativeFieldRefs
 }
 
 type Read struct {
