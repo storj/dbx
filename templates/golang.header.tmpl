@@ -155,7 +155,7 @@ func Open(driver, source string) (db *DB, err error) {
 	}
 	defer func(sql_db *sql.DB) {
 		if err != nil {
-			sql_db.Close()
+			_ = sql_db.Close()
 		}
 	}(sql_db)
 
