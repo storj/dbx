@@ -5,6 +5,7 @@
 package tmplutil
 
 import (
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -51,12 +52,16 @@ func (d dirLoader) Load(name string, funcs template.FuncMap) (
 	return loadTemplate(name, data, funcs)
 }
 
-type BinLoader func(name string) ([]byte, error)
+func FSLoader(fs fs.FS) Loader {
+	return fsLoader{FS: fs}
+}
 
-func (b BinLoader) Load(name string, funcs template.FuncMap) (
+type fsLoader struct{ fs.FS }
+
+func (b fsLoader) Load(name string, funcs template.FuncMap) (
 	*template.Template, error) {
 
-	data, err := b(name)
+	data, err := fs.ReadFile(b.FS, name)
 	if err != nil {
 		return nil, Error.Wrap(err)
 	}

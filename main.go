@@ -195,7 +195,7 @@ func parseDBX(in string) (*ir.Root, error) {
 }
 
 func getLoader(dir string) tmplutil.Loader {
-	loader := tmplutil.BinLoader(templates.Asset)
+	loader := tmplutil.FSLoader(templates.Asset)
 	if dir != "" {
 		return tmplutil.DirLoader(dir, loader)
 	}
