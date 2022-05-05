@@ -1,0 +1,13 @@
+model foo (
+	key pk
+
+	field pk serial64
+
+	field first  int
+	field second int
+)
+
+read all (
+	select foo
+	orderby ( desc foo.first, asc foo.second )
+)

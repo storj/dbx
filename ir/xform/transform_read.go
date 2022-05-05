@@ -104,21 +104,22 @@ func transformRead(lookup *lookup, ast_read *ast.Read) (
 
 	// Finalize OrderBy and make sure referenced fields are part of the select
 	if ast_read.OrderBy != nil {
-		fields, err := resolveFieldRefs(lookup, ast_read.OrderBy.Fields.Refs)
-		if err != nil {
-			return nil, err
-		}
-		for _, order_by_field := range ast_read.OrderBy.Fields.Refs {
-			if _, ok := models[order_by_field.Model.Value]; !ok {
-				return nil, errutil.New(order_by_field.Pos,
-					"invalid orderby field %q; model %q is not joined",
-					order_by_field, order_by_field.Model.Value)
-			}
-		}
+		tmpl.OrderBy = new(ir.OrderBy)
 
-		tmpl.OrderBy = &ir.OrderBy{
-			Fields:     fields,
-			Descending: ast_read.OrderBy.Descending.Get(),
+		for _, entry := range ast_read.OrderBy.Entries {
+			field, err := lookup.FindField(entry.Field)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := models[entry.Field.Model.Value]; !ok {
+				return nil, errutil.New(entry.Field.Pos,
+					"invalid orderby field %q; model %q is not joined",
+					entry.Field, entry.Field.Model.Value)
+			}
+			tmpl.OrderBy.Entries = append(tmpl.OrderBy.Entries, &ir.OrderByEntry{
+				Field:      field,
+				Descending: entry.Descending.Get(),
+			})
 		}
 	}
 

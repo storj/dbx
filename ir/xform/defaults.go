@@ -47,16 +47,16 @@ func DefaultReadSuffix(read *ir.Read) []string {
 	parts = append(parts, whereSuffix(read.Where, full)...)
 	if read.OrderBy != nil {
 		parts = append(parts, "order_by")
-		if read.OrderBy.Descending {
-			parts = append(parts, "desc")
-		} else {
-			parts = append(parts, "asc")
-		}
-		for _, field := range read.OrderBy.Fields {
-			if full {
-				parts = append(parts, field.Model.Name)
+		for _, entry := range read.OrderBy.Entries {
+			if entry.Descending {
+				parts = append(parts, "desc")
+			} else {
+				parts = append(parts, "asc")
 			}
-			parts = append(parts, field.Name)
+			if full {
+				parts = append(parts, entry.Field.Model.Name)
+			}
+			parts = append(parts, entry.Field.Name)
 		}
 	}
 	if read.GroupBy != nil {

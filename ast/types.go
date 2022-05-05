@@ -339,8 +339,13 @@ type Operator struct {
 func (o *Operator) String() string { return string(o.Value) }
 
 type OrderBy struct {
+	Pos     scanner.Position
+	Entries []*OrderByEntry
+}
+
+type OrderByEntry struct {
 	Pos        scanner.Position
-	Fields     *FieldRefs
+	Field      *FieldRef
 	Descending *Bool
 }
 

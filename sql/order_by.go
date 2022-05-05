@@ -12,25 +12,35 @@ import (
 )
 
 type OrderBy struct {
-	Fields     []string
+	Entries []OrderByEntry
+}
+
+type OrderByEntry struct {
+	Field      string
 	Descending bool
 }
 
 func OrderByFromIROrderBy(ir_order_by *ir.OrderBy) (order_by *OrderBy) {
-	order_by = &OrderBy{
-		Descending: ir_order_by.Descending,
-	}
-	for _, ir_field := range ir_order_by.Fields {
-		order_by.Fields = append(order_by.Fields, ir_field.ColumnRef())
+	order_by = new(OrderBy)
+	for _, entry := range ir_order_by.Entries {
+		order_by.Entries = append(order_by.Entries, OrderByEntry{
+			Field:      entry.Field.ColumnRef(),
+			Descending: entry.Descending,
+		})
 	}
 	return order_by
 }
 
 func SQLFromOrderBy(order_by *OrderBy) sqlgen.SQL {
 	stmt := Build(L("ORDER BY"))
-	stmt.Add(J(", ", Strings(order_by.Fields)...))
-	if order_by.Descending {
-		stmt.Add(L("DESC"))
+	var entries []sqlgen.SQL
+	for _, entry := range order_by.Entries {
+		clause := Build(L(entry.Field))
+		if entry.Descending {
+			clause.Add(L("DESC"))
+		}
+		entries = append(entries, clause.SQL())
 	}
+	stmt.Add(J(", ", entries...))
 	return sqlcompile.Compile(stmt.SQL())
 }

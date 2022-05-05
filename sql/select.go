@@ -77,7 +77,9 @@ func SelectFromIRRead(ir_read *ir.Read, dialect Dialect) *Select {
 		sel.Where = append(sel.Where, WhereSQL([]*ir.Where{pagedWhereFromPK(pk)}, dialect)...)
 		sel.OrderBy = new(OrderBy)
 		for _, field := range pk {
-			sel.OrderBy.Fields = append(sel.OrderBy.Fields, field.ColumnRef())
+			sel.OrderBy.Entries = append(sel.OrderBy.Entries, OrderByEntry{
+				Field: field.ColumnRef(),
+			})
 		}
 		sel.Limit = "?"
 		for _, field := range pk {

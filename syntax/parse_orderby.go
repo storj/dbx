@@ -10,10 +10,38 @@ func parseOrderBy(node *tupleNode) (*ast.OrderBy, error) {
 	order_by := new(ast.OrderBy)
 	order_by.Pos = node.getPos()
 
+	entries := node.consumeIfList()
+	if entries != nil {
+		for len(entries.value) > 0 {
+			entryTuple, err := entries.consumeTuple()
+			if err != nil {
+				return nil, err
+			}
+			entry, err := parseOrderByEntry(entryTuple)
+			if err != nil {
+				return nil, err
+			}
+			order_by.Entries = append(order_by.Entries, entry)
+		}
+	} else {
+		entry, err := parseOrderByEntry(node)
+		if err != nil {
+			return nil, err
+		}
+		order_by.Entries = append(order_by.Entries, entry)
+	}
+
+	return order_by, nil
+}
+
+func parseOrderByEntry(node *tupleNode) (*ast.OrderByEntry, error) {
+	entry := new(ast.OrderByEntry)
+	entry.Pos = node.getPos()
+
 	err := node.consumeTokenNamed(tokenCases{
 		{Ident, "asc"}: func(token *tokenNode) error { return nil },
 		{Ident, "desc"}: func(token *tokenNode) error {
-			order_by.Descending = boolFromValue(token, true)
+			entry.Descending = boolFromValue(token, true)
 			return nil
 		},
 	})
@@ -21,11 +49,11 @@ func parseOrderBy(node *tupleNode) (*ast.OrderBy, error) {
 		return nil, err
 	}
 
-	field_refs, err := parseFieldRefs(node, true)
+	field, err := parseFieldRef(node, true)
 	if err != nil {
 		return nil, err
 	}
-	order_by.Fields = field_refs
+	entry.Field = field
 
-	return order_by, nil
+	return entry, nil
 }

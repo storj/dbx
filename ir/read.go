@@ -70,7 +70,11 @@ type Join struct {
 }
 
 type OrderBy struct {
-	Fields     []*Field
+	Entries []*OrderByEntry
+}
+
+type OrderByEntry struct {
+	Field      *Field
 	Descending bool
 }
 
