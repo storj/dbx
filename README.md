@@ -12,7 +12,7 @@ and can generate code to interact with sql databases.
 ## Installing
 
 ```
-go get storj.io/dbx
+go install storj.io/dbx@latest
 ```
 
 ## Basic Example
