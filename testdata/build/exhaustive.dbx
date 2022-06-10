@@ -213,6 +213,7 @@ model foo (
 	field utimestamp utimestamp (updatable, autoinsert, autoupdate)
 	field bool bool (updatable)
 	field date date (updatable)
+	field json json (updatable)
 
 	field null_int int (nullable, updatable)
 	field null_int64 int64 (nullable, updatable)
@@ -226,6 +227,7 @@ model foo (
 	field null_utimestamp utimestamp (nullable, updatable)
 	field null_bool bool (nullable, updatable)
 	field null_date date (nullable, updatable, autoupdate)
+	field null_json json (nullable, updatable)
 )
 
 create foo ( )

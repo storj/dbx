@@ -71,6 +71,8 @@ func (p *pgxcockroach) ColumnType(field *ir.Field) string {
 		return "bytea"
 	case consts.DateField:
 		return "date"
+	case consts.JsonField:
+		return "jsonb"
 	default:
 		panic(fmt.Sprintf("unhandled field type %s", field.Type))
 	}

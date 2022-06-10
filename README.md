@@ -397,6 +397,7 @@ Fields may be any of these types
 - `float`
 - `float64`
 - `blob`
+- `json` (treated by dbx as simple bytes, but uses a JSON/JSONB sql data type where appropriate)
 
 #### Foreign Key Relation Kinds
 

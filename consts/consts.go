@@ -62,6 +62,7 @@ const (
 	TimestampUTCField
 	BlobField
 	DateField
+	JsonField
 )
 
 func (f FieldType) String() string {
@@ -92,6 +93,10 @@ func (f FieldType) String() string {
 		return "utimestamp"
 	case BlobField:
 		return "blob"
+	case DateField:
+		return "date"
+	case JsonField:
+		return "json"
 	default:
 		return "<UNKNOWN-FIELD>"
 	}

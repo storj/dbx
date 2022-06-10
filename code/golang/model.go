@@ -118,7 +118,7 @@ func ModelFieldFromIR(field *ir.Field) *ModelField {
 		AutoInsert: field.AutoInsert,
 		Updatable:  field.Updatable,
 		AutoUpdate: field.AutoUpdate,
-		TakeAddr:   field.Nullable && field.Type != consts.BlobField,
+		TakeAddr:   field.Nullable && field.Type != consts.BlobField && field.Type != consts.JsonField,
 	}
 }
 
@@ -182,11 +182,13 @@ func valueType(t consts.FieldType, nullable bool) (value_type string) {
 		value_type = "float64"
 	case consts.DateField:
 		value_type = "time.Time"
+	case consts.JsonField:
+		value_type = "[]byte"
 	default:
 		panic(fmt.Sprintf("unhandled field type %q", t))
 	}
 
-	if nullable && t != consts.BlobField {
+	if nullable && t != consts.BlobField && t != consts.JsonField {
 		return "*" + value_type
 	}
 	return value_type
@@ -221,6 +223,8 @@ func zeroVal(t consts.FieldType, nullable bool) string {
 		return `float64(0)`
 	case consts.DateField:
 		return `time.Time{}`
+	case consts.JsonField:
+		return `nil`
 	default:
 		panic(fmt.Sprintf("unhandled field type %q", t))
 	}
@@ -288,6 +292,11 @@ func initVal(t consts.FieldType, nullable bool) string {
 			return `(*time.Time)(nil)`
 		}
 		return `toDate(__now)`
+	case consts.JsonField:
+		if nullable {
+			return `[]byte(nil)`
+		}
+		return `nil`
 	default:
 		panic(fmt.Sprintf("unhandled field type %q", t))
 	}

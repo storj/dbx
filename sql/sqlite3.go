@@ -43,7 +43,7 @@ func (s *sqlite3) ColumnType(field *ir.Field) string {
 		return "INTEGER"
 	case consts.FloatField, consts.Float64Field:
 		return "REAL"
-	case consts.TextField:
+	case consts.TextField, consts.JsonField:
 		return "TEXT"
 	case consts.BoolField:
 		return "INTEGER"
