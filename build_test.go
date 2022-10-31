@@ -7,7 +7,6 @@ package main
 import (
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -50,11 +49,11 @@ func testBuildFile(t *testutil.T, file string) {
 		}
 	}()
 
-	dir, err := ioutil.TempDir("", "dbx")
+	dir, err := os.MkdirTemp("", "dbx")
 	t.AssertNoError(err)
 	defer os.RemoveAll(dir)
 
-	dbx_source, err := ioutil.ReadFile(file)
+	dbx_source, err := os.ReadFile(file)
 	t.AssertNoError(err)
 	t.Context("dbx", linedSource(dbx_source))
 	d := loadDirectives(t, dbx_source)
@@ -82,7 +81,7 @@ func testBuildFile(t *testutil.T, file string) {
 
 		t.Logf("[%s] loading...", file)
 		go_file := filepath.Join(dir, filepath.Base(file)+".go")
-		go_source, err := ioutil.ReadFile(go_file)
+		go_source, err := os.ReadFile(go_file)
 		t.AssertNoError(err)
 		t.Context("go", linedSource(go_source))
 

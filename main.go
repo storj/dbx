@@ -7,7 +7,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -154,7 +154,7 @@ func schemaCmd(dialects_opt []string, dbxfile, outdir string) (err error) {
 }
 
 func formatCmd() (err error) {
-	data, err := ioutil.ReadAll(os.Stdin)
+	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func renderSchema(dialect sql.Dialect, root *ir.Root) []byte {
 }
 
 func parseDBX(in string) (*ir.Root, error) {
-	data, err := ioutil.ReadFile(in)
+	data, err := os.ReadFile(in)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (fw *fileWriter) writeFile(suffix string, data []byte) (err error) {
 	file_path := filepath.Join(fw.dir, fw.prefix+"."+suffix)
 	tmp_path := file_path + ".tmp"
 
-	if err := ioutil.WriteFile(tmp_path, data, 0644); err != nil {
+	if err := os.WriteFile(tmp_path, data, 0644); err != nil {
 		return fmt.Errorf("unable to write %s: %v", tmp_path, err)
 	}
 

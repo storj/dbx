@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -41,7 +40,7 @@ func main() {
 	copyright, bundle := loadCopyright(), loadBundle()
 	output := []byte(fmt.Sprintf(template, copyright, bundle, prefix))
 
-	err := ioutil.WriteFile("bundle.go", output, 0644)
+	err := os.WriteFile("bundle.go", output, 0644)
 	if err != nil {
 		panic(err)
 	}

@@ -6,7 +6,6 @@ package tmplutil
 
 import (
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -42,7 +41,7 @@ func DirLoader(dir string, fallback Loader) Loader {
 func (d dirLoader) Load(name string, funcs template.FuncMap) (
 	*template.Template, error) {
 
-	data, err := ioutil.ReadFile(filepath.Join(d.dir, name))
+	data, err := os.ReadFile(filepath.Join(d.dir, name))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return d.fallback.Load(name, funcs)

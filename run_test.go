@@ -6,7 +6,6 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -38,12 +37,12 @@ func testRunFile(t *testutil.T, dbx_file string) {
 		}
 	}()
 
-	dbx_source, err := ioutil.ReadFile(dbx_file)
+	dbx_source, err := os.ReadFile(dbx_file)
 	t.AssertNoError(err)
 	t.Context("dbx", linedSource(dbx_source))
 	d := loadDirectives(t, dbx_source)
 
-	dir, err := ioutil.TempDir("", "dbx")
+	dir, err := os.MkdirTemp("", "dbx")
 	t.AssertNoError(err)
 	defer os.RemoveAll(dir)
 
@@ -60,12 +59,12 @@ func testRunFile(t *testutil.T, dbx_file string) {
 
 	ext := filepath.Ext(dbx_file)
 	go_file := dbx_file[:len(dbx_file)-len(ext)] + ".go"
-	go_source, err := ioutil.ReadFile(go_file)
+	go_source, err := os.ReadFile(go_file)
 	t.AssertNoError(err)
 	t.Context("go", linedSource(go_source))
 
 	t.Logf("[%s] copying go source...", dbx_file)
-	t.AssertNoError(ioutil.WriteFile(
+	t.AssertNoError(os.WriteFile(
 		filepath.Join(dir, filepath.Base(go_file)), go_source, 0644))
 
 	t.Logf("[%s] running output...", dbx_file)
