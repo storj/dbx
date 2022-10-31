@@ -2,6 +2,7 @@
 // Copyright (C) 2017 Space Monkey, Inc.
 // See LICENSE for copying information.
 
+//go:build ignore
 // +build ignore
 
 package main

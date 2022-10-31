@@ -1,3 +1,4 @@
+//go:build dialects
 // +build dialects
 
 package main
