@@ -35,12 +35,12 @@ func GetErrorPosition(err error) *scanner.Position {
 	return nil
 }
 
-func GetContext(src []byte, err error) string {
-	if src == nil {
+func GetContext(sources map[string][]byte, err error) string {
+	if len(sources) == 0 {
 		return ""
 	}
 	if pos := GetErrorPosition(err); pos != nil {
-		return generateContext(src, *pos)
+		return generateContext(sources, *pos)
 	}
 	return ""
 }
@@ -67,9 +67,10 @@ func lineAround(data []byte, offset int) (start, end int) {
 	return start, end
 }
 
-func generateContext(source []byte, pos scanner.Position) (context string) {
+func generateContext(sources map[string][]byte, pos scanner.Position) (context string) {
 	var context_bytes []byte
 
+	source := sources[pos.Filename]
 	if pos.Offset > len(source) {
 		panic("internal error: underline on strange position")
 	}

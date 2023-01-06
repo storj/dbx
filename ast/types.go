@@ -20,6 +20,14 @@ type Root struct {
 	Deletes []*Delete
 }
 
+func (root *Root) Add(next *Root) {
+	root.Creates = append(root.Creates, next.Creates...)
+	root.Models = append(root.Models, next.Models...)
+	root.Reads = append(root.Reads, next.Reads...)
+	root.Updates = append(root.Updates, next.Updates...)
+	root.Deletes = append(root.Deletes, next.Deletes...)
+}
+
 type String struct {
 	Pos   scanner.Position
 	Value string

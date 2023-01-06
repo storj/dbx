@@ -71,7 +71,7 @@ func testBuildFile(t *testutil.T, file string) {
 
 	runBuild := func(opts options) {
 		t.Logf("[%s] generating... %+v", file, opts)
-		err = golangCmd("", dialects, "", opts.rx, opts.userdata, file, dir)
+		err = golangCmd("", dialects, "", opts.rx, opts.userdata, []string{file}, dir)
 		if d.has("fail_gen") {
 			t.AssertError(err, d.get("fail_gen"))
 			return

@@ -71,6 +71,15 @@ func (d *directives) get(name string) string {
 	return vals[len(vals)-1]
 }
 
+func (d *directives) join(b directives) {
+	if d.ds == nil {
+		d.ds = make(map[string][]string)
+	}
+	for name, values := range b.ds {
+		d.ds[name] = append(d.ds[name], values...)
+	}
+}
+
 func loadDirectives(t *testutil.T, source []byte) (d directives) {
 	const prefix = "//test:"
 

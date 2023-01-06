@@ -19,37 +19,48 @@ func TestRun(t *testing.T) {
 	tw := testutil.Wrap(t)
 	tw.Parallel()
 
-	names, err := filepath.Glob(filepath.Join("testdata", "run", "*", "*.dbx"))
+	testdir := filepath.Join("testdata", "run")
+	entries, err := os.ReadDir(testdir)
 	tw.AssertNoError(err)
 
-	for _, name := range names {
-		name := name
-		tw.Runp(filepath.Base(name), func(tw *testutil.T) {
-			testRunFile(tw, name)
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		path := filepath.Join(testdir, entry.Name())
+		tw.Runp(entry.Name(), func(tw *testutil.T) {
+			testRunFile(tw, path)
 		})
 	}
 }
 
-func testRunFile(t *testutil.T, dbx_file string) {
+func testRunFile(t *testutil.T, dbxdir string) {
 	defer func() {
 		if val := recover(); val != nil {
 			t.Fatalf("%s\n%s", val, string(debug.Stack()))
 		}
 	}()
 
-	dbx_source, err := os.ReadFile(dbx_file)
+	dbxfiles, err := filepath.Glob(filepath.Join(dbxdir, "*.dbx"))
 	t.AssertNoError(err)
-	t.Context("dbx", linedSource(dbx_source))
-	d := loadDirectives(t, dbx_source)
 
-	dir, err := os.MkdirTemp("", "dbx")
-	t.AssertNoError(err)
-	defer os.RemoveAll(dir)
+	var d directives
+	for _, dbxfile := range dbxfiles {
+		source, err := os.ReadFile(dbxfile)
+		t.AssertNoError(err)
+		t.Context("dbx:"+filepath.Base(dbxfile), linedSource(source))
 
-	t.Logf("[%s] generating... {rx:%t, userdata:%t}", dbx_file,
+		sd := loadDirectives(t, source)
+		d.join(sd)
+	}
+
+	dir := t.TempDir()
+
+	t.Logf("[%s] generating... {rx:%t, userdata:%t}", dbxfiles,
 		d.has("rx"), d.has("userdata"))
 	err = golangCmd("main", []string{"sqlite3"}, "",
-		d.has("rx"), d.has("userdata"), dbx_file, dir)
+		d.has("rx"), d.has("userdata"), dbxfiles, dir)
 	if d.has("fail_gen") {
 		t.AssertError(err, d.get("fail_gen"))
 		return
@@ -57,17 +68,20 @@ func testRunFile(t *testutil.T, dbx_file string) {
 		t.AssertNoError(err)
 	}
 
-	ext := filepath.Ext(dbx_file)
-	go_file := dbx_file[:len(dbx_file)-len(ext)] + ".go"
-	go_source, err := os.ReadFile(go_file)
+	gofiles, err := filepath.Glob(filepath.Join(dbxdir, "*.go"))
 	t.AssertNoError(err)
-	t.Context("go", linedSource(go_source))
 
-	t.Logf("[%s] copying go source...", dbx_file)
-	t.AssertNoError(os.WriteFile(
-		filepath.Join(dir, filepath.Base(go_file)), go_source, 0644))
+	for _, gofile := range gofiles {
+		go_source, err := os.ReadFile(gofile)
+		t.AssertNoError(err)
+		t.Context("go", linedSource(go_source))
 
-	t.Logf("[%s] running output...", dbx_file)
+		t.Logf("[%s] copying go source...", dbxdir)
+		t.AssertNoError(os.WriteFile(
+			filepath.Join(dir, filepath.Base(gofile)), go_source, 0644))
+	}
+
+	t.Logf("[%s] running output...", dbxdir)
 	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 	t.AssertNoError(err)
 

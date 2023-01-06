@@ -1,0 +1,8 @@
+model session (
+	key id
+
+	field id      serial64
+	field user_pk user.pk  restrict
+)
+
+create session ( )

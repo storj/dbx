@@ -1,10 +1,3 @@
-model session (
-	key id
-
-	field id      serial64
-	field user_pk user.pk  restrict
-)
-
 model user (
 	key   pk
 	field pk serial64
@@ -17,7 +10,6 @@ model associated_account (
 	field user_pk user.pk  restrict
 )
 
-create session            ( )
 create user               ( )
 create associated_account ( )
 

@@ -14,6 +14,8 @@ import (
 
 	cli "github.com/jawher/mow.cli"
 	"github.com/spacemonkeygo/errors"
+
+	"storj.io/dbx/ast"
 	"storj.io/dbx/code/golang"
 	"storj.io/dbx/errutil"
 	"storj.io/dbx/ir"
@@ -25,10 +27,10 @@ import (
 	"storj.io/dbx/tmplutil"
 )
 
-// dbx golang (-p package) (-d dialect) DBXFILE OUTDIR
-// dbx schema (-d dialect) DBXFILE OUTDIR
+// dbx golang (-p package) (-d dialect) (-i DBXFILE) DBXFILE OUTDIR
+// dbx schema (-d dialect) (-i DBXFILE) DBXFILE OUTDIR
 
-var loadedData []byte
+var loadedData = map[string][]byte{}
 
 func main() {
 	die := func(err error) {
@@ -60,23 +62,27 @@ func main() {
 			"generate userdata interface and mutex on models")
 		dbxfile_arg := cmd.StringArg("DBXFILE", "",
 			"path to dbx file")
+		dbxincludes_opt := cmd.StringsOpt("i", []string{}, "include additional dbx files")
 		outdir_arg := cmd.StringArg("OUTDIR", "",
 			"output directory")
 		cmd.Action = func() {
+			dbxfiles := append([]string{*dbxfile_arg}, *dbxincludes_opt...)
 			die(golangCmd(*package_opt, *dialects_opt, *templatedir_opt,
-				*rx_opt, *userdata_opt, *dbxfile_arg, *outdir_arg))
+				*rx_opt, *userdata_opt, dbxfiles, *outdir_arg))
 		}
 	})
 
 	app.Command("schema", "generate table schema", func(cmd *cli.Cmd) {
 		dialects_opt := cmd.StringsOpt("d dialect", nil,
 			"SQL dialects (default is postgres)")
+		dbxincludes_opt := cmd.StringsOpt("i", []string{}, "include additional dbx files")
 		dbxfile_arg := cmd.StringArg("DBXFILE", "",
 			"path to dbx file")
 		outdir_arg := cmd.StringArg("OUTDIR", "",
 			"output directory")
 		cmd.Action = func() {
-			die(schemaCmd(*dialects_opt, *dbxfile_arg, *outdir_arg))
+			dbxfiles := append([]string{*dbxfile_arg}, *dbxincludes_opt...)
+			die(schemaCmd(*dialects_opt, dbxfiles, *outdir_arg))
 		}
 	})
 
@@ -88,16 +94,16 @@ func main() {
 }
 
 func golangCmd(pkg string, dialects_opt []string, template_dir string,
-	rx bool, userdata bool, dbxfile, outdir string) (err error) {
+	rx bool, userdata bool, dbxfiles []string, outdir string) (err error) {
 
 	if pkg == "" {
-		base := filepath.Base(dbxfile)
+		base := filepath.Base(dbxfiles[0])
 		pkg = base[:len(base)-len(filepath.Ext(base))]
 	}
 
-	fw := newFileWriter(outdir, dbxfile)
+	fw := newFileWriter(outdir, dbxfiles[0])
 
-	root, err := parseDBX(dbxfile)
+	root, err := parseDBX(dbxfiles...)
 	if err != nil {
 		return err
 	}
@@ -130,10 +136,10 @@ func golangCmd(pkg string, dialects_opt []string, template_dir string,
 	return nil
 }
 
-func schemaCmd(dialects_opt []string, dbxfile, outdir string) (err error) {
-	fw := newFileWriter(outdir, dbxfile)
+func schemaCmd(dialects_opt []string, dbxfiles []string, outdir string) (err error) {
+	fw := newFileWriter(outdir, dbxfiles[0])
 
-	root, err := parseDBX(dbxfile)
+	root, err := parseDBX(dbxfiles...)
 	if err != nil {
 		return err
 	}
@@ -158,7 +164,7 @@ func formatCmd() (err error) {
 	if err != nil {
 		return err
 	}
-	loadedData = data
+	loadedData[""] = data
 
 	formatted, err := syntax.Format("", data)
 	if err != nil {
@@ -179,19 +185,24 @@ func renderSchema(dialect sql.Dialect, root *ir.Root) []byte {
 	return []byte(schema_hdr + "\n" + rendered + "\n")
 }
 
-func parseDBX(in string) (*ir.Root, error) {
-	data, err := os.ReadFile(in)
-	if err != nil {
-		return nil, err
-	}
-	loadedData = data
+func parseDBX(in ...string) (*ir.Root, error) {
+	var root ast.Root
+	for _, in := range in {
+		data, err := os.ReadFile(in)
+		if err != nil {
+			return nil, err
+		}
+		loadedData[in] = data
 
-	ast_root, err := syntax.Parse(in, data)
-	if err != nil {
-		return nil, err
+		ast, err := syntax.Parse(in, data)
+		if err != nil {
+			return nil, err
+		}
+
+		root.Add(ast)
 	}
 
-	return xform.Transform(ast_root)
+	return xform.Transform(&root)
 }
 
 func getLoader(dir string) tmplutil.Loader {
