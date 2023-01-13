@@ -27,6 +27,7 @@ type Field struct {
 	Type       consts.FieldType
 	Relation   *Relation
 	Nullable   bool
+	Array      bool
 	AutoInsert bool
 	AutoUpdate bool
 	Updatable  bool

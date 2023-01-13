@@ -91,6 +91,7 @@ type Field struct {
 	Column    *String
 	Nullable  *Bool
 	Updatable *Bool
+	Array     *Bool
 
 	// Only make sense on a regular field
 	Type       *FieldType

@@ -1,0 +1,11 @@
+
+model frummel (
+	key id
+	field id int
+	field items int ( array, updatable )
+)
+
+create frummel ()
+read all ( select frummel )
+update frummel ( where frummel.id = ? )
+delete frummel ( where frummel.id = ? )

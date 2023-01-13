@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// SQL represents a partial SQL expression
 type SQL interface {
 	Render() string
 
@@ -15,6 +16,12 @@ type SQL interface {
 }
 
 type Dialect interface {
+	// Scanner gives the opportunity to wrap a Go type in a database/sql.Scanner
+	// for a specific database variant or driver.
+	// This is only called on destination of scanMap not supported by database/sql.Rows.Scan().
+	// See https://pkg.go.dev/database/sql#Rows.Scan
+	// Should we make the return type sql.Scanner instead of interface{} ?
+	Scanner(dest interface{}) interface{}
 	// Rebind gives the opportunity to rewrite provided SQL into a SQL dialect.
 	Rebind(sql string) string
 }

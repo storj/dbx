@@ -4,11 +4,21 @@
 
 package sqlgen
 
-import "strconv"
+import (
+	"strconv"
+)
 
 // this type is specially named to match up with the name returned by the
 // dialect impl in the sql package.
 type postgres struct{}
+
+func newpostgres() postgres {
+	return postgres{}
+}
+
+func (p postgres) Scanner(dest interface{}) interface{} {
+	return dest
+}
 
 func (p postgres) Rebind(sql string) string {
 	type sqlParseState int

@@ -17,6 +17,7 @@ func transformField(lookup *lookup, field_entry *fieldEntry) (err error) {
 	field.Name = ast_field.Name.Value
 	field.Column = ast_field.Column.Get()
 	field.Nullable = ast_field.Nullable.Get()
+	field.Array = ast_field.Array.Get()
 	field.Updatable = ast_field.Updatable.Get()
 	field.AutoInsert = ast_field.AutoInsert.Get()
 	field.AutoUpdate = ast_field.AutoUpdate.Get()

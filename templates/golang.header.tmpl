@@ -18,6 +18,9 @@ import (
 	"unicode"
 	"sync"
 
+	// Unconditional import, because the dialect-specific code in package sqlgen is included unconditionally
+	"github.com/jackc/pgx/v5/pgtype"
+
 {{- range .ExtraImports }}
 	{{ . }}
 {{- end }}
@@ -251,6 +254,10 @@ type {{ $impltype }} struct {
 	driver  driver
 }
 
+func (obj *{{ $impltype }}) Scanner(dest interface{}) interface{} {
+	return obj.dialect.Scanner(dest)
+}
+
 func (obj *{{ $impltype }}) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
@@ -277,6 +284,7 @@ func new{{ .Name }}(db *DB) *{{ $dbtype }} {
 		db: db,
 		{{ $impltype }}: &{{ $impltype }}{
 			db:      db,
+			dialect: __sqlbundle_new{{ .Name }}(),
 			driver:  db.DB,
 		},
 	}
@@ -394,7 +402,13 @@ type {{ $fstruct }} struct {
 
 func {{ $ctor }}(v {{ .CtorValue }}) {{ $fstruct }} {
 {{- if .MutateFn }}
-	v = {{ .MutateFn }}(v)
+    {{- if .Array }}
+        for i, vitem := range v {
+            v[i] = {{ .MutateFn }}(vitem)
+        }
+	{{- else }}
+        v = {{ .MutateFn }}(v)
+	{{- end }}
 {{- end }}
 	return {{ $fstruct }}{ _set: true, _value: {{ if .TakeAddr }}&{{ end }}v }
 }
@@ -413,7 +427,13 @@ func {{ $ctor }}_Null() {{ $fstruct }} {
 func (f {{ $fstruct }}) isnull() bool {	return !f._set || f._null || f._value == nil }
 {{ end }}
 
-func (f {{ $fstruct }}) value() interface{} { if !f._set || f._null { return nil }; return f._value }
+func (f {{ $fstruct }}) value() interface{} {
+	if !f._set || f._null {
+		return nil
+	}
+
+    return f._value
+}
 
 func ({{ $fstruct }}) _Column() string { return "{{ .Column }}" }
 

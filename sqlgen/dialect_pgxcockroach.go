@@ -4,11 +4,26 @@
 
 package sqlgen
 
-import "strconv"
+import (
+	"github.com/jackc/pgx/v5/pgtype"
+	"strconv"
+)
 
 // this type is specially named to match up with the name returned by the
 // dialect impl in the sql package.
-type pgxcockroach struct{}
+type pgxcockroach struct {
+	scanMap *pgtype.Map
+}
+
+func newpgxcockroach() pgxcockroach {
+	return pgxcockroach{
+		scanMap: pgtype.NewMap(),
+	}
+}
+
+func (p pgxcockroach) Scanner(dest interface{}) interface{} {
+	return p.scanMap.SQLScanner(dest)
+}
 
 func (p pgxcockroach) Rebind(sql string) string {
 	type sqlParseState int

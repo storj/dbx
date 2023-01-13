@@ -77,6 +77,10 @@ func (p *pgx) ColumnType(field *ir.Field) string {
 	}
 }
 
+func (s *pgx) Scanner(dest interface{}) interface{} {
+	panic("unused function to maintain interface compatibility with sqlgen.Dialect")
+}
+
 func (p *pgx) Rebind(sql string) string {
 	type sqlParseState int
 	const (

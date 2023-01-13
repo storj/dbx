@@ -77,6 +77,7 @@ type DBMethods interface {
 	Methods
 
 	Schema() string
+	Scanner(interface{}) interface{}
 	Rebind(sql string) string
 }
 

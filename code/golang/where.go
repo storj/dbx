@@ -60,8 +60,9 @@ func (c *conditionArgGenerator) FromClause(clause *ir.Clause) *ConditionArg {
 	// we don't set ZeroVal or InitVal because these args should only be used
 	// as incoming arguments to function calls.
 	arg.Var = &Var{
-		Name: name,
-		Type: ModelFieldFromIR(expr.Field).StructName(),
+		Name:  name,
+		Type:  ModelFieldFromIR(expr.Field).StructName(),
+		Array: expr.Field.Array,
 	}
 
 	if clause.NeedsCondition() {
