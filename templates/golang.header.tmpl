@@ -394,7 +394,13 @@ type {{ $fstruct }} struct {
 
 func {{ $ctor }}(v {{ .CtorValue }}) {{ $fstruct }} {
 {{- if .MutateFn }}
-	v = {{ .MutateFn }}(v)
+    {{- if .Array }}
+        for i, vitem := range v {
+            v[i] = {{ .MutateFn }}(vitem)
+        }
+	{{- else }}
+        v = {{ .MutateFn }}(v)
+	{{- end }}
 {{- end }}
 	return {{ $fstruct }}{ _set: true, _value: {{ if .TakeAddr }}&{{ end }}v }
 }
@@ -413,7 +419,16 @@ func {{ $ctor }}_Null() {{ $fstruct }} {
 func (f {{ $fstruct }}) isnull() bool {	return !f._set || f._null || f._value == nil }
 {{ end }}
 
-func (f {{ $fstruct }}) value() interface{} { if !f._set || f._null { return nil }; return f._value }
+func (f {{ $fstruct }}) value() interface{} {
+	if !f._set || f._null {
+		return nil
+	}
+	{{- if .Array }}
+        return pq.Array(f._value)
+    {{- else }}
+        return f._value
+    {{- end }}
+}
 
 func ({{ $fstruct }}) _Column() string { return "{{ .Column }}" }
 

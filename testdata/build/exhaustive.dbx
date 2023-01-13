@@ -228,6 +228,20 @@ model foo (
 	field null_bool bool (nullable, updatable)
 	field null_date date (nullable, updatable, autoupdate)
 	field null_json json (nullable, updatable)
+
+	field array_int int (array, updatable)
+	field array_int64 int64 (array, updatable)
+	field array_uint uint (array, updatable)
+	field array_uint64 uint64 (array, updatable)
+	field array_float float (array, updatable)
+	field array_float64 float64 (array, updatable)
+	field array_string text (array, updatable)
+	field array_blob blob (array, updatable)
+	field array_timestamp timestamp (array, updatable)
+	field array_utimestamp utimestamp (array, updatable)
+	field array_bool bool (array, updatable)
+	field array_date date (array, updatable, autoupdate)
+	field array_json json (array, updatable)
 )
 
 create foo ( )
@@ -328,11 +342,11 @@ read scalar (
 delete foo ( )
 
 read scalar (
-    select foo
-    orderby asc foo.string
+	select foo
+	orderby asc foo.string
 )
 
 read scalar (
-    select foo
-    groupby foo.string
+	select foo
+	groupby foo.string
 )

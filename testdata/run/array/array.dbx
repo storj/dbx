@@ -1,0 +1,12 @@
+
+model frummel (
+	key id
+	field id int
+	// odd that lib/pq doesn't support int array but does support int scalar
+	field items int64 ( array, updatable )
+)
+
+create frummel ()
+read all ( select frummel )
+update frummel ( where frummel.id = ? )
+delete frummel ( where frummel.id = ? )

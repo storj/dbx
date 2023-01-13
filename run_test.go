@@ -15,6 +15,7 @@ import (
 	"storj.io/dbx/testutil"
 )
 
+// TestRun runs all tests in the dbx project. Execute using "go test"
 func TestRun(t *testing.T) {
 	tw := testutil.Wrap(t)
 	tw.Parallel()

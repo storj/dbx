@@ -78,9 +78,10 @@ func VarFromModel(model *ir.Model) *Var {
 func VarFromField(field *ir.Field) *Var {
 	return &Var{
 		Name:    field.Name,
-		Type:    valueType(field.Type, field.Nullable),
-		ZeroVal: zeroVal(field.Type, field.Nullable),
-		InitVal: initVal(field.Type, field.Nullable),
+		Type:    valueType(field.Type, field.Nullable, field.Array),
+		Array:   field.Array,
+		ZeroVal: zeroVal(field.Type, field.Nullable, field.Array),
+		InitVal: initVal(field.Type, field.Nullable, field.Array),
 	}
 }
 
@@ -95,8 +96,9 @@ func ArgFromField(field *ir.Field) *Var {
 	// we don't set ZeroVal or InitVal because these args should only be used
 	// as incoming arguments to function calls.
 	return &Var{
-		Name: field.UnderRef(),
-		Type: ModelFieldFromIR(field).StructName(),
+		Name:  field.UnderRef(),
+		Type:  ModelFieldFromIR(field).StructName(),
+		Array: field.Array,
 	}
 }
 
@@ -113,6 +115,7 @@ func StructVar(name string, typ string, vars []*Var) *Var {
 type Var struct {
 	Name    string
 	Type    string
+	Array   bool
 	ZeroVal string
 	InitVal string
 	Fields  []*Var
@@ -122,6 +125,7 @@ func (v *Var) Copy() *Var {
 	out := &Var{
 		Name:    v.Name,
 		Type:    v.Type,
+		Array:   v.Array,
 		ZeroVal: v.ZeroVal,
 		InitVal: v.InitVal,
 	}
@@ -156,6 +160,9 @@ func (v *Var) Zero() string {
 }
 
 func (v *Var) AddrOf() string {
+	if v.Array {
+		return fmt.Sprint("pq.Array(&", v.Name, ")")
+	}
 	return fmt.Sprintf("&%s", v.Name)
 }
 

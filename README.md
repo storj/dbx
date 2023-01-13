@@ -123,6 +123,12 @@ signature looks like
 func Open(driver, source string) (db *DB, err error)
 ```
 
+Example: 
+
+```
+mypackage.Open("postgres", "postgresql://127.0.0.1:5432/mydatabase?user=myuser&password=storjpassword&sslmode=disable")
+```
+
 The driver must be one of the dialects passed in at generation time, which by
 default is just `postgres`. The `*DB` type lets you `Open` a new transaction
 represented by `*Tx`, `Close` the database, or run queries as normal. It has a

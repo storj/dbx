@@ -53,6 +53,8 @@ func parseField(node *tupleNode) (*ast.Field, error) {
 			},
 			"nullable": tupleFlagField("field", "nullable",
 				&field.Nullable),
+			"array": tupleFlagField("field", "array",
+				&field.Array),
 			"autoupdate": tupleFlagField("field", "autoupdate",
 				&field.AutoUpdate),
 			"updatable": tupleFlagField("field", "updatable",

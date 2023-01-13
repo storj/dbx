@@ -89,13 +89,15 @@ func (s *ModelStruct) CreateStructName() string {
 }
 
 type ModelField struct {
-	Name       string
-	ModelName  string
-	Type       string
-	CtorValue  string
+	Name      string
+	ModelName string
+	Type      string
+	CtorValue string
+	// MutateFn is applied to the value after it is read from the database.
 	MutateFn   string
 	Column     string
 	Nullable   bool
+	Array      bool
 	Default    string
 	Insertable bool
 	AutoInsert bool
@@ -108,11 +110,12 @@ func ModelFieldFromIR(field *ir.Field) *ModelField {
 	return &ModelField{
 		Name:       fieldName(field),
 		ModelName:  structName(field.Model),
-		Type:       valueType(field.Type, field.Nullable),
-		CtorValue:  valueType(field.Type, false),
+		Type:       valueType(field.Type, field.Nullable, field.Array),
+		CtorValue:  valueType(field.Type, false, field.Array),
 		MutateFn:   mutateFn(field.Type),
 		Column:     field.Column,
 		Nullable:   field.Nullable,
+		Array:      field.Array,
 		Default:    field.Default,
 		Insertable: true,
 		AutoInsert: field.AutoInsert,
@@ -150,13 +153,17 @@ func (f *ModelField) StructName() string {
 }
 
 func (f *ModelField) ArgType() string {
+	if f.Array {
+		// Nullable and non-nullable SQL arrays get the same type in Go.
+		return "[]" + f.StructName()
+	}
 	if f.Nullable {
 		return "*" + f.StructName()
 	}
 	return f.StructName()
 }
 
-func valueType(t consts.FieldType, nullable bool) (value_type string) {
+func valueType(t consts.FieldType, nullable bool, array bool) (value_type string) {
 	switch t {
 	case consts.TextField:
 		value_type = "string"
@@ -188,14 +195,19 @@ func valueType(t consts.FieldType, nullable bool) (value_type string) {
 		panic(fmt.Sprintf("unhandled field type %q", t))
 	}
 
+	if array {
+		// Nullable and non-nullable SQL arrays get the same type in Go.
+		return "[]" + value_type
+	}
+
 	if nullable && t != consts.BlobField && t != consts.JsonField {
 		return "*" + value_type
 	}
 	return value_type
 }
 
-func zeroVal(t consts.FieldType, nullable bool) string {
-	if nullable {
+func zeroVal(t consts.FieldType, nullable bool, array bool) string {
+	if nullable || array {
 		return "nil"
 	}
 	switch t {
@@ -230,69 +242,109 @@ func zeroVal(t consts.FieldType, nullable bool) string {
 	}
 }
 
-func initVal(t consts.FieldType, nullable bool) string {
+func initVal(t consts.FieldType, nullable bool, array bool) string {
 	switch t {
 	case consts.TextField:
+		if array {
+			// Should it be nil or an empty slice?
+			return `([]string)(nil)`
+		}
 		if nullable {
 			return `(*string)(nil)`
 		}
 		return `""`
 	case consts.IntField, consts.SerialField:
+		if array {
+			return `([]int)(nil)`
+		}
 		if nullable {
 			return `(*int)(nil)`
 		}
 		return `int(0)`
 	case consts.UintField:
+		if array {
+			return `([]uint)(nil)`
+		}
 		if nullable {
 			return `(*uint)(nil)`
 		}
 		return `uint(0)`
 	case consts.Int64Field, consts.Serial64Field:
+		if array {
+			return `([]int64)(nil)`
+		}
 		if nullable {
 			return `(*int64)(nil)`
 		}
 		return `int64(0)`
 	case consts.Uint64Field:
+		if array {
+			return `([]uint64)(nil)`
+		}
 		if nullable {
 			return `(*uint64)(nil)`
 		}
 		return `uint64(0)`
 	case consts.BlobField:
+		if array {
+			return `([][]byte)(nil)`
+		}
 		if nullable {
 			return `[]byte(nil)`
 		}
 		return `nil`
 	case consts.TimestampField:
+		if array {
+			return `([]time.Time)(nil)`
+		}
 		if nullable {
 			return `(*time.Time)(nil)`
 		}
 		return `__now`
 	case consts.TimestampUTCField:
+		if array {
+			return `([]time.Time)(nil)`
+		}
 		if nullable {
 			return `(*time.Time)(nil)`
 		}
 		return `__now.UTC()`
 	case consts.BoolField:
+		if array {
+			return `([]bool)(nil)`
+		}
 		if nullable {
 			return `(*bool)(nil)`
 		}
 		return `false`
 	case consts.FloatField:
+		if array {
+			return `([]float32)(nil)`
+		}
 		if nullable {
 			return `(*float32)(nil)`
 		}
 		return `float32(0)`
 	case consts.Float64Field:
+		if array {
+			return `([]float64)(nil)`
+		}
 		if nullable {
 			return `(*float64)(nil)`
 		}
 		return `float64(0)`
 	case consts.DateField:
+		if array {
+			return `([]time.Time)(nil)`
+		}
 		if nullable {
 			return `(*time.Time)(nil)`
 		}
 		return `toDate(__now)`
 	case consts.JsonField:
+		if array {
+			return `([][]byte)(nil)`
+		}
 		if nullable {
 			return `[]byte(nil)`
 		}
