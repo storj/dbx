@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"reflect"
 	"time"
 )
@@ -32,12 +33,38 @@ var descs = []Desc{
 }
 
 func main() {
-	db, err := Open("sqlite3", ":memory:")
-	err_e(err)
-	defer db.Close()
+	sqliteDb, err := Open("sqlite3", ":memory:")
+	erre(err)
+	runDb(sqliteDb)
+	err = sqliteDb.Close()
+	erre(err)
 
-	_, err = db.Exec(db.Schema())
-	err_e(err)
+	dsn := os.Getenv("STORJ_TEST_POSTGRES")
+	if dsn == "" {
+		println("Skipping pq and pgx tests because environment variable STORJ_TEST_POSTGRES is not set")
+		return
+	}
+
+	pqDb, err := Open("postgres", dsn)
+	erre(err)
+	_, err = pqDb.Exec("DROP TABLE IF EXISTS _blobs, _dates, _floats, _float64s, _ints, _int64s, _jsons, _serials, _serial64s, _texts, _timestamps, _uints, _uint64s, _utimestamps")
+	erre(err)
+	runDb(pqDb)
+	err = pqDb.Close()
+	erre(err)
+
+	pgxDb, err := Open("pgx", dsn)
+	erre(err)
+	_, err = pgxDb.Exec("DROP TABLE IF EXISTS _blobs, _dates, _floats, _float64s, _ints, _int64s, _jsons, _serials, _serial64s, _texts, _timestamps, _uints, _uint64s, _utimestamps")
+	erre(err)
+	runDb(pgxDb)
+	err = pgxDb.Close()
+	erre(err)
+}
+
+func runDb(db *DB) {
+	_, err := db.Exec(db.Schema())
+	erre(err)
 
 	for _, desc := range descs {
 		runDesc(db, desc)
@@ -88,7 +115,8 @@ func next(in interface{}) interface{} {
 		if in.IsZero() {
 			return time.Now()
 		}
-		return in.Add(time.Hour)
+		// add one day so there can be a primary key of type date
+		return in.Add(time.Hour * 24)
 	case float32:
 		return in + 1
 	case float64:
@@ -107,7 +135,7 @@ func next(in interface{}) interface{} {
 	panic(in)
 }
 
-func err_e(err error) {
+func erre(err error) {
 	if err != nil {
 		panic(err)
 	}

@@ -1,0 +1,19 @@
+version: "3.6"
+
+services:
+    gotest:
+        image: golang:1.19.5
+        environment:
+            - STORJ_TEST_POSTGRES=postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+        volumes:
+            - .:/dbx
+            - /tmp/dbx:/go
+        working_dir: /dbx
+        command: go test .
+        depends_on:
+          - postgres
+
+    postgres:
+        image: postgres:15.1
+        environment:
+            - POSTGRES_PASSWORD=postgres

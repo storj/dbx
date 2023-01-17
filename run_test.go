@@ -55,12 +55,12 @@ func testRunFile(t *testutil.T, dbxdir string) {
 		d.join(sd)
 	}
 
-	dir := t.TempDir()
+	tempDir := t.TempDir()
 
 	t.Logf("[%s] generating... {rx:%t, userdata:%t}", dbxfiles,
 		d.has("rx"), d.has("userdata"))
-	err = golangCmd("main", []string{"sqlite3"}, "",
-		d.has("rx"), d.has("userdata"), dbxfiles, dir)
+	err = golangCmd("main", []string{"sqlite3", "postgres", "pgx"}, "",
+		d.has("rx"), d.has("userdata"), dbxfiles, tempDir)
 	if d.has("fail_gen") {
 		t.AssertError(err, d.get("fail_gen"))
 		return
@@ -78,11 +78,11 @@ func testRunFile(t *testutil.T, dbxdir string) {
 
 		t.Logf("[%s] copying go source...", dbxdir)
 		t.AssertNoError(os.WriteFile(
-			filepath.Join(dir, filepath.Base(gofile)), go_source, 0644))
+			filepath.Join(tempDir, filepath.Base(gofile)), go_source, 0644))
 	}
 
 	t.Logf("[%s] running output...", dbxdir)
-	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
+	files, err := filepath.Glob(filepath.Join(tempDir, "*.go"))
 	t.AssertNoError(err)
 
 	var stdout, stderr bytes.Buffer
