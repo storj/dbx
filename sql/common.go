@@ -36,6 +36,10 @@ type Dialect interface {
 	Features() Features
 	RowId() string
 	ColumnType(field *ir.Field) string
+	// Scanner give the opportunity to wrap a Go type in a database/sql.Scanner.
+	// This is only called on destination of types not supported by database/sql.Rows.Scan().
+	// See https://pkg.go.dev/database/sql#Rows.Scan
+	Scanner(dest interface{}) interface{}
 	Rebind(sql string) string
 	EscapeString(s string) string
 	BoolLit(v bool) string

@@ -58,6 +58,11 @@ func (s *sqlite3) ColumnType(field *ir.Field) string {
 	}
 }
 
+// ScanType is to support
+func (s *sqlite3) Scanner(dest interface{}) interface{} {
+	return dest
+}
+
 func (s *sqlite3) Rebind(sql string) string {
 	return sql
 }

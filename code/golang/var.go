@@ -160,9 +160,6 @@ func (v *Var) Zero() string {
 }
 
 func (v *Var) AddrOf() string {
-	if v.Array {
-		return fmt.Sprint("pq.Array(&", v.Name, ")")
-	}
 	return fmt.Sprintf("&%s", v.Name)
 }
 

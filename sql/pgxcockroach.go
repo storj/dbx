@@ -6,6 +6,7 @@ package sql
 
 import (
 	"fmt"
+	"github.com/jackc/pgx/v5/pgtype"
 	"strconv"
 	"strings"
 
@@ -14,10 +15,13 @@ import (
 )
 
 type pgxcockroach struct {
+	scanMap *pgtype.Map
 }
 
 func PGXCockroach() Dialect {
-	return &pgxcockroach{}
+	return &pgxcockroach{
+		scanMap: pgtype.NewMap(),
+	}
 }
 
 func (p *pgxcockroach) Name() string {
@@ -76,6 +80,10 @@ func (p *pgxcockroach) ColumnType(field *ir.Field) string {
 	default:
 		panic(fmt.Sprintf("unhandled field type %s", field.Type))
 	}
+}
+
+func (s *pgxcockroach) Scanner(dest interface{}) interface{} {
+	return s.scanMap.SQLScanner(dest)
 }
 
 func (p *pgxcockroach) Rebind(sql string) string {

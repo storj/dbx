@@ -15,6 +15,11 @@ type SQL interface {
 }
 
 type Dialect interface {
+	// Scanner gives the opportunity to wrap a Go type in a database/sql.Scanner for the database variant.
+	// This is only called on destination of types not supported by database/sql.Rows.Scan().
+	// See https://pkg.go.dev/database/sql#Rows.Scan
+	//Scanner(dest interface{}) interface{}
+	// Rebind gives the opportunity to rewrite provided SQL into a SQL dialect.
 	Rebind(sql string) string
 }
 

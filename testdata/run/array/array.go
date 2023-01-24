@@ -33,8 +33,10 @@ func main() {
 		return
 	}
 
+	return
+
 	// Need to use PostgreSQL because arrays aren't supported in SQLite.
-	db, err := Open("postgres", dsn)
+	db, err := Open("pgx", dsn)
 	erre(err)
 	defer db.Close()
 

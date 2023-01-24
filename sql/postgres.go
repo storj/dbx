@@ -77,6 +77,10 @@ func (p *postgres) ColumnType(field *ir.Field) string {
 	}
 }
 
+func (s *postgres) Scanner(dest interface{}) interface{} {
+	return dest
+}
+
 func (p *postgres) Rebind(sql string) string {
 	type sqlParseState int
 	const (

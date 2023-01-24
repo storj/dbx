@@ -6,6 +6,7 @@ package sql
 
 import (
 	"fmt"
+	"github.com/jackc/pgx/v5/pgtype"
 	"strconv"
 	"strings"
 
@@ -14,10 +15,13 @@ import (
 )
 
 type pgx struct {
+	scanMap *pgtype.Map
 }
 
 func PGX() Dialect {
-	return &pgx{}
+	return &pgx{
+		scanMap: pgtype.NewMap(),
+	}
 }
 
 func (p *pgx) Name() string {
@@ -77,6 +81,10 @@ func (p *pgx) ColumnType(field *ir.Field) string {
 	}
 }
 
+func (s *pgx) Scanner(dest interface{}) interface{} {
+	return s.scanMap.SQLScanner(dest)
+}
+
 func (p *pgx) Rebind(sql string) string {
 	type sqlParseState int
 	const (
@@ -85,6 +93,7 @@ func (p *pgx) Rebind(sql string) string {
 		sqlParseInQuotedIdentifier
 		sqlParseInComment
 	)
+	//panic("sql")
 
 	out := make([]byte, 0, len(sql)+10)
 

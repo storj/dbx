@@ -251,6 +251,10 @@ type {{ $impltype }} struct {
 	driver  driver
 }
 
+func (obj *{{ $impltype }}) Scanner(value interface{}) interface{} {
+	return obj.dialect.Scanner(s)
+}
+
 func (obj *{{ $impltype }}) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
@@ -277,6 +281,7 @@ func new{{ .Name }}(db *DB) *{{ $dbtype }} {
 		db: db,
 		{{ $impltype }}: &{{ $impltype }}{
 			db:      db,
+			dialect: new{{ $impltype }}Dialect(),
 			driver:  db.DB,
 		},
 	}
@@ -423,11 +428,8 @@ func (f {{ $fstruct }}) value() interface{} {
 	if !f._set || f._null {
 		return nil
 	}
-	{{- if .Array }}
-        return pq.Array(f._value)
-    {{- else }}
-        return f._value
-    {{- end }}
+
+    return f._value
 }
 
 func ({{ $fstruct }}) _Column() string { return "{{ .Column }}" }

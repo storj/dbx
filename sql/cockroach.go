@@ -78,6 +78,10 @@ func (p *cockroach) ColumnType(field *ir.Field) string {
 	}
 }
 
+func (s *cockroach) Scanner(dest interface{}) interface{} {
+	return dest
+}
+
 func (p *cockroach) Rebind(sql string) string {
 	type sqlParseState int
 	const (

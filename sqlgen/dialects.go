@@ -4,7 +4,10 @@
 
 package sqlgen
 
-import "strconv"
+import (
+	"github.com/jackc/pgx/v5/pgtype"
+	"strconv"
+)
 
 // this type is specially named to match up with the name returned by the
 // dialect impl in the sql package.
@@ -128,7 +131,19 @@ func (p cockroach) Rebind(sql string) string {
 
 // this type is specially named to match up with the name returned by the
 // dialect impl in the sql package.
-type pgx struct{}
+type pgx struct {
+	scanMap *pgtype.Map
+}
+
+func newpgxImplDialect() pgx {
+	return pgx{
+		scanMap: pgtype.NewMap(),
+	}
+}
+
+func (p pgx) Scanner(value interface{}) interface{} {
+	return p.scanMap.SQLScanner(value)
+}
 
 func (p pgx) Rebind(sql string) string {
 	type sqlParseState int
@@ -138,6 +153,7 @@ func (p pgx) Rebind(sql string) string {
 		sqlParseInQuotedIdentifier
 		sqlParseInComment
 	)
+	panic("sqlgen")
 
 	out := make([]byte, 0, len(sql)+10)
 
