@@ -15,6 +15,7 @@ type SQL interface {
 }
 
 type Dialect interface {
+	// Rebind gives the opportunity to rewrite provided SQL into a SQL dialect.
 	Rebind(sql string) string
 }
 
