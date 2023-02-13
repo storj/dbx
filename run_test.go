@@ -59,7 +59,7 @@ func testRunFile(t *testutil.T, dbxdir string) {
 
 	t.Logf("[%s] generating... {rx:%t, userdata:%t}", dbxfiles,
 		d.has("rx"), d.has("userdata"))
-	err = golangCmd("main", []string{"sqlite3", "postgres", "pgx"}, "",
+	err = newGlobal().golangCmd("main", []string{"sqlite3", "postgres", "pgx"}, "",
 		d.has("rx"), d.has("userdata"), dbxfiles, tempDir)
 	if d.has("fail_gen") {
 		t.AssertError(err, d.get("fail_gen"))

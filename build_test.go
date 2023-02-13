@@ -28,7 +28,6 @@ var buildConfig = &packages.Config{
 func TestBuild(t *testing.T) {
 	tw := testutil.Wrap(t)
 	tw.Parallel()
-
 	data_dir := filepath.Join("testdata", "build")
 
 	names, err := filepath.Glob(filepath.Join(data_dir, "*.dbx"))
@@ -71,7 +70,7 @@ func testBuildFile(t *testutil.T, file string) {
 
 	runBuild := func(opts options) {
 		t.Logf("[%s] generating... %+v", file, opts)
-		err = golangCmd("", dialects, "", opts.rx, opts.userdata, []string{file}, dir)
+		err = newGlobal().golangCmd("", dialects, "", opts.rx, opts.userdata, []string{file}, dir)
 		if d.has("fail_gen") {
 			t.AssertError(err, d.get("fail_gen"))
 			return

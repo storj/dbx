@@ -9,7 +9,7 @@ services:
             - .:/dbx
             - /tmp/dbx:/go
         working_dir: /dbx
-        command: go test .
+        command: go test -race -v .
         depends_on:
           - postgres
 
