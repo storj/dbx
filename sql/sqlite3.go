@@ -58,6 +58,10 @@ func (s *sqlite3) ColumnType(field *ir.Field) string {
 	}
 }
 
+func (s *sqlite3) Scanner(dest interface{}) interface{} {
+	panic("unused function to maintain interface compatibility with sqlgen.Dialect")
+}
+
 func (s *sqlite3) Rebind(sql string) string {
 	return sql
 }

@@ -89,13 +89,15 @@ func (s *ModelStruct) CreateStructName() string {
 }
 
 type ModelField struct {
-	Name       string
-	ModelName  string
-	Type       string
-	CtorValue  string
+	Name      string
+	ModelName string
+	Type      string
+	CtorValue string
+	// MutateFn is applied to the value after it is read from the database.
 	MutateFn   string
 	Column     string
 	Nullable   bool
+	Array      bool
 	Default    string
 	Insertable bool
 	AutoInsert bool
@@ -108,11 +110,12 @@ func ModelFieldFromIR(field *ir.Field) *ModelField {
 	return &ModelField{
 		Name:       fieldName(field),
 		ModelName:  structName(field.Model),
-		Type:       valueType(field.Type, field.Nullable),
-		CtorValue:  valueType(field.Type, false),
+		Type:       valueType(field.Type, field.Nullable, field.Array),
+		CtorValue:  valueType(field.Type, false, field.Array),
 		MutateFn:   mutateFn(field.Type),
 		Column:     field.Column,
 		Nullable:   field.Nullable,
+		Array:      field.Array,
 		Default:    field.Default,
 		Insertable: true,
 		AutoInsert: field.AutoInsert,
@@ -150,13 +153,17 @@ func (f *ModelField) StructName() string {
 }
 
 func (f *ModelField) ArgType() string {
+	if f.Array {
+		// Nullable and non-nullable SQL arrays get the same type in Go.
+		return "[]" + f.StructName()
+	}
 	if f.Nullable {
 		return "*" + f.StructName()
 	}
 	return f.StructName()
 }
 
-func valueType(t consts.FieldType, nullable bool) (value_type string) {
+func valueType(t consts.FieldType, nullable bool, array bool) (value_type string) {
 	switch t {
 	case consts.TextField:
 		value_type = "string"
@@ -188,16 +195,55 @@ func valueType(t consts.FieldType, nullable bool) (value_type string) {
 		panic(fmt.Sprintf("unhandled field type %q", t))
 	}
 
+	if array {
+		// Nullable and non-nullable SQL arrays get the same type in Go.
+		return "[]" + value_type
+	}
+
 	if nullable && t != consts.BlobField && t != consts.JsonField {
 		return "*" + value_type
 	}
 	return value_type
 }
 
-func zeroVal(t consts.FieldType, nullable bool) string {
+func zeroVal(t consts.FieldType, nullable bool, array bool) string {
 	if nullable {
 		return "nil"
 	}
+
+	if array {
+		switch t {
+		case consts.TextField:
+			return `[]string{}`
+		case consts.IntField, consts.SerialField:
+			return `[]int{}`
+		case consts.UintField:
+			return `[]uint{}`
+		case consts.Int64Field, consts.Serial64Field:
+			return `[]int64{}`
+		case consts.Uint64Field:
+			return `[]uint64{}`
+		case consts.BlobField:
+			return `[][]byte{}`
+		case consts.TimestampField:
+			return `[]time.Time{}`
+		case consts.TimestampUTCField:
+			return `[]time.Time{}`
+		case consts.BoolField:
+			return `[]bool{}`
+		case consts.FloatField:
+			return `[]float32{}`
+		case consts.Float64Field:
+			return `[]float64{}`
+		case consts.DateField:
+			return `[]time.Time{}`
+		case consts.JsonField:
+			return `[][]byte{}`
+		default:
+			panic(fmt.Sprintf("unhandled field type %q", t))
+		}
+	}
+
 	switch t {
 	case consts.TextField:
 		return `""`
@@ -230,75 +276,137 @@ func zeroVal(t consts.FieldType, nullable bool) string {
 	}
 }
 
-func initVal(t consts.FieldType, nullable bool) string {
-	switch t {
-	case consts.TextField:
+func initVal(t consts.FieldType, nullable bool, array bool) string {
+	if array {
 		if nullable {
-			return `(*string)(nil)`
+			switch t {
+			case consts.TextField:
+				return `([]string)(nil)`
+			case consts.IntField, consts.SerialField:
+				return `([]int)(nil)`
+			case consts.UintField:
+				return `([]uint)(nil)`
+			case consts.Int64Field, consts.Serial64Field:
+				return `([]int64)(nil)`
+			case consts.Uint64Field:
+				return `([]uint64)(nil)`
+			case consts.BlobField:
+				return `([][]byte)(nil)`
+			case consts.TimestampField:
+				return `([]time.Time)(nil)`
+			case consts.TimestampUTCField:
+				return `([]time.Time)(nil)`
+			case consts.BoolField:
+				return `([]bool)(nil)`
+			case consts.FloatField:
+				return `([]float32)(nil)`
+			case consts.Float64Field:
+				return `([]float64)(nil)`
+			case consts.DateField:
+				return `([]time.Time)(nil)`
+			case consts.JsonField:
+				return `([][]byte)(nil)`
+			default:
+				panic(fmt.Sprintf("unhandled field type %q", t))
+			}
+		} else {
+			switch t {
+			case consts.TextField:
+				return `[]string{}`
+			case consts.IntField, consts.SerialField:
+				return `[]int{}`
+			case consts.UintField:
+				return `[]uint{}`
+			case consts.Int64Field, consts.Serial64Field:
+				return `[]int64{}`
+			case consts.Uint64Field:
+				return `[]uint64{}`
+			case consts.BlobField:
+				return `[][]byte{}`
+			case consts.TimestampField:
+				return `[]time.Time{}`
+			case consts.TimestampUTCField:
+				return `[]time.Time{}`
+			case consts.BoolField:
+				return `[]bool{}`
+			case consts.FloatField:
+				return `[]float32{}`
+			case consts.Float64Field:
+				return `[]float64{}`
+			case consts.DateField:
+				return `[]time.Time{}`
+			case consts.JsonField:
+				return `[][]byte{}`
+			default:
+				panic(fmt.Sprintf("unhandled field type %q", t))
+			}
 		}
-		return `""`
-	case consts.IntField, consts.SerialField:
+	} else {
 		if nullable {
-			return `(*int)(nil)`
+			// null scalar
+			switch t {
+			case consts.TextField:
+				return `(*string)(nil)`
+			case consts.IntField, consts.SerialField:
+				return `(*int)(nil)`
+			case consts.UintField:
+				return `(*uint)(nil)`
+			case consts.Int64Field, consts.Serial64Field:
+				return `(*int64)(nil)`
+			case consts.Uint64Field:
+				return `(*uint64)(nil)`
+			case consts.BlobField:
+				return `[]byte(nil)`
+			case consts.TimestampField:
+				return `(*time.Time)(nil)`
+			case consts.TimestampUTCField:
+				return `(*time.Time)(nil)`
+			case consts.BoolField:
+				return `(*bool)(nil)`
+			case consts.FloatField:
+				return `(*float32)(nil)`
+			case consts.Float64Field:
+				return `(*float64)(nil)`
+			case consts.DateField:
+				return `(*time.Time)(nil)`
+			case consts.JsonField:
+				return `[]byte(nil)`
+			default:
+				panic(fmt.Sprintf("unhandled field type %q", t))
+			}
+		} else {
+			// non-null scalar
+			switch t {
+			case consts.TextField:
+				return `""`
+			case consts.IntField, consts.SerialField:
+				return `int(0)`
+			case consts.UintField:
+				return `uint(0)`
+			case consts.Int64Field, consts.Serial64Field:
+				return `int64(0)`
+			case consts.Uint64Field:
+				return `uint64(0)`
+			case consts.BlobField:
+				return `nil`
+			case consts.TimestampField:
+				return `__now`
+			case consts.TimestampUTCField:
+				return `__now.UTC()`
+			case consts.BoolField:
+				return `false`
+			case consts.FloatField:
+				return `float32(0)`
+			case consts.Float64Field:
+				return `float64(0)`
+			case consts.DateField:
+				return `toDate(__now)`
+			case consts.JsonField:
+				return `nil`
+			default:
+				panic(fmt.Sprintf("unhandled field type %q", t))
+			}
 		}
-		return `int(0)`
-	case consts.UintField:
-		if nullable {
-			return `(*uint)(nil)`
-		}
-		return `uint(0)`
-	case consts.Int64Field, consts.Serial64Field:
-		if nullable {
-			return `(*int64)(nil)`
-		}
-		return `int64(0)`
-	case consts.Uint64Field:
-		if nullable {
-			return `(*uint64)(nil)`
-		}
-		return `uint64(0)`
-	case consts.BlobField:
-		if nullable {
-			return `[]byte(nil)`
-		}
-		return `nil`
-	case consts.TimestampField:
-		if nullable {
-			return `(*time.Time)(nil)`
-		}
-		return `__now`
-	case consts.TimestampUTCField:
-		if nullable {
-			return `(*time.Time)(nil)`
-		}
-		return `__now.UTC()`
-	case consts.BoolField:
-		if nullable {
-			return `(*bool)(nil)`
-		}
-		return `false`
-	case consts.FloatField:
-		if nullable {
-			return `(*float32)(nil)`
-		}
-		return `float32(0)`
-	case consts.Float64Field:
-		if nullable {
-			return `(*float64)(nil)`
-		}
-		return `float64(0)`
-	case consts.DateField:
-		if nullable {
-			return `(*time.Time)(nil)`
-		}
-		return `toDate(__now)`
-	case consts.JsonField:
-		if nullable {
-			return `[]byte(nil)`
-		}
-		return `nil`
-	default:
-		panic(fmt.Sprintf("unhandled field type %q", t))
 	}
 }
 

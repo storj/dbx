@@ -10,6 +10,14 @@ import "strconv"
 // dialect impl in the sql package.
 type cockroach struct{}
 
+func newcockroach() cockroach {
+	return cockroach{}
+}
+
+func (p cockroach) Scanner(dest interface{}) interface{} {
+	return dest
+}
+
 func (p cockroach) Rebind(sql string) string {
 	type sqlParseState int
 	const (

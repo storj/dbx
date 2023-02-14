@@ -36,6 +36,8 @@ type Dialect interface {
 	Features() Features
 	RowId() string
 	ColumnType(field *ir.Field) string
+	// Scanner is here to maintain interface compatibility with sqlgen.Dialect
+	Scanner(dest interface{}) interface{}
 	Rebind(sql string) string
 	EscapeString(s string) string
 	BoolLit(v bool) string

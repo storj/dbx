@@ -8,6 +8,14 @@ package sqlgen
 // dialect impl in the sql package.
 type sqlite3 struct{}
 
+func newsqlite3() sqlite3 {
+	return sqlite3{}
+}
+
+func (p sqlite3) Scanner(dest interface{}) interface{} {
+	return dest
+}
+
 func (s sqlite3) Rebind(sql string) string {
 	return sql
 }
