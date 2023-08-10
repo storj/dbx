@@ -1,6 +1,6 @@
 module storj.io/dbx
 
-go 1.18
+go 1.19
 
 require (
 	github.com/jackc/pgx/v5 v5.2.0
