@@ -64,13 +64,12 @@ func testBuildFile(t *testutil.T, file string) {
 	}
 
 	type options struct {
-		rx       bool
 		userdata bool
 	}
 
 	runBuild := func(opts options) {
 		t.Logf("[%s] generating... %+v", file, opts)
-		err = newGlobal().golangCmd("", dialects, "", opts.rx, opts.userdata, []string{file}, dir)
+		err = newGlobal().golangCmd("", dialects, "", opts.userdata, []string{file}, dir)
 		if d.has("fail_gen") {
 			t.AssertError(err, d.get("fail_gen"))
 			return
@@ -107,8 +106,6 @@ func testBuildFile(t *testutil.T, file string) {
 		}
 	}
 
-	runBuild(options{rx: false, userdata: false})
-	runBuild(options{rx: false, userdata: true})
-	runBuild(options{rx: true, userdata: false})
-	runBuild(options{rx: true, userdata: true})
+	runBuild(options{userdata: false})
+	runBuild(options{userdata: true})
 }

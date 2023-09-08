@@ -31,7 +31,6 @@ type publicMethod struct {
 
 type Options struct {
 	Package         string
-	SupportRx       bool
 	SupportUserdata bool
 }
 
@@ -542,13 +541,10 @@ func (r *Renderer) renderFooter(w io.Writer) error {
 	sort.Strings(keys)
 
 	type footerData struct {
-		SupportRx bool
-		Methods   []publicMethod
+		Methods []publicMethod
 	}
 
-	data := footerData{
-		SupportRx: r.options.SupportRx,
-	}
+	data := footerData{}
 
 	for _, key := range keys {
 		data.Methods = append(data.Methods, r.methods[key])
