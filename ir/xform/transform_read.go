@@ -102,6 +102,25 @@ func transformRead(lookup *lookup, ast_read *ast.Read) (
 		return nil, err
 	}
 
+	// Finalize GroupBy and make sure referenced fields are part of the select
+	if ast_read.GroupBy != nil {
+		fields, err := resolveFieldRefs(lookup, ast_read.GroupBy.Fields.Refs)
+		if err != nil {
+			return nil, err
+		}
+		for _, group_by_field := range ast_read.GroupBy.Fields.Refs {
+			if _, ok := models[group_by_field.Model.Value]; !ok {
+				return nil, errutil.New(group_by_field.Pos,
+					"invalid groupby field %q; model %q is not joined",
+					group_by_field, group_by_field.Model.Value)
+			}
+		}
+
+		tmpl.GroupBy = &ir.GroupBy{
+			Fields: fields,
+		}
+	}
+
 	// Finalize OrderBy and make sure referenced fields are part of the select
 	if ast_read.OrderBy != nil {
 		tmpl.OrderBy = new(ir.OrderBy)
@@ -120,25 +139,6 @@ func transformRead(lookup *lookup, ast_read *ast.Read) (
 				Field:      field,
 				Descending: entry.Descending.Get(),
 			})
-		}
-	}
-
-	// Finalize GroupBy and make sure referenced fields are part of the select
-	if ast_read.GroupBy != nil {
-		fields, err := resolveFieldRefs(lookup, ast_read.GroupBy.Fields.Refs)
-		if err != nil {
-			return nil, err
-		}
-		for _, group_by_field := range ast_read.GroupBy.Fields.Refs {
-			if _, ok := models[group_by_field.Model.Value]; !ok {
-				return nil, errutil.New(group_by_field.Pos,
-					"invalid groupby field %q; model %q is not joined",
-					group_by_field, group_by_field.Model.Value)
-			}
-		}
-
-		tmpl.GroupBy = &ir.GroupBy{
-			Fields: fields,
 		}
 	}
 
