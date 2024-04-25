@@ -14,6 +14,7 @@ import (
 )
 
 type postgres struct {
+	DefaultDialect
 }
 
 func Postgres() Dialect {

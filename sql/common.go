@@ -4,7 +4,10 @@
 
 package sql
 
-import "storj.io/dbx/ir"
+import (
+	"storj.io/dbx/ir"
+	"storj.io/dbx/sqlgen"
+)
 
 type Features struct {
 	// Supports the RETURNING syntax on INSERT/UPDATE
@@ -40,4 +43,17 @@ type Dialect interface {
 	EscapeString(s string) string
 	BoolLit(v bool) string
 	DefaultLit(v string) string
+
+	// CreateSchema generates SQL from abstract schema to create all the required tables/indexes.
+	CreateSchema(schema *Schema) []sqlgen.SQL
+}
+
+// DefaultDialect can be used to make forward compatible Dialects with default implementations for new methods.
+type DefaultDialect struct {
+}
+
+// CreateSchema implement Dialect.
+func (d DefaultDialect) CreateSchema(schema *Schema) (res []sqlgen.SQL) {
+	res = append(res, SQLFromSchema(schema))
+	return res
 }

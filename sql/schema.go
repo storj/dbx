@@ -14,8 +14,8 @@ import (
 	. "storj.io/dbx/sqlgen/sqlhelpers"
 )
 
-func SchemaSQL(ir_root *ir.Root, dialect Dialect) sqlgen.SQL {
-	return SQLFromSchema(SchemaFromIRModels(ir_root.Models, dialect))
+func SchemaSQL(ir_root *ir.Root, dialect Dialect) []sqlgen.SQL {
+	return dialect.CreateSchema(SchemaFromIRModels(ir_root.Models, dialect))
 }
 
 type Schema struct {

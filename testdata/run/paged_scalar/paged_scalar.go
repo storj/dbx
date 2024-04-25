@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -63,7 +64,7 @@ func main() {
 }
 
 func runDb(db *DB) {
-	_, err := db.Exec(db.Schema())
+	_, err := db.Exec(strings.Join(db.Schema(), "\n"))
 	erre(err)
 
 	for _, desc := range descs {

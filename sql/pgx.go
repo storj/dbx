@@ -14,6 +14,7 @@ import (
 )
 
 type pgx struct {
+	DefaultDialect
 }
 
 func PGX() Dialect {

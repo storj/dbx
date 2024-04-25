@@ -278,8 +278,12 @@ func new{{ .Name }}(db *DB) *{{ $dbtype }} {
 	}
 }
 
-func (obj *{{ $dbtype }}) Schema() string {
-	return `{{ .SchemaSQL }}`
+func (obj *{{ $dbtype }}) Schema() []string {
+	return []string{
+	{{ range $val := .SchemaSQL }}
+	    `{{ $val }}`,
+    {{ end }}
+	}
 }
 
 func (obj *{{ $dbtype }}) wrapTx(tx *sql.Tx) txMethods {

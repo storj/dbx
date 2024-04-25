@@ -14,6 +14,7 @@ import (
 )
 
 type cockroach struct {
+	DefaultDialect
 }
 
 func Cockroach() Dialect {

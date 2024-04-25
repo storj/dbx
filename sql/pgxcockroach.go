@@ -14,6 +14,7 @@ import (
 )
 
 type pgxcockroach struct {
+	DefaultDialect
 }
 
 func PGXCockroach() Dialect {

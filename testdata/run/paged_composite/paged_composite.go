@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -52,7 +53,7 @@ func main() {
 }
 
 func runDb(db *DB) {
-	_, err := db.Exec(db.Schema())
+	_, err := db.Exec(strings.Join(db.Schema(), "\n"))
 	erre(err)
 
 	for i := 0; i < 1000; i++ {

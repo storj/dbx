@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"strings"
 )
 
 func erre(err error) {
@@ -50,7 +51,7 @@ func main() {
 }
 
 func runDb(db *DB) {
-	_, err := db.Exec(db.Schema())
+	_, err := db.Exec(strings.Join(db.Schema(), "\n"))
 	erre(err)
 
 	err = db.CreateNoReturn_Foo(ctx, Foo_A("a"), Foo_B("b"), Foo_C("c"))

@@ -316,7 +316,7 @@ func (r *Renderer) renderHeader(w io.Writer, root *ir.Root,
 
 	type headerDialect struct {
 		Name      string
-		SchemaSQL string
+		SchemaSQL []string
 	}
 
 	type headerParams struct {
@@ -337,9 +337,8 @@ func (r *Renderer) renderHeader(w io.Writer, root *ir.Root,
 
 	extra_imports := make(map[string]struct{})
 	for _, dialect := range dialects {
-		dialect_schema := sqlgen.Render(dialect,
-			sql.SchemaSQL(root, dialect),
-			sqlgen.NoFlatten, sqlgen.NoTerminate)
+		dialect_schema := sqlgen.RenderAll(dialect,
+			sql.SchemaSQL(root, dialect), sqlgen.NoTerminate, sqlgen.NoFlatten)
 
 		dialect_tmpl, err := r.loadDialect(dialect)
 		if err != nil {

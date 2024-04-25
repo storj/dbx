@@ -26,6 +26,14 @@ const (
 	NoTerminate
 )
 
+func RenderAll(dialect Dialect, sqls []SQL, ops ...RenderOp) []string {
+	var rs []string
+	for _, sql := range sqls {
+		rs = append(rs, Render(dialect, sql, ops...))
+	}
+	return rs
+}
+
 func Render(dialect Dialect, sql SQL, ops ...RenderOp) string {
 	out := sql.Render()
 

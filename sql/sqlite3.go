@@ -13,6 +13,7 @@ import (
 )
 
 type sqlite3 struct {
+	DefaultDialect
 }
 
 func SQLite3() Dialect {

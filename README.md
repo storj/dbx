@@ -89,7 +89,7 @@ type TxMethods interface {
 }
 
 type DBMethods interface {
-	Schema() string
+	Schema() []string
 	Methods
 }
 ```
