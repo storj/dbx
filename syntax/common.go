@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/spacemonkeygo/errors"
+
 	"storj.io/dbx/ast"
 	"storj.io/dbx/consts"
 )

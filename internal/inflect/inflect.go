@@ -1,3 +1,6 @@
+//Copyright (c) 2011 Chris Farmiloe.
+//See LICENSE (in the same directory!) for copying information.
+
 package inflect
 
 import (

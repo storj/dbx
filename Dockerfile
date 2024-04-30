@@ -35,3 +35,24 @@ ADD . .
 RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
     --mount=type=cache,target=/go/pkg/mod,id=gopkg \
     ./scripts/test-environment.sh go test ./...
+
+FROM storjlabs/ci:slim as lint
+WORKDIR /dbx
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    staticcheck ./...
+#todo: we have too many violations
+#RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+#    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+#    --mount=type=cache,target=/root/.cache/golangci-lint,id=golangcilint \
+#    golangci-lint --config /go/ci/.golangci.yml -j=2 run
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    go.min vet ./...
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    check-mod-tidy
+RUN check-imports -race ./...
+RUN check-downgrades
+RUN check-copyright

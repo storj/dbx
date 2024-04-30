@@ -27,11 +27,18 @@ pipeline {
             }
         }
 
+        stage('Lint') {
+            steps {
+                sh 'docker buildx bake lint'
+            }
+        }
+
         stage('Test') {
             steps {
                 sh 'docker buildx bake integration-test'
             }
         }
+
     }
     post {
         success {
