@@ -4,4 +4,4 @@ vendor
 
 .vscode
 dbx
-testdata/run/*/*.dbx.go
+testrun/*/*.dbx.go

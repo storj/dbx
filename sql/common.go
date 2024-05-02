@@ -5,8 +5,12 @@
 package sql
 
 import (
+	"slices"
+
 	"storj.io/dbx/ir"
 	"storj.io/dbx/sqlgen"
+	"storj.io/dbx/sqlgen/sqlcompile"
+	. "storj.io/dbx/sqlgen/sqlhelpers"
 )
 
 type Features struct {
@@ -46,14 +50,30 @@ type Dialect interface {
 
 	// CreateSchema generates SQL from abstract schema to create all the required tables/indexes.
 	CreateSchema(schema *Schema) []sqlgen.SQL
+
+	//DropSchema drops all the resources from the schema. Useful for testing.
+	DropSchema(schema *Schema) []sqlgen.SQL
 }
 
 // DefaultDialect can be used to make forward compatible Dialects with default implementations for new methods.
 type DefaultDialect struct {
 }
 
-// CreateSchema implement Dialect.
+// CreateSchema implements Dialect.
 func (d DefaultDialect) CreateSchema(schema *Schema) (res []sqlgen.SQL) {
 	res = append(res, SQLFromSchema(schema))
 	return res
+}
+
+// DropSchema implements Dialect.
+func (d DefaultDialect) DropSchema(schema *Schema) (res []sqlgen.SQL) {
+	var stmts []sqlgen.SQL
+
+	tables := schema.Tables
+	slices.Reverse(tables)
+	for _, table := range tables {
+		stmts = append(stmts, sqlcompile.Compile(Lf("DROP TABLE IF EXISTS %s;", table.Name)))
+	}
+
+	return stmts
 }

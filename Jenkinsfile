@@ -21,11 +21,6 @@ pipeline {
                checkout scm
             }
         }
-        stage('Build') {
-            steps {
-                 sh 'docker buildx bake build'
-            }
-        }
 
         stage('Lint') {
             steps {

@@ -1,15 +1,18 @@
 // Copyright (C) 2024 Storj Labs, Inc.
 // See LICENSE for copying information.
 
-package main
+package paged_scalar
 
 import (
 	"context"
 	"fmt"
-	"os"
 	"reflect"
+	"storj.io/dbx/testrun"
 	"strings"
+	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 type Desc struct {
@@ -36,46 +39,26 @@ var descs = []Desc{
 	{"Utimestamp", typ(Utimestamp{}), val(Utimestamp_Id), typ(Paged_Utimestamp_Continuation{}), false},
 }
 
-func main() {
-	sqliteDb, err := Open("sqlite3", ":memory:")
-	erre(err)
-	runDb(sqliteDb)
-	err = sqliteDb.Close()
-	erre(err)
+func TestPagedScalar(t *testing.T) {
+	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 
-	dsn := os.Getenv("STORJ_TEST_POSTGRES")
-	if dsn == "" {
-		println("Skipping pq and pgx tests because environment variable STORJ_TEST_POSTGRES is not set")
-		return
-	}
+		_, err := db.Exec(strings.Join(db.DropSchema(), "\n"))
+		require.NoError(t, err)
 
-	pqDb, err := Open("postgres", dsn)
-	erre(err)
-	_, err = pqDb.Exec("DROP TABLE IF EXISTS _blobs, _dates, _floats, _float64s, _ints, _int64s, _jsons, _serials, _serial64s, _texts, _timestamps, _uints, _uint64s, _utimestamps")
-	erre(err)
-	runDb(pqDb)
-	err = pqDb.Close()
-	erre(err)
+		_, err = db.Exec(strings.Join(db.Schema(), "\n"))
+		require.NoError(t, err)
 
-	pgxDb, err := Open("pgx", dsn)
-	erre(err)
-	_, err = pgxDb.Exec("DROP TABLE IF EXISTS _blobs, _dates, _floats, _float64s, _ints, _int64s, _jsons, _serials, _serial64s, _texts, _timestamps, _uints, _uint64s, _utimestamps")
-	erre(err)
-	runDb(pgxDb)
-	err = pgxDb.Close()
-	erre(err)
+		for _, desc := range descs {
+			t.Run(strings.ToLower(desc.Name), func(t *testing.T) {
+				runDesc(t, db, desc)
+			})
+		}
+	})
+
 }
 
-func runDb(db *DB) {
-	_, err := db.Exec(strings.Join(db.Schema(), "\n"))
-	erre(err)
-
-	for _, desc := range descs {
-		runDesc(db, desc)
-	}
-}
-
-func runDesc(db *DB, desc Desc) {
+func runDesc(t *testing.T, db *DB, desc Desc) {
+	ctx := context.Background()
 	create := val(db).MethodByName(fmt.Sprintf("Create_%s", desc.Name))
 	paged := val(db).MethodByName(fmt.Sprintf("Paged_%s", desc.Name))
 	id := reflect.Zero(desc.Field.Type().In(0)).Interface()
@@ -88,7 +71,8 @@ func runDesc(db *DB, desc Desc) {
 		if !desc.Auto {
 			args = append(args, field(id))
 		}
-		err_r(create.Call(args)[1])
+
+		require.True(t, create.Call(args)[1].IsNil())
 	}
 
 	// paged iterate over it 2 at a time
@@ -96,7 +80,7 @@ func runDesc(db *DB, desc Desc) {
 	cont := reflect.Zero(reflect.PtrTo(desc.Cont))
 	for j := 0; j < 6; j++ {
 		out := paged.Call(vs{val(ctx), val(2), cont})
-		err_r(out[2])
+		require.True(t, out[2].IsNil())
 		count += out[0].Len()
 		cont = out[1]
 
@@ -104,11 +88,11 @@ func runDesc(db *DB, desc Desc) {
 			continue
 		}
 		if count != 10 {
-			panic("didn't iterate all of them")
+			require.Fail(t, "didn't iterate all of them")
 		}
 		return
 	}
-	panic("too many iterations")
+	require.Fail(t, "too many iterations")
 }
 
 func next(in interface{}) interface{} {
@@ -139,19 +123,6 @@ func next(in interface{}) interface{} {
 	panic(in)
 }
 
-func erre(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-func err_r(err reflect.Value) {
-	if !err.IsNil() {
-		panic(err.Interface().(error))
-	}
-}
-
-var ctx = context.Background()
 var typ = reflect.TypeOf
 var val = reflect.ValueOf
 

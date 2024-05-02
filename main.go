@@ -187,7 +187,7 @@ func (global *Global) renderSchema(dialect sql.Dialect, root *ir.Root) []byte {
 -- DO NOT EDIT`
 
 	rendered := sqlgen.RenderAll(dialect,
-		sql.SchemaSQL(root, dialect),
+		sql.SchemaCreateSQL(root, dialect),
 		sqlgen.NoTerminate, sqlgen.NoFlatten)
 
 	return []byte(schema_hdr + "\n" + strings.Join(rendered, "\n") + "\n")

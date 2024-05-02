@@ -23,6 +23,8 @@ type DBMethods interface {
 	Methods
 
 	Schema() []string
+	DropSchema() []string
+
 	Rebind(sql string) string
 }
 
