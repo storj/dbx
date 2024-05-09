@@ -3,4 +3,4 @@
 
 package joins
 
-//go:generate dbx golang --package joins -d sqlite3 -d pgx -d postgres -d cockroach -d pgxcockroach -i session.dbx user.dbx .
+//go:generate dbx golang --package joins -d sqlite3 -d pgx -d postgres -d cockroach -d pgxcockroach -d spanner -i session.dbx user.dbx .

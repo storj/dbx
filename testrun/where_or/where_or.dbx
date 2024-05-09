@@ -8,7 +8,7 @@ model foo (
 	field c text
 )
 
-create foo (  )
+create foo ( )
 
 read all (
 	select foo

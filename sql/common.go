@@ -47,6 +47,8 @@ type Dialect interface {
 	EscapeString(s string) string
 	BoolLit(v bool) string
 	DefaultLit(v string) string
+	// ReturningLit returns with literal to be used for returning values from an insert.
+	ReturningLit() string
 
 	// CreateSchema generates SQL from abstract schema to create all the required tables/indexes.
 	CreateSchema(schema *Schema) []sqlgen.SQL
@@ -72,8 +74,12 @@ func (d DefaultDialect) DropSchema(schema *Schema) (res []sqlgen.SQL) {
 	tables := schema.Tables
 	slices.Reverse(tables)
 	for _, table := range tables {
-		stmts = append(stmts, sqlcompile.Compile(Lf("DROP TABLE IF EXISTS %s;", table.Name)))
+		stmts = append(stmts, sqlcompile.Compile(Lf("DROP TABLE IF EXISTS %s", table.Name)))
 	}
 
 	return stmts
+}
+
+func (d DefaultDialect) ReturningLit() string {
+	return "RETURNING"
 }

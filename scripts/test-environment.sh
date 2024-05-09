@@ -37,11 +37,24 @@ if [[ ${STORJ_TEST_COCKROACH:=""} != "omit" ]]; then
    #export STORJ_TEST_COCKROACH='cockroach://root@localhost:26257/testcockroach?sslmode=disable'
 fi
 
+if [[ ${STORJ_TEST_SPANNER:=""} != "omit" ]]; then
+   gcloud emulators spanner start >/dev/null 2>&1 &
+   SPANNER_PID=$!
+   gcloud spanner instances create test-instance --config=emulator-config --description="Test Instance" --nodes=1 || true
+   gcloud spanner databases list --instance=test-instance
+   gcloud spanner databases create metainfo --instance=test-instance
+
+   export SPANNER_EMULATOR_HOST=localhost:9010
+   export STORJ_TEST_SPANNER=projects/storj-build/instances/test-instance/databases/metainfo
+fi
+
 set +e
 "$@"
 RESULT=$?
 echo "Killing Cockroach"
 kill $COCKROACH_PID
-echo "Stopping postgres"
+echo "Stopping Postgres"
 service postgresql stop
+echo "Killing Spanner emulator"
+kill $SPANNER_PID
 exit $RESULT

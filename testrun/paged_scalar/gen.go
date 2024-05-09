@@ -3,4 +3,4 @@
 
 package paged_scalar
 
-//go:generate dbx golang --package paged_scalar -d sqlite3 -d pgx -d postgres -d cockroach -d pgxcockroach paged_scalar.dbx .
+//go:generate dbx golang --package paged_scalar -d sqlite3 -d pgx -d postgres -d cockroach -d pgxcockroach -d spanner paged_scalar.dbx .

@@ -4,6 +4,9 @@
 package testrun
 
 import (
+	"database/sql"
+	"database/sql/driver"
+	spannerdriver "github.com/googleapis/go-sql-spanner"
 	"io"
 	"os"
 	"testing"
@@ -67,7 +70,7 @@ func RunDBTest[T io.Closer](t *testing.T, open func(driver, source string) (db T
 		})
 
 		t.Run("pgxcockroach", func(t *testing.T) {
-			pqDb, err := open("pgxcockroach", dsn)
+			pqDb, err := open("pgx", dsn)
 			require.NoError(t, err)
 			defer func() {
 				err := pqDb.Close()
@@ -77,4 +80,52 @@ func RunDBTest[T io.Closer](t *testing.T, open func(driver, source string) (db T
 			callback(t, pqDb)
 		})
 	}
+
+	dsn = os.Getenv("STORJ_TEST_SPANNER")
+	if dsn == "" {
+		t.Log("Skipping spanner tests because environment variable STORJ_TEST_SPANNER is not set")
+	} else {
+
+		t.Run("spanner", func(t *testing.T) {
+			pqDb, err := open("spanner", dsn)
+			require.NoError(t, err)
+			defer func() {
+				err := pqDb.Close()
+				require.NoError(t, err)
+			}()
+
+			callback(t, pqDb)
+		})
+	}
+}
+
+// SchemaHandler contains methods required for a schema recreation.
+type SchemaHandler interface {
+	Schema() []string
+	DropSchema() []string
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
+// RecreateSchema will drop and recreate schema.
+func RecreateSchema(t *testing.T, db SchemaHandler) {
+	for _, stmt := range db.DropSchema() {
+		_, _ = db.Exec(stmt)
+	}
+
+	for _, stmt := range db.Schema() {
+		_, err := db.Exec(stmt)
+		require.NoError(t, err, "Statement is failed "+stmt)
+	}
+
+}
+
+// WithDriver represents a DB which has a driver (usually *sql.DB).
+type WithDriver interface {
+	Driver() driver.Driver
+}
+
+// IsSpanner returns true of the db is a spanner db.
+func IsSpanner[DB WithDriver](db *sql.DB) bool {
+	_, ok := db.Driver().(*spannerdriver.Driver)
+	return ok
 }

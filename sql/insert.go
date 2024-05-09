@@ -22,6 +22,7 @@ type Insert struct {
 	DynamicColumns []string
 	Returning      []string
 	ReplaceStyle   *ReplaceStyle
+	ReturningLit   string
 }
 
 func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
@@ -44,6 +45,7 @@ func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
 	for _, field := range ir_cre.InsertableDynamicFields() {
 		ins.DynamicColumns = append(ins.DynamicColumns, field.Column)
 	}
+	ins.ReturningLit = dialect.ReturningLit()
 	return ins
 }
 
@@ -102,7 +104,11 @@ func SQLFromInsert(insert *Insert) sqlgen.SQL {
 	}
 
 	if rets := insert.Returning; len(rets) > 0 {
-		stmt.Add(L("RETURNING"), J(", ", Strings(rets)...))
+		retLit := insert.ReturningLit
+		if retLit == "" {
+			retLit = "RETURNING"
+		}
+		stmt.Add(L(retLit), J(", ", Strings(rets)...))
 	}
 
 	return sqlcompile.Compile(stmt.SQL())

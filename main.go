@@ -238,6 +238,8 @@ func (global *Global) createDialects(which []string) (out []sql.Dialect, err err
 			d = sql.PGX()
 		case "pgxcockroach":
 			d = sql.PGXCockroach()
+		case "spanner":
+			d = sql.Spanner()
 		default:
 			return nil, fmt.Errorf("unknown dialect %q", name)
 		}

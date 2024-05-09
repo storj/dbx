@@ -25,11 +25,26 @@ RUN wget -qO- https://binaries.cockroachdb.com/cockroach-v23.2.2.linux-amd64.tgz
     mv cockroach-v23.2.2.linux-amd64/cockroach /usr/local/bin/ && \
     mv cockroach-v23.2.2.linux-amd64/lib/* /usr/lib/
 
+RUN apt-get update && apt-get install -y curl gpg
+RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+RUN apt-get update && apt-get install -y google-cloud-cli google-cloud-cli-spanner-emulator && \
+    gcloud config configurations create emulator && \
+    gcloud config set auth/disable_credentials true && \
+    gcloud config set project storj-build && \
+    gcloud config set api_endpoint_overrides/spanner http://localhost:9020/
+
 WORKDIR /dbx
 COPY . .
-RUN go install
-RUN go install golang.org/x/tools/cmd/bundle@latest
-RUN go generate ./...
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    go install
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    go install golang.org/x/tools/cmd/bundle@latest
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    go generate ./...
 RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
     --mount=type=cache,target=/go/pkg/mod,id=gopkg \
     ./scripts/test-environment.sh go test ./...

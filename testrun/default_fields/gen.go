@@ -3,4 +3,4 @@
 
 package default_fields
 
-//go:generate dbx golang --package default_fields -d sqlite3 -d pgx -d postgres -d cockroach -d pgxcockroach default_fields.dbx .
+//go:generate dbx golang --package default_fields -d sqlite3 -d pgx -d postgres -d cockroach -d pgxcockroach -d spanner default_fields.dbx .

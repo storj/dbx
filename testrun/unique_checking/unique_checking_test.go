@@ -6,7 +6,6 @@ package unique_checking
 import (
 	"context"
 	"storj.io/dbx/testrun"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,11 +15,18 @@ func TestUniqueChecking(t *testing.T) {
 	ctx := context.Background()
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 
-		_, err := db.Exec(strings.Join(db.DropSchema(), "\n"))
-		require.NoError(t, err)
+		if testrun.IsSpanner[*DB](db.DB) {
+			t.Skip("TODO: REFERENCES syntax is not valid for Spanner Google SQL")
+		}
 
-		_, err = db.Exec(strings.Join(db.Schema(), "\n"))
-		require.NoError(t, err)
+		for _, stmt := range db.DropSchema() {
+			_, _ = db.Exec(stmt)
+		}
+
+		for _, stmt := range db.Schema() {
+			_, err := db.Exec(stmt)
+			require.NoError(t, err)
+		}
 
 		a, err := db.Create_A(ctx)
 		require.NoError(t, err)

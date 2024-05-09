@@ -5,26 +5,26 @@ package default_fields
 
 import (
 	"context"
-	"strings"
+	"storj.io/dbx/testrun"
+
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"storj.io/dbx/testrun"
 )
 
 func TestDefaultFields(t *testing.T) {
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 		ctx := context.Background()
 
-		_, err := db.Exec(strings.Join(db.DropSchema(), "\n"))
-		require.NoError(t, err)
+		if testrun.IsSpanner[*DB](db.DB) {
+			t.Skip("TODO: syntax for using defaults is different for spanner")
+		}
 
-		_, err = db.Exec(strings.Join(db.Schema(), "\n"))
-		require.NoError(t, err)
+		testrun.RecreateSchema(t, db)
 
 		{
 			foo, err := db.Create_Foo(ctx, Foo_Create_Fields{})
+
 			require.NoError(t, err)
 			row, err := db.Get_Foo_By_Pk(ctx, Foo_Pk(foo.Pk))
 			require.NoError(t, err)

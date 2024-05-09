@@ -3,4 +3,4 @@
 
 package unique_checking
 
-//go:generate dbx golang --package unique_checking -d sqlite3 -d pgx -d postgres -d cockroach -d pgxcockroach unique_checking.dbx .
+//go:generate dbx golang --package unique_checking -d sqlite3 -d pgx -d postgres -d cockroach -d pgxcockroach -d spanner unique_checking.dbx .

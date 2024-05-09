@@ -6,7 +6,6 @@ package replace
 import (
 	"context"
 	"storj.io/dbx/testrun"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,13 +15,20 @@ func TestReplace(t *testing.T) {
 	ctx := context.Background()
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 
-		_, err := db.Exec(strings.Join(db.DropSchema(), "\n"))
-		require.NoError(t, err)
+		if testrun.IsSpanner[*DB](db.DB) {
+			t.Skip("TODO: ON CONFLICT has different syntax with Spanner Google SQL")
+		}
 
-		_, err = db.Exec(strings.Join(db.Schema(), "\n"))
-		require.NoError(t, err)
+		for _, stmt := range db.DropSchema() {
+			_, _ = db.Exec(stmt)
+		}
 
-		err = db.ReplaceNoReturn_Kv(ctx, Kv_Key("key"), Kv_Val("val0"))
+		for _, stmt := range db.Schema() {
+			_, err := db.Exec(stmt)
+			require.NoError(t, err)
+		}
+
+		err := db.ReplaceNoReturn_Kv(ctx, Kv_Key("key"), Kv_Val("val0"))
 		require.NoError(t, err)
 		row, err := db.Get_Kv_By_Key(ctx, Kv_Key("key"))
 		require.NoError(t, err)

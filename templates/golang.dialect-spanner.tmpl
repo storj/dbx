@@ -1,0 +1,17 @@
+{{- define "import" }}
+	_ "cloud.google.com/go/spanner"
+	_ "github.com/googleapis/go-sql-spanner"
+{{ end -}}
+
+{{- define "is-constraint-error" }}
+func (impl {{ .Receiver }}) isConstraintError(err error) (
+	constraint string, ok bool) {
+	return "", false
+}
+{{ end -}}
+
+{{- define "open" }}
+func openspanner(source string) (*sql.DB, error) {
+	return sql.Open("spanner", strings.TrimPrefix(source, "spanner://"))
+}
+{{ end -}}

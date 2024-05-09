@@ -24,29 +24,29 @@ type Desc struct {
 }
 
 var descs = []Desc{
-	{"Blob", typ(Blob{}), val(Blob_Id), typ(Paged_Blob_Continuation{}), false},
-	{"Date", typ(Date{}), val(Date_Id), typ(Paged_Date_Continuation{}), false},
-	{"Float", typ(Float{}), val(Float_Id), typ(Paged_Float_Continuation{}), false},
-	{"Float64", typ(Float64{}), val(Float64_Id), typ(Paged_Float64_Continuation{}), false},
-	{"Int", typ(Int{}), val(Int_Id), typ(Paged_Int_Continuation{}), false},
-	{"Int64", typ(Int64{}), val(Int64_Id), typ(Paged_Int64_Continuation{}), false},
-	{"Serial", typ(Serial{}), val(Serial_Id), typ(Paged_Serial_Continuation{}), true},
-	{"Serial64", typ(Serial64{}), val(Serial64_Id), typ(Paged_Serial64_Continuation{}), true},
-	{"Text", typ(Text{}), val(Text_Id), typ(Paged_Text_Continuation{}), false},
-	{"Timestamp", typ(Timestamp{}), val(Timestamp_Id), typ(Paged_Timestamp_Continuation{}), false},
-	{"Uint", typ(Uint{}), val(Uint_Id), typ(Paged_Uint_Continuation{}), false},
-	{"Uint64", typ(Uint64{}), val(Uint64_Id), typ(Paged_Uint64_Continuation{}), false},
-	{"Utimestamp", typ(Utimestamp{}), val(Utimestamp_Id), typ(Paged_Utimestamp_Continuation{}), false},
+	{"Blob", typ(DataBlob{}), val(DataBlob_Id), typ(Paged_DataBlob_Continuation{}), false},
+	{"Date", typ(DataDate{}), val(DataDate_Id), typ(Paged_DataDate_Continuation{}), false},
+	{"Float", typ(DataFloat{}), val(DataFloat_Id), typ(Paged_DataFloat_Continuation{}), false},
+	{"Float64", typ(DataFloat64{}), val(DataFloat64_Id), typ(Paged_DataFloat64_Continuation{}), false},
+	{"Int", typ(DataInt{}), val(DataInt_Id), typ(Paged_DataInt_Continuation{}), false},
+	{"Int64", typ(DataInt64{}), val(DataInt64_Id), typ(Paged_DataInt64_Continuation{}), false},
+	{"Serial", typ(DataSerial{}), val(DataSerial_Id), typ(Paged_DataSerial_Continuation{}), true},
+	{"Serial64", typ(DataSerial64{}), val(DataSerial64_Id), typ(Paged_DataSerial64_Continuation{}), true},
+	{"Text", typ(DataText{}), val(DataText_Id), typ(Paged_DataText_Continuation{}), false},
+	{"Timestamp", typ(DataTimestamp{}), val(DataTimestamp_Id), typ(Paged_DataTimestamp_Continuation{}), false},
+	{"Uint", typ(DataUint{}), val(DataUint_Id), typ(Paged_DataUint_Continuation{}), false},
+	{"Uint64", typ(DataUint64{}), val(DataUint64_Id), typ(Paged_DataUint64_Continuation{}), false},
+	{"Utimestamp", typ(DataUtimestamp{}), val(DataUtimestamp_Id), typ(Paged_DataUtimestamp_Continuation{}), false},
 }
 
 func TestPagedScalar(t *testing.T) {
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 
-		_, err := db.Exec(strings.Join(db.DropSchema(), "\n"))
-		require.NoError(t, err)
+		if testrun.IsSpanner[*DB](db.DB) {
+			t.Skip("TODO: spanner couldn't handle ID field (?): Unrecognized ddl::ColumnDefinition: column_name: \"id\" type: NONE proto_type_name: \"REAL\" not_null: true")
+		}
 
-		_, err = db.Exec(strings.Join(db.Schema(), "\n"))
-		require.NoError(t, err)
+		testrun.RecreateSchema(t, db)
 
 		for _, desc := range descs {
 			t.Run(strings.ToLower(desc.Name), func(t *testing.T) {
@@ -59,8 +59,8 @@ func TestPagedScalar(t *testing.T) {
 
 func runDesc(t *testing.T, db *DB, desc Desc) {
 	ctx := context.Background()
-	create := val(db).MethodByName(fmt.Sprintf("Create_%s", desc.Name))
-	paged := val(db).MethodByName(fmt.Sprintf("Paged_%s", desc.Name))
+	create := val(db).MethodByName(fmt.Sprintf("Create_Data%s", desc.Name))
+	paged := val(db).MethodByName(fmt.Sprintf("Paged_Data%s", desc.Name))
 	id := reflect.Zero(desc.Field.Type().In(0)).Interface()
 	field := func(in interface{}) reflect.Value { return desc.Field.Call(vs{val(in)})[0] }
 
