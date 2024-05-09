@@ -5,11 +5,12 @@ package where_or
 
 import (
 	"context"
-	"storj.io/dbx/testrun"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"storj.io/dbx/testrun"
 )
 
 func TestWhereOr(t *testing.T) {
@@ -21,12 +22,12 @@ func TestWhereOr(t *testing.T) {
 		_, err = db.Exec(strings.Join(db.Schema(), "\n"))
 		require.NoError(t, err)
 
-		err = db.CreateNoReturn_Foo(ctx, Foo_A("a"), Foo_B("b"), Foo_C("c"))
+		foo, err := db.Create_Foo(ctx, Foo_A("a"), Foo_B("b"), Foo_C("c"))
 		require.NoError(t, err)
 
 		rows, err := db.All_Foo_By__A_Or__B_Or_C(ctx, Foo_A("x"), Foo_B("x"), Foo_C("c"))
 		require.NoError(t, err)
 		require.Equal(t, 1, len(rows))
-		require.Equal(t, Foo{Pk: 1, A: "a", B: "b", C: "c"}, *rows[0])
+		require.Equal(t, Foo{Pk: foo.Pk, A: "a", B: "b", C: "c"}, *rows[0])
 	})
 }

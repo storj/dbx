@@ -5,11 +5,12 @@ package default_fields
 
 import (
 	"context"
-	"storj.io/dbx/testrun"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"storj.io/dbx/testrun"
 )
 
 func TestDefaultFields(t *testing.T) {
@@ -23,9 +24,9 @@ func TestDefaultFields(t *testing.T) {
 		require.NoError(t, err)
 
 		{
-			err := db.CreateNoReturn_Foo(ctx, Foo_Create_Fields{})
+			foo, err := db.Create_Foo(ctx, Foo_Create_Fields{})
 			require.NoError(t, err)
-			row, err := db.Get_Foo_By_Pk(ctx, Foo_Pk(1))
+			row, err := db.Get_Foo_By_Pk(ctx, Foo_Pk(foo.Pk))
 			require.NoError(t, err)
 			require.Equal(t, 10, int(row.A))
 			require.Equal(t, 0, int(row.B))
@@ -33,11 +34,11 @@ func TestDefaultFields(t *testing.T) {
 		}
 
 		{
-			err := db.CreateNoReturn_Foo(ctx, Foo_Create_Fields{
+			foo, err := db.Create_Foo(ctx, Foo_Create_Fields{
 				C: Foo_C(25),
 			})
 			require.NoError(t, err)
-			row, err := db.Get_Foo_By_Pk(ctx, Foo_Pk(2))
+			row, err := db.Get_Foo_By_Pk(ctx, Foo_Pk(foo.Pk))
 			require.NoError(t, err)
 			require.Equal(t, 10, int(row.A))
 			require.Equal(t, 0, int(row.B))
@@ -45,9 +46,9 @@ func TestDefaultFields(t *testing.T) {
 		}
 
 		{
-			err := db.CreateNoReturn_Bar(ctx, Bar_A(200), Bar_B(100), Bar_Create_Fields{})
+			bar, err := db.Create_Bar(ctx, Bar_A(200), Bar_B(100), Bar_Create_Fields{})
 			require.NoError(t, err)
-			row, err := db.Get_Bar_By_Pk(ctx, Bar_Pk(1))
+			row, err := db.Get_Bar_By_Pk(ctx, Bar_Pk(bar.Pk))
 			require.NoError(t, err)
 			require.Equal(t, 200, int(row.A))
 			require.Equal(t, 100, int(row.B))
@@ -55,11 +56,11 @@ func TestDefaultFields(t *testing.T) {
 		}
 
 		{
-			err := db.CreateNoReturn_Bar(ctx, Bar_A(250), Bar_B(150), Bar_Create_Fields{
+			bar, err := db.Create_Bar(ctx, Bar_A(250), Bar_B(150), Bar_Create_Fields{
 				C: Bar_C(45),
 			})
 			require.NoError(t, err)
-			row, err := db.Get_Bar_By_Pk(ctx, Bar_Pk(2))
+			row, err := db.Get_Bar_By_Pk(ctx, Bar_Pk(bar.Pk))
 			require.NoError(t, err)
 			require.Equal(t, 250, int(row.A))
 			require.Equal(t, 150, int(row.B))
@@ -85,10 +86,10 @@ func TestDefaultFields(t *testing.T) {
 				expC = i
 			}
 
-			err := db.CreateNoReturn_Baz(ctx, optional)
+			baz, err := db.Create_Baz(ctx, optional)
 			require.NoError(t, err)
 
-			row, err := db.Get_Baz_By_Pk(ctx, Baz_Pk(int64(i+1)))
+			row, err := db.Get_Baz_By_Pk(ctx, Baz_Pk(baz.Pk))
 			require.NoError(t, err)
 
 			require.Equal(t, expA, int(row.A))

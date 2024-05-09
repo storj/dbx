@@ -6,7 +6,7 @@ model foo (
 	field c  int      ( default 20 )
 )
 
-create foo ( noreturn )
+create foo (  )
 read one ( select foo, where foo.pk = ? )
 
 model bar (
@@ -17,7 +17,7 @@ model bar (
 	field c  int      ( default 40 )
 )
 
-create bar ( noreturn )
+create bar (  )
 read one ( select bar, where bar.pk = ? )
 
 model baz (
@@ -28,5 +28,5 @@ model baz (
 	field c  int      ( default 70 )
 )
 
-create baz ( noreturn )
+create baz (  )
 read one ( select baz, where baz.pk = ? )
