@@ -36,62 +36,18 @@ type Options struct {
 
 type Renderer struct {
 	loader          tmplutil.Loader
-	header          *template.Template
-	footer          *template.Template
-	misc            *template.Template
-	decl            *template.Template
-	cre             *template.Template
-	cre_raw         *template.Template
-	get_all         *template.Template
-	get_has         *template.Template
-	get_count       *template.Template
-	get_limitoffset *template.Template
-	get_paged       *template.Template
-	get_scalar      *template.Template
-	get_scalar_all  *template.Template
-	get_one         *template.Template
-	get_one_all     *template.Template
-	get_first       *template.Template
-	upd             *template.Template
-	del             *template.Template
-	del_all         *template.Template
-	del_world       *template.Template
-	get_last        *template.Template
 	methods         map[string]publicMethod
 	options         Options
+	header          *template.Template
+	misc            *template.Template
+	footer          *template.Template
+	funcs           template.FuncMap
+	loadedTemplates map[string]*template.Template
 }
 
 var _ code.Renderer = (*Renderer)(nil)
 
-func New(loader tmplutil.Loader, options *Options) (
-	r *Renderer, err error) {
-
-	r = &Renderer{
-		loader:  loader,
-		options: *options,
-		methods: map[string]publicMethod{},
-	}
-
-	r.header, err = loader.Load("golang.header.tmpl", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	r.footer, err = loader.Load("golang.footer.tmpl", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	r.misc, err = loader.Load("golang.misc.tmpl", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	r.decl, err = loader.Load("golang.decl.tmpl", nil)
-	if err != nil {
-		return nil, err
-	}
-
+func New(loader tmplutil.Loader, options *Options) (r *Renderer, err error) {
 	funcs := template.FuncMap{
 		"sliceof":           sliceofFn,
 		"param":             paramFn,
@@ -113,92 +69,27 @@ func New(loader tmplutil.Loader, options *Options) (
 		"double":            doubleFn,
 		"slice":             sliceFn,
 	}
-
-	r.cre, err = loader.Load("golang.create.tmpl", funcs)
+	r = &Renderer{
+		loader:          loader,
+		options:         *options,
+		methods:         map[string]publicMethod{},
+		funcs:           funcs,
+		loadedTemplates: make(map[string]*template.Template),
+	}
+	r.header, err = loader.Load("golang.header.tmpl", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	r.cre_raw, err = loader.Load("golang.create-raw.tmpl", funcs)
+	r.misc, err = loader.Load("golang.misc.tmpl", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	r.get_all, err = loader.Load("golang.get-all.tmpl", funcs)
+	r.footer, err = loader.Load("golang.footer.tmpl", nil)
 	if err != nil {
 		return nil, err
 	}
-
-	r.get_has, err = loader.Load("golang.get-has.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.get_count, err = loader.Load("golang.get-count.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.get_paged, err = loader.Load("golang.get-paged.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.get_limitoffset, err = loader.Load("golang.get-limitoffset.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.get_scalar, err = loader.Load("golang.get-scalar.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.get_scalar_all, err = loader.Load("golang.get-scalar-all.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.get_one, err = loader.Load("golang.get-one.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.get_one_all, err = loader.Load("golang.get-one-all.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.get_first, err = loader.Load("golang.get-first.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.upd, err = loader.Load("golang.update.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.del, err = loader.Load("golang.delete.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.del_all, err = loader.Load("golang.delete-all.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.del_world, err = loader.Load("golang.delete-world.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
-	r.get_last, err = loader.Load("golang.get-last.tmpl", funcs)
-	if err != nil {
-		return nil, err
-	}
-
 	return r, nil
 }
 
@@ -378,10 +269,18 @@ func (r *Renderer) renderCreate(w io.Writer, ir_cre *ir.Create,
 
 	if ir_cre.Raw {
 		cre := RawCreateFromIR(ir_cre, dialect)
-		return r.renderFunc(r.cre_raw, w, cre, dialect)
+		tpl, err := r.LoadTemplate("create-raw", dialect.Name())
+		if err != nil {
+			return err
+		}
+		return r.renderFunc(tpl, w, cre, dialect)
 	} else {
 		cre := CreateFromIR(ir_cre, dialect)
-		return r.renderFunc(r.cre, w, cre, dialect)
+		tpl, err := r.LoadTemplate("create", dialect.Name())
+		if err != nil {
+			return err
+		}
+		return r.renderFunc(tpl, w, cre, dialect)
 	}
 }
 
@@ -391,35 +290,38 @@ func (r *Renderer) renderRead(w io.Writer, ir_read *ir.Read,
 	get := GetFromIR(ir_read, dialect)
 
 	var tmpl *template.Template
+	var err error
 	switch ir_read.View {
 	case ir.All:
-		tmpl = r.get_all
+		tmpl, err = r.LoadTemplate("get-all", dialect.Name())
 	case ir.LimitOffset:
-		tmpl = r.get_limitoffset
+		tmpl, err = r.LoadTemplate("get-limitoffset", dialect.Name())
 	case ir.Paged:
-		tmpl = r.get_paged
+		tmpl, err = r.LoadTemplate("get-paged", dialect.Name())
 	case ir.Count:
-		tmpl = r.get_count
+		tmpl, err = r.LoadTemplate("get-count", dialect.Name())
 	case ir.Has:
-		tmpl = r.get_has
+		tmpl, err = r.LoadTemplate("get-has", dialect.Name())
 	case ir.Scalar:
 		if ir_read.Distinct() {
-			tmpl = r.get_scalar
+			tmpl, err = r.LoadTemplate("get-scalar", dialect.Name())
 		} else {
-			tmpl = r.get_scalar_all
+			tmpl, err = r.LoadTemplate("get-scalar-all", dialect.Name())
 		}
 	case ir.One:
 		if ir_read.Distinct() {
-			tmpl = r.get_one
+			tmpl, err = r.LoadTemplate("get-one", dialect.Name())
 		} else {
-			tmpl = r.get_one_all
+			tmpl, err = r.LoadTemplate("get-one-all", dialect.Name())
 		}
 	case ir.First:
-		tmpl = r.get_first
+		tmpl, err = r.LoadTemplate("get-first", dialect.Name())
 	default:
 		panic(fmt.Sprintf("unhandled read view %s", ir_read.View))
 	}
-
+	if err != nil {
+		return err
+	}
 	return r.renderFunc(tmpl, w, get, dialect)
 }
 
@@ -427,7 +329,11 @@ func (r *Renderer) renderUpdate(w io.Writer, ir_upd *ir.Update,
 	dialect sql.Dialect) error {
 
 	upd := UpdateFromIR(ir_upd, dialect)
-	return r.renderFunc(r.upd, w, upd, dialect)
+	tmpl, err := r.LoadTemplate("update", dialect.Name())
+	if err != nil {
+		return err
+	}
+	return r.renderFunc(tmpl, w, upd, dialect)
 }
 
 func (r *Renderer) renderDelete(w io.Writer, ir_del *ir.Delete,
@@ -435,9 +341,17 @@ func (r *Renderer) renderDelete(w io.Writer, ir_del *ir.Delete,
 
 	del := DeleteFromIR(ir_del, dialect)
 	if ir_del.Distinct() {
-		return r.renderFunc(r.del, w, del, dialect)
+		tmpl, err := r.LoadTemplate("delete", dialect.Name())
+		if err != nil {
+			return err
+		}
+		return r.renderFunc(tmpl, w, del, dialect)
 	} else {
-		return r.renderFunc(r.del_all, w, del, dialect)
+		tmpl, err := r.LoadTemplate("delete-all", dialect.Name())
+		if err != nil {
+			return err
+		}
+		return r.renderFunc(tmpl, w, del, dialect)
 	}
 }
 
@@ -459,7 +373,11 @@ func (r *Renderer) renderDeleteWorld(w io.Writer, ir_models []*ir.Model,
 		del.SQLs = append(del.SQLs, sql)
 	}
 
-	return r.renderFunc(r.del_world, w, del, dialect)
+	tmpl, err := r.LoadTemplate("delete-world", dialect.Name())
+	if err != nil {
+		return err
+	}
+	return r.renderFunc(tmpl, w, del, dialect)
 }
 
 func (r *Renderer) renderFunc(tmpl *template.Template, w io.Writer,
@@ -503,7 +421,11 @@ func (r *Renderer) renderFunc(tmpl *template.Template, w io.Writer,
 		Body:         body.String(),
 	}
 
-	err = tmplutil.Render(r.decl, w, "decl", decl)
+	tmpl, err = r.LoadTemplate("decl", dialect.Name())
+	if err != nil {
+		return err
+	}
+	err = tmplutil.Render(tmpl, w, "decl", decl)
 	if err != nil {
 		return err
 	}
@@ -534,7 +456,11 @@ func (r *Renderer) renderGetLast(w io.Writer, model *ir.Model,
 		Return: VarFromModel(model),
 	}
 
-	return r.renderFunc(r.get_last, w, get_last, dialect)
+	tpl, err := r.LoadTemplate("get-last", dialect.Name())
+	if err != nil {
+		return err
+	}
+	return r.renderFunc(tpl, w, get_last, dialect)
 }
 
 func (r *Renderer) renderFooter(w io.Writer) error {
@@ -597,4 +523,20 @@ func (r *Renderer) loadDialect(dialect sql.Dialect) (
 
 	return r.loader.Load(
 		fmt.Sprintf("golang.dialect-%s.tmpl", dialect.Name()), nil)
+}
+
+func (r *Renderer) LoadTemplate(name string, dialect string) (*template.Template, error) {
+	key := fmt.Sprintf("%s%s", dialect, name)
+	if loaded, found := r.loadedTemplates[key]; found {
+		return loaded, nil
+	}
+	loaded, err := r.loader.Load(fmt.Sprintf("golang.%s.%s.tmpl", name, dialect), r.funcs)
+	if err != nil && strings.Contains(err.Error(), "does not exist") {
+		loaded, err = r.loader.Load(fmt.Sprintf("golang.%s.tmpl", name), r.funcs)
+	}
+	if err != nil {
+		return nil, err
+	}
+	r.loadedTemplates[key] = loaded
+	return loaded, err
 }
