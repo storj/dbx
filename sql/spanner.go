@@ -161,7 +161,6 @@ func (s *spanner) CreateSchema(schema *Schema) []sqlgen.SQL {
 		if len(index.Where) > 0 {
 			stmt.Add(L("WHERE"), J(" AND ", index.Where...))
 		}
-		stmt.Add(L(";"))
 
 		stmts = append(stmts, sqlcompile.Compile(stmt.SQL()))
 	}

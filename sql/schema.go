@@ -125,7 +125,7 @@ func SchemaFromIRModels(ir_models []*ir.Model, dialect Dialect) *Schema {
 	return schema
 }
 
-func SQLFromSchema(schema *Schema) sqlgen.SQL {
+func SQLFromSchema(schema *Schema) []sqlgen.SQL {
 	var stmts []sqlgen.SQL
 
 	for _, table := range schema.Tables {
@@ -170,10 +170,10 @@ func SQLFromSchema(schema *Schema) sqlgen.SQL {
 		stmt := J("",
 			Lf("CREATE TABLE %s (\n\t", table.Name),
 			directives,
-			Lf("\n);"),
+			Lf("\n)"),
 		)
 
-		stmts = append(stmts, stmt)
+		stmts = append(stmts, sqlcompile.Compile(stmt))
 	}
 
 	for _, index := range schema.Indexes {
@@ -189,10 +189,9 @@ func SQLFromSchema(schema *Schema) sqlgen.SQL {
 		if len(index.Where) > 0 {
 			stmt.Add(L("WHERE"), J(" AND ", index.Where...))
 		}
-		stmt.Add(L(";"))
 
-		stmts = append(stmts, stmt.SQL())
+		stmts = append(stmts, sqlcompile.Compile(stmt.SQL()))
 	}
 
-	return sqlcompile.Compile(J("\n", stmts...))
+	return stmts
 }

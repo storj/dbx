@@ -63,7 +63,7 @@ type DefaultDialect struct {
 
 // CreateSchema implements Dialect.
 func (d DefaultDialect) CreateSchema(schema *Schema) (res []sqlgen.SQL) {
-	res = append(res, SQLFromSchema(schema))
+	res = append(res, SQLFromSchema(schema)...)
 	return res
 }
 
