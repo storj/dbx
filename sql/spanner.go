@@ -44,7 +44,7 @@ func (s *spanner) ColumnType(field *ir.Field) string {
 		consts.UintField, consts.Uint64Field:
 		return "INT64"
 	case consts.FloatField, consts.Float64Field:
-		return "REAL"
+		return "FLOAT64"
 	case consts.TextField:
 		return "STRING"
 	case consts.JsonField:

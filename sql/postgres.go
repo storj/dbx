@@ -27,6 +27,7 @@ func (p *postgres) Name() string {
 
 func (p *postgres) Features() Features {
 	return Features{
+		DefaultValues:       true,
 		Returning:           true,
 		PositionalArguments: true,
 		NoLimitToken:        "ALL",

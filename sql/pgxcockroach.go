@@ -27,6 +27,7 @@ func (p *pgxcockroach) Name() string {
 
 func (p *pgxcockroach) Features() Features {
 	return Features{
+		DefaultValues:       true,
 		Returning:           true,
 		PositionalArguments: true,
 		NoLimitToken:        "ALL",

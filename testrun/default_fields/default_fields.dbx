@@ -30,3 +30,10 @@ model baz (
 
 create baz (  )
 read one ( select baz, where baz.pk = ? )
+
+model minimal (
+	key pk
+	field pk serial64
+)
+
+create minimal ( )

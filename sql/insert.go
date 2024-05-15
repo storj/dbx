@@ -5,6 +5,7 @@
 package sql
 
 import (
+	"storj.io/dbx/consts"
 	"storj.io/dbx/ir"
 	"storj.io/dbx/sqlgen"
 	"storj.io/dbx/sqlgen/sqlcompile"
@@ -16,13 +17,23 @@ func InsertSQL(ir_cre *ir.Create, dialect Dialect) sqlgen.SQL {
 }
 
 type Insert struct {
-	Table          string
-	PrimaryKey     []string
-	StaticColumns  []string
+	Table      string
+	PrimaryKey []string
+
+	// StaticColumns are column names without defaults, requested to be inserted
+	StaticColumns []string
+
+	// DynamicColumns are column names with defaults, requested to be inserted
 	DynamicColumns []string
-	Returning      []string
-	ReplaceStyle   *ReplaceStyle
-	ReturningLit   string
+
+	// AllDefaults are all the available non-ref columns (even if they are not requested as insert parameters).
+	AllDefaults []string
+
+	Returning    []string
+	ReplaceStyle *ReplaceStyle
+	// SupportDefaultValues should be true, if `INSERT INTO .... DEFAULT VALUES` is supported
+	SupportDefaultValues bool
+	ReturningLit         string
 }
 
 func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
@@ -45,6 +56,12 @@ func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
 	for _, field := range ir_cre.InsertableDynamicFields() {
 		ins.DynamicColumns = append(ins.DynamicColumns, field.Column)
 	}
+	for _, field := range ir_cre.Model.Fields {
+		if field.Default != "" || field.Type == consts.Serial64Field || field.Type == consts.SerialField {
+			ins.AllDefaults = append(ins.AllDefaults, field.Column)
+		}
+	}
+	ins.SupportDefaultValues = dialect.Features().DefaultValues
 	ins.ReturningLit = dialect.ReturningLit()
 	return ins
 }
@@ -65,8 +82,19 @@ func SQLFromInsert(insert *Insert) sqlgen.SQL {
 
 	switch {
 	case len(insert.StaticColumns)+len(insert.DynamicColumns) == 0:
-		stmt.Add(L("DEFAULT VALUES"))
-
+		if insert.SupportDefaultValues {
+			stmt.Add(L("DEFAULT VALUES"))
+		} else {
+			stmt.Add(L("("), J(", ", Strings(insert.AllDefaults)...), L(")"))
+			stmt.Add(L("VALUES ("))
+			for i := 0; i < len(insert.AllDefaults); i++ {
+				if i > 0 {
+					stmt.Add(L(","))
+				}
+				stmt.Add(L("DEFAULT"))
+			}
+			stmt.Add(L(")"))
+		}
 	case len(insert.DynamicColumns) == 0:
 		stmt.Add(L("("), J(", ", Strings(insert.StaticColumns)...), L(")"))
 		stmt.Add(L("VALUES"))

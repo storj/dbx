@@ -16,10 +16,6 @@ func TestDefaultFields(t *testing.T) {
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 		ctx := context.Background()
 
-		if testrun.IsSpanner[*DB](db.DB) {
-			t.Skip("TODO: syntax for using defaults is different for spanner")
-		}
-
 		testrun.RecreateSchema(t, db)
 
 		{
@@ -65,6 +61,11 @@ func TestDefaultFields(t *testing.T) {
 			require.Equal(t, 250, int(row.A))
 			require.Equal(t, 150, int(row.B))
 			require.Equal(t, 45, int(row.C))
+		}
+
+		{
+			_, err := db.Create_Minimal(ctx)
+			require.NoError(t, err)
 		}
 
 		for i := 0; i < 8; i++ {

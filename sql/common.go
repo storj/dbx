@@ -14,6 +14,10 @@ import (
 )
 
 type Features struct {
+
+	// Supports DEFAULT VALUES in INSERT statement
+	DefaultValues bool
+
 	// Supports the RETURNING syntax on INSERT/UPDATE
 	Returning bool
 
@@ -78,6 +82,11 @@ func (d DefaultDialect) DropSchema(schema *Schema) (res []sqlgen.SQL) {
 	}
 
 	return stmts
+}
+
+// SupportDefaultValues implements Dialect.
+func (d DefaultDialect) SupportDefaultValues() bool {
+	return true
 }
 
 func (d DefaultDialect) ReturningLit() string {

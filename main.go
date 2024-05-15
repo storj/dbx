@@ -190,7 +190,7 @@ func (global *Global) renderSchema(dialect sql.Dialect, root *ir.Root) []byte {
 		sql.SchemaCreateSQL(root, dialect),
 		sqlgen.NoTerminate, sqlgen.NoFlatten)
 
-	return []byte(schema_hdr + "\n" + strings.Join(rendered, "\n") + "\n")
+	return []byte(schema_hdr + "\n" + strings.Join(rendered, " ;\n") + "\n")
 }
 
 func (global *Global) parseDBX(in ...string) (*ir.Root, error) {

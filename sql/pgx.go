@@ -27,6 +27,7 @@ func (p *pgx) Name() string {
 
 func (p *pgx) Features() Features {
 	return Features{
+		DefaultValues:       true,
 		Returning:           true,
 		PositionalArguments: true,
 		NoLimitToken:        "ALL",
