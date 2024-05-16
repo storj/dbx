@@ -37,3 +37,10 @@ model minimal (
 )
 
 create minimal ( )
+
+model special (
+    key pk
+    field pk serial64
+    field a timestamp (default "epoch")
+    field b json (default "{}")
+)

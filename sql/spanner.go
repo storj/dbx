@@ -105,7 +105,15 @@ func (s *spanner) CreateSchema(schema *Schema) []sqlgen.SQL {
 				dir.Add(L("NOT NULL"))
 			}
 			if column.Default != "" {
-				dir.Add(Lf("DEFAULT (%s)", column.Default))
+				def := column.Default
+				if def == `"epoch"` {
+					def = "timestamp_seconds(0)"
+				}
+				//
+				if column.Type == "JSON" && strings.HasPrefix(column.Default, `"`) {
+					def = fmt.Sprintf("JSON %s", column.Default)
+				}
+				dir.Add(Lf("DEFAULT (%s)", def))
 			}
 			if column.Type == "INT64_SEQ" {
 				seqName := fmt.Sprintf("%s_%s", table.Name, column.Name)
