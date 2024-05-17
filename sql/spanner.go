@@ -128,14 +128,6 @@ func (s *spanner) CreateSchema(schema *Schema) []sqlgen.SQL {
 				dir := Build(Lf("CONSTRAINT %s_%s_fkey FOREIGN KEY (%s) REFERENCES %s (%s)", table.Name, column.Name, column.Name, ref.Table, ref.Column))
 				dirs = append(dirs, dir.SQL())
 			}
-
-		}
-
-		for _, unique := range table.Unique {
-			dir := Build(L("UNIQUE ("))
-			dir.Add(J(", ", Strings(unique)...))
-			dir.Add(L(")"))
-			dirs = append(dirs, dir.SQL())
 		}
 
 		directives := J(",\n\t", dirs...)
@@ -168,9 +160,6 @@ func (s *spanner) CreateSchema(schema *Schema) []sqlgen.SQL {
 		if len(index.Storing) > 0 {
 			stmt.Add(L("STORING ("), J(", ", Strings(index.Storing)...), L(")"))
 		}
-		if len(index.Where) > 0 {
-			stmt.Add(L("WHERE"), J(" AND ", index.Where...))
-		}
 
 		stmts = append(stmts, sqlcompile.Compile(stmt.SQL()))
 	}
@@ -184,6 +173,21 @@ func (s *spanner) DropSchema(schema *Schema) (res []sqlgen.SQL) {
 
 	tables := schema.Tables
 	slices.Reverse(tables)
+
+	for _, table := range schema.Tables {
+		for _, column := range table.Columns {
+			if ref := column.Reference; ref != nil {
+				dir := Build(Lf("ALTER TABLE %s DROP CONSTRAINT %s_%s_fkey", table.Name, table.Name, column.Name))
+				stmts = append(stmts, sqlcompile.Compile(dir.SQL()))
+			}
+		}
+	}
+
+	for _, index := range schema.Indexes {
+		stmt := Build(L("DROP INDEX IF EXISTS"))
+		stmt.Add(Lf(index.Name))
+		stmts = append(stmts, sqlcompile.Compile(stmt.SQL()))
+	}
 	for _, table := range tables {
 		for _, pk := range table.PrimaryKey {
 			stmts = append(stmts, sqlcompile.Compile(Lf("ALTER TABLE  %s ALTER %s SET DEFAULT (null)", table.Name, pk)))
