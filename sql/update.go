@@ -16,10 +16,11 @@ func UpdateSQL(ir_upd *ir.Update, dialect Dialect) sqlgen.SQL {
 }
 
 type Update struct {
-	Table     string
-	Where     []sqlgen.SQL
-	Returning []string
-	In        sqlgen.SQL
+	Table        string
+	Where        []sqlgen.SQL
+	Returning    []string
+	In           sqlgen.SQL
+	ReturningLit string
 }
 
 func UpdateFromIRUpdate(ir_upd *ir.Update, dialect Dialect) *Update {
@@ -30,9 +31,10 @@ func UpdateFromIRUpdate(ir_upd *ir.Update, dialect Dialect) *Update {
 
 	if len(ir_upd.Joins) == 0 {
 		return &Update{
-			Table:     ir_upd.Model.Table,
-			Where:     WhereSQL(ir_upd.Where, dialect),
-			Returning: returning,
+			Table:        ir_upd.Model.Table,
+			Where:        WhereSQL(ir_upd.Where, dialect),
+			Returning:    returning,
+			ReturningLit: dialect.ReturningLit(),
 		}
 	}
 
@@ -46,9 +48,10 @@ func UpdateFromIRUpdate(ir_upd *ir.Update, dialect Dialect) *Update {
 	in := J("", L(pk_column), L(" IN ("), sel, L(")"))
 
 	return &Update{
-		Table:     ir_upd.Model.Table,
-		Returning: returning,
-		In:        in,
+		Table:        ir_upd.Model.Table,
+		Returning:    returning,
+		In:           in,
+		ReturningLit: dialect.ReturningLit(),
 	}
 }
 
@@ -66,7 +69,7 @@ func SQLFromUpdate(upd *Update) sqlgen.SQL {
 	}
 
 	if len(upd.Returning) > 0 {
-		stmt.Add(L("RETURNING"), J(", ", Strings(upd.Returning)...))
+		stmt.Add(L(upd.ReturningLit), J(", ", Strings(upd.Returning)...))
 	}
 
 	return sqlcompile.Compile(stmt.SQL())
