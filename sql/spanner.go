@@ -46,6 +46,9 @@ func (s *spanner) ColumnType(field *ir.Field) string {
 	case consts.FloatField, consts.Float64Field:
 		return "FLOAT64"
 	case consts.TextField:
+		if field.Length > 0 {
+			return fmt.Sprintf("STRING(%d)", field.Length)
+		}
 		return "STRING"
 	case consts.JsonField:
 		return "JSON"
