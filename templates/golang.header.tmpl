@@ -281,16 +281,16 @@ func new{{ .Name }}(db *DB) *{{ $dbtype }} {
 func (obj *{{ $dbtype }}) Schema() []string {
 	return []string{
 	{{ range $val := .SchemaSQL }}
-	    `{{ $val }}`,
-    {{ end }}
+		`{{ $val }}`,
+	{{ end }}
 	}
 }
 
 func (obj *{{ $dbtype }}) DropSchema() []string {
 	return []string{
 	{{ range $val := .DropSchemaSQL }}
-	    `{{ $val }}`,
-    {{ end }}
+		`{{ $val }}`,
+	{{ end }}
 	}
 }
 

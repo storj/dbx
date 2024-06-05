@@ -35,14 +35,14 @@
 	{{ end }}
 	if len(__optional_columns.SQLs) == 0 && __columns.SQL == nil {
 	{{ range .Struct.InsertableDynamicFields }}
-        __optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("{{ .Column }}"))
-        __optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal("DEFAULT"))
-    {{ end }}
+		__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("{{ .Column }}"))
+		__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal("DEFAULT"))
+	{{ end }}
 	}
 
-    if len(__optional_columns.SQLs) > 0 {
-	    __columns.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__columns.SQL, __optional_columns}}
-	    __placeholders.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__placeholders.SQL, __optional_placeholders}}
+	if len(__optional_columns.SQLs) > 0 {
+		__columns.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__columns.SQL, __optional_columns}}
+		__placeholders.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__placeholders.SQL, __optional_placeholders}}
 	}
 
 	{{ end -}}

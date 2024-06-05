@@ -41,15 +41,15 @@ func TestFlattenSQL(t *testing.T) {
 var benchStrings = []string{
 	`INSERT INTO example ( alpha, beta, gamma, delta, iota, kappa, lambda ) VALUES ( $1, $2, $3, $4, $5, $6, $7 ) RETURNING example.alpha, example.beta, example.gamma, example.delta, example.iota, example.kappa, example.lambda;`,
 	`INSERT INTO example
-	 ( alpha, beta,
-	 	gamma, delta, iota,
+		( alpha, beta,
+			gamma, delta, iota,
 
-	 	 kappa, lambda ) VALUES ( $1, $2, $3, $4,
-	 	 	$5, $6, $7 ) RETURNING example.alpha,
-	 	 	example.beta, example.gamma,
-	 	 	example.delta, example.iota, example.kappa,
+				kappa, lambda ) VALUES ( $1, $2, $3, $4,
+					$5, $6, $7 ) RETURNING example.alpha,
+					example.beta, example.gamma,
+					example.delta, example.iota, example.kappa,
 
-	 	 	example.lambda;`,
+					example.lambda;`,
 }
 
 func BenchmarkFlattenSQL(b *testing.B) {
