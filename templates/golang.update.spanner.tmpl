@@ -64,14 +64,14 @@ Update{{ if not .Return }}NoReturn{{ end }}_{{ .Suffix }}
 	{{ init .Return }}
 	{{- if .SupportsReturning }}
 	tx, err := obj.db.DB.BeginTx(ctx, nil)
-    if err != nil {
-    	return nil, obj.makeErr(err)
-    }
+	if err != nil {
+		return nil, obj.makeErr(err)
+	}
 	err = tx.QueryRowContext(ctx, __stmt, __values...).Scan({{ addrof (flatten .Return) }})
-    if err != nil {
-        return nil, obj.makeErr(err)
-    }
-    err = tx.Commit()
+	if err != nil {
+		return nil, obj.makeErr(err)
+	}
+	err = tx.Commit()
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
