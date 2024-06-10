@@ -57,7 +57,7 @@ type Dialect interface {
 	// CreateSchema generates SQL from abstract schema to create all the required tables/indexes.
 	CreateSchema(schema *Schema) []sqlgen.SQL
 
-	//DropSchema drops all the resources from the schema. Useful for testing.
+	// DropSchema drops all the resources from the schema. Useful for testing.
 	DropSchema(schema *Schema) []sqlgen.SQL
 }
 

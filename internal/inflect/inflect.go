@@ -1,5 +1,5 @@
-//Copyright (c) 2011 Chris Farmiloe.
-//See LICENSE (in the same directory!) for copying information.
+// Copyright (c) 2011 Chris Farmiloe.
+// See LICENSE (in the same directory!) for copying information.
 
 package inflect
 
@@ -285,7 +285,7 @@ func (rs *Ruleset) AddHuman(suffix, replacement string) {
 	rs.humans = append([]*Rule{r}, rs.humans...)
 }
 
-// Add any inconsistant pluralizing/sinularizing rules
+// Add any inconsistent pluralizing/sinularizing rules
 // to the set here.
 func (rs *Ruleset) AddIrregular(singular, plural string) {
 	delete(rs.uncountables, singular)
@@ -390,7 +390,7 @@ func (rs *Ruleset) Titleize(word string) string {
 func (rs *Ruleset) safeCaseAcronyms(word string) string {
 	// convert an acroymn like HTML into Html
 	for _, rule := range rs.acronyms {
-		word = strings.Replace(word, rule.suffix, rule.replacement, -1)
+		word = strings.ReplaceAll(word, rule.suffix, rule.replacement)
 	}
 	return word
 }
@@ -412,7 +412,7 @@ func (rs *Ruleset) Humanize(word string) string {
 	word = replaceLast(word, "_id", "") // strip foreign key kinds
 	// replace and strings in humans list
 	for _, rule := range rs.humans {
-		word = strings.Replace(word, rule.suffix, rule.replacement, -1)
+		word = strings.ReplaceAll(word, rule.suffix, rule.replacement)
 	}
 	sentance := rs.seperatedWords(word, " ")
 	return strings.ToUpper(sentance[:1]) + sentance[1:]
@@ -433,19 +433,19 @@ func (rs *Ruleset) Tableize(word string) string {
 	return rs.Pluralize(rs.Underscore(rs.Typeify(word)))
 }
 
-var notUrlSafe *regexp.Regexp = regexp.MustCompile(`[^\w\d\-_ ]`)
+var notUrlSafe = regexp.MustCompile(`[^\w\d\-_ ]`)
 
 // param safe dasherized names like "my-param"
 func (rs *Ruleset) Parameterize(word string) string {
 	return ParameterizeJoin(word, "-")
 }
 
-// param safe dasherized names with custom seperator
+// param safe dasherized names with custom separator
 func (rs *Ruleset) ParameterizeJoin(word, sep string) string {
 	word = strings.ToLower(word)
 	word = rs.Asciify(word)
 	word = notUrlSafe.ReplaceAllString(word, "")
-	word = strings.Replace(word, " ", sep, -1)
+	word = strings.ReplaceAll(word, " ", sep)
 	if len(sep) > 0 {
 		squash, err := regexp.Compile(sep + "+")
 		if err == nil {
@@ -456,7 +456,7 @@ func (rs *Ruleset) ParameterizeJoin(word, sep string) string {
 	return word
 }
 
-var lookalikes map[string]*regexp.Regexp = map[string]*regexp.Regexp{
+var lookalikes = map[string]*regexp.Regexp{
 	"A":  regexp.MustCompile(`À|Á|Â|Ã|Ä|Å`),
 	"AE": regexp.MustCompile(`Æ`),
 	"C":  regexp.MustCompile(`Ç`),
@@ -490,7 +490,7 @@ func (rs *Ruleset) Asciify(word string) string {
 	return word
 }
 
-var tablePrefix *regexp.Regexp = regexp.MustCompile(`^[^.]*\.`)
+var tablePrefix = regexp.MustCompile(`^[^.]*\.`)
 
 // "something_like_this" -> "SomethingLikeThis"
 func (rs *Ruleset) Typeify(word string) string {

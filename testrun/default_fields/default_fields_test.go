@@ -24,9 +24,9 @@ func TestDefaultFields(t *testing.T) {
 			require.NoError(t, err)
 			row, err := db.Get_Foo_By_Pk(ctx, Foo_Pk(foo.Pk))
 			require.NoError(t, err)
-			require.Equal(t, 10, int(row.A))
-			require.Equal(t, 0, int(row.B))
-			require.Equal(t, 20, int(row.C))
+			require.Equal(t, 10, row.A)
+			require.Equal(t, 0, row.B)
+			require.Equal(t, 20, row.C)
 		}
 
 		{
@@ -36,9 +36,9 @@ func TestDefaultFields(t *testing.T) {
 			require.NoError(t, err)
 			row, err := db.Get_Foo_By_Pk(ctx, Foo_Pk(foo.Pk))
 			require.NoError(t, err)
-			require.Equal(t, 10, int(row.A))
-			require.Equal(t, 0, int(row.B))
-			require.Equal(t, 25, int(row.C))
+			require.Equal(t, 10, row.A)
+			require.Equal(t, 0, row.B)
+			require.Equal(t, 25, row.C)
 		}
 
 		{
@@ -46,9 +46,9 @@ func TestDefaultFields(t *testing.T) {
 			require.NoError(t, err)
 			row, err := db.Get_Bar_By_Pk(ctx, Bar_Pk(bar.Pk))
 			require.NoError(t, err)
-			require.Equal(t, 200, int(row.A))
-			require.Equal(t, 100, int(row.B))
-			require.Equal(t, 40, int(row.C))
+			require.Equal(t, 200, row.A)
+			require.Equal(t, 100, row.B)
+			require.Equal(t, 40, row.C)
 		}
 
 		{
@@ -58,9 +58,9 @@ func TestDefaultFields(t *testing.T) {
 			require.NoError(t, err)
 			row, err := db.Get_Bar_By_Pk(ctx, Bar_Pk(bar.Pk))
 			require.NoError(t, err)
-			require.Equal(t, 250, int(row.A))
-			require.Equal(t, 150, int(row.B))
-			require.Equal(t, 45, int(row.C))
+			require.Equal(t, 250, row.A)
+			require.Equal(t, 150, row.B)
+			require.Equal(t, 45, row.C)
 		}
 
 		{
@@ -93,9 +93,9 @@ func TestDefaultFields(t *testing.T) {
 			row, err := db.Get_Baz_By_Pk(ctx, Baz_Pk(baz.Pk))
 			require.NoError(t, err)
 
-			require.Equal(t, expA, int(row.A))
-			require.Equal(t, expB, int(row.B))
-			require.Equal(t, expC, int(row.C))
+			require.Equal(t, expA, row.A)
+			require.Equal(t, expB, row.B)
+			require.Equal(t, expC, row.C)
 		}
 	})
 }

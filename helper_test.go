@@ -20,8 +20,9 @@ func linedSource(source []byte) string {
 	for scanner.Scan() {
 		lines++
 	}
+
 	align := 1
-	for ; lines > 0; lines = lines / 10 {
+	for ; lines > 0; lines /= 10 {
 		align++
 	}
 

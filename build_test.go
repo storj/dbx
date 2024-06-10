@@ -48,9 +48,7 @@ func testBuildFile(t *testutil.T, file string) {
 		}
 	}()
 
-	dir, err := os.MkdirTemp("", "dbx")
-	t.AssertNoError(err)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	dbx_source, err := os.ReadFile(file)
 	t.AssertNoError(err)

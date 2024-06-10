@@ -46,13 +46,13 @@ func Print(x interface{}) error {
 
 func Sprint(x interface{}) string {
 	var buf bytes.Buffer
-	Fprint(&buf, x)
+	_ = Fprint(&buf, x)
 	return buf.String()
 }
 
 func Sprintln(x interface{}) string {
 	var buf bytes.Buffer
-	Fprintln(&buf, x)
+	_ = Fprintln(&buf, x)
 	return buf.String()
 }
 

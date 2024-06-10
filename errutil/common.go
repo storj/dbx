@@ -82,7 +82,7 @@ func generateContext(sources map[string][]byte, pos scanner.Position) (context s
 	if line_start > 0 {
 		before_start, before_end := lineAround(source, line_start-1)
 		before_line = string(source[before_start:before_end])
-		before_line = strings.Replace(before_line, "\t", "    ", -1)
+		before_line = strings.ReplaceAll(before_line, "\t", "    ")
 		context_bytes = append(context_bytes,
 			fmt.Sprintf("% 4d: ", pos.Line-1)...)
 		context_bytes = append(context_bytes, before_line...)
@@ -90,7 +90,7 @@ func generateContext(sources map[string][]byte, pos scanner.Position) (context s
 	}
 
 	tabs := strings.Count(line, "\t")
-	line = strings.Replace(line, "\t", "    ", -1)
+	line = strings.ReplaceAll(line, "\t", "    ")
 	context_bytes = append(context_bytes, fmt.Sprintf("% 4d: ", pos.Line)...)
 	context_bytes = append(context_bytes, line...)
 	context_bytes = append(context_bytes, '\n')

@@ -265,13 +265,12 @@ func (fw *fileWriter) writeFile(suffix string, data []byte) (err error) {
 	tmp_path := file_path + ".tmp"
 
 	if err := os.WriteFile(tmp_path, data, 0644); err != nil {
-		return fmt.Errorf("unable to write %s: %v", tmp_path, err)
+		return fmt.Errorf("unable to write %s: %w", tmp_path, err)
 	}
 
 	if err := os.Rename(tmp_path, file_path); err != nil {
-		os.Remove(tmp_path)
-		return fmt.Errorf("unable to rename %s over %s: %v", tmp_path,
-			file_path, err)
+		_ = os.Remove(tmp_path)
+		return fmt.Errorf("unable to rename %s over %s: %w", tmp_path, file_path, err)
 	}
 
 	return nil
