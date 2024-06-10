@@ -15,10 +15,6 @@ func TestJoin(t *testing.T) {
 	ctx := context.Background()
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 
-		if testrun.IsSpanner[*DB](db.DB) {
-			t.Skip("TODO: REFERENCES syntax is not valid for Spanner Google SQL")
-		}
-
 		testrun.RecreateSchema(t, db)
 
 		user, err := db.Create_User(ctx)

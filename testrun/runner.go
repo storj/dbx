@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -106,17 +107,35 @@ type SchemaHandler interface {
 	Exec(query string, args ...any) (sql.Result, error)
 }
 
-// RecreateSchema will drop and recreate schema.
+// RecreateSchema will drop and recreate schema. Will try it with multiple times with increased sleep time.
+// To void errors like "Schema change operation rejected because a concurrent schema change operation or read-write transaction is already in progress.".
 func RecreateSchema(t *testing.T, db SchemaHandler) {
+	var err error
+	p := time.Millisecond * 500
+	for i := 0; i < 10; i++ {
+		err = RecreateSchemaOnce(db)
+		if err == nil {
+			return
+		}
+		time.Sleep(p)
+		p *= 2
+	}
+	require.NoError(t, err)
+}
+
+// RecreateSchemaOnce will drop and recreate schema.
+func RecreateSchemaOnce(db SchemaHandler) error {
 	for _, stmt := range db.DropSchema() {
 		_, _ = db.Exec(stmt)
 	}
 
 	for _, stmt := range db.Schema() {
 		_, err := db.Exec(stmt)
-		require.NoError(t, err, "Statement is failed "+stmt)
+		if err != nil {
+			return err
+		}
 	}
-
+	return nil
 }
 
 // WithDriver represents a DB which has a driver (usually *sql.DB).

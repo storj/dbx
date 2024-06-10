@@ -112,16 +112,15 @@ func (s *spanner) CreateSchema(schema *Schema) []sqlgen.SQL {
 				stmts = append(stmts, Build(Lf("CREATE SEQUENCE %s OPTIONS (sequence_kind='bit_reversed_positive')", seqName)).SQL())
 				dir.Add(Lf("DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE %s))", seqName))
 			}
-			if ref := column.Reference; ref != nil {
-				dir.Add(Lf("REFERENCES %s( %s )", ref.Table, ref.Column))
-				if ref.OnDelete != "" {
-					dir.Add(Lf("ON DELETE %s", ref.OnDelete))
-				}
-				if ref.OnUpdate != "" {
-					dir.Add(Lf("ON UPDATE %s", ref.OnUpdate))
-				}
-			}
 			dirs = append(dirs, dir.SQL())
+		}
+
+		for _, column := range table.Columns {
+			if ref := column.Reference; ref != nil {
+				dir := Build(Lf("CONSTRAINT %s_%s_fkey FOREIGN KEY (%s) REFERENCES %s (%s)", table.Name, column.Name, column.Name, ref.Table, ref.Column))
+				dirs = append(dirs, dir.SQL())
+			}
+
 		}
 
 		for _, unique := range table.Unique {
