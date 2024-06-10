@@ -22,18 +22,27 @@ pipeline {
             }
         }
 
-        stage('Lint') {
-            steps {
-                sh 'docker buildx bake lint'
+        stage('Checks') {
+            parallel {
+                stage('Lint') {
+                    steps {
+                        sh 'docker buildx bake lint'
+                    }
+                }
+
+                stage('Check Generated') {
+                    steps {
+                        sh 'docker buildx bake check-generated'
+                    }
+                }
+
+                stage('Test') {
+                    steps {
+                        sh 'docker buildx bake integration-test'
+                    }
+                }
             }
         }
-
-        stage('Test') {
-            steps {
-                sh 'docker buildx bake integration-test'
-            }
-        }
-
     }
     post {
         success {

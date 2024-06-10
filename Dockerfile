@@ -7,6 +7,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
     --mount=type=cache,target=/go/pkg/mod,id=gopkg \
     go mod download
 
+### integration-test
+
 FROM debian:bookworm as integration-test
 RUN apt-get update && apt-get install -y postgresql wget procps gcc
 RUN wget https://go.dev/dl/go1.22.2.linux-amd64.tar.gz && \
@@ -48,6 +50,25 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
 RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
     --mount=type=cache,target=/go/pkg/mod,id=gopkg \
     ./scripts/test-environment.sh go test ./...
+
+### check-generated
+
+FROM storjlabs/ci:slim as check-generated
+WORKDIR /dbx
+COPY . .
+
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    go install
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    go install golang.org/x/tools/cmd/bundle@latest
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    go generate ./...
+RUN git diff --exit-code
+
+### lint
 
 FROM storjlabs/ci:slim as lint
 WORKDIR /dbx
