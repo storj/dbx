@@ -1,0 +1,1 @@
+testrun/*/*.dbx.go always-conflict merge=theirs
