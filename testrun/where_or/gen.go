@@ -3,4 +3,4 @@
 
 package where_or
 
-//go:generate dbx golang --package where_or -d sqlite3 -d pgx -d postgres -d cockroach -d pgxcockroach -d spanner where_or.dbx .
+//go:generate dbx golang --package where_or -d sqlite3 -d pgx -d pgxcockroach -d spanner where_or.dbx .

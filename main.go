@@ -64,7 +64,7 @@ func main() {
 		package_opt := cmd.StringOpt("p package", "",
 			"package name for generated code")
 		dialects_opt := cmd.StringsOpt("d dialect", nil,
-			"SQL dialects (defaults to postgres)")
+			"SQL dialects (defaults to pgx)")
 		templatedir_opt := cmd.StringOpt("t templates", "",
 			"override the template directory")
 		userdata_opt := cmd.BoolOpt("userdata", false,
@@ -83,7 +83,7 @@ func main() {
 
 	app.Command("schema", "generate table schema", func(cmd *cli.Cmd) {
 		dialects_opt := cmd.StringsOpt("d dialect", nil,
-			"SQL dialects (default is postgres)")
+			"SQL dialects (default is pgx)")
 		dbxincludes_opt := cmd.StringsOpt("i", []string{}, "include additional dbx files")
 		dbxfile_arg := cmd.StringArg("DBXFILE", "",
 			"path to dbx file")
@@ -223,17 +223,13 @@ func (global *Global) getLoader(dir string) tmplutil.Loader {
 
 func (global *Global) createDialects(which []string) (out []sql.Dialect, err error) {
 	if len(which) == 0 {
-		which = append(which, "postgres")
+		which = append(which, "pgx")
 	}
 	for _, name := range which {
 		var d sql.Dialect
 		switch name {
-		case "postgres":
-			d = sql.Postgres()
 		case "sqlite3":
 			d = sql.SQLite3()
-		case "cockroach":
-			d = sql.Cockroach()
 		case "pgx":
 			d = sql.PGX()
 		case "pgxcockroach":

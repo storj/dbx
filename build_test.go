@@ -55,7 +55,7 @@ func testBuildFile(t *testutil.T, file string) {
 	t.Context("dbx", linedSource(dbx_source))
 	d := loadDirectives(t, dbx_source)
 
-	dialects := []string{"postgres", "sqlite3", "cockroach", "pgx", "pgxcockroach"}
+	dialects := []string{"sqlite3", "pgx", "pgxcockroach"}
 	if other := d.lookup("dialects"); other != nil {
 		dialects = other
 		t.Logf("using dialects: %q", dialects)

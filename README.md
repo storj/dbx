@@ -257,11 +257,11 @@ of the above commands can be passed the `--dialect` (or, shorthand `-d`) flag
 to specify additional dialects. For example, running
 
 ```
-dbx schema -d postgres -d sqlite3 example.dbx .
-dbx golang -d postgres -d sqlite3 example.dbx .
+dbx schema -d pgx -d sqlite3 example.dbx .
+dbx golang -d pgx -d sqlite3 example.dbx .
 ```
 
-will create both `example.dbx.postgres.sql` and `example.dbx.sqlite3.sql` with
+will create both `example.dbx.pgx.sql` and `example.dbx.sqlite3.sql` with
 the statements required to create the tables, and generate the Go code to
 operate with both sqlite3 and postgres.
 
@@ -271,8 +271,8 @@ All of these commands are intended to normally be used with `//go:generate`
 directives, such as:
 
 ```
-//go:generate dbx golang -d postgres -d sqlite3 example.dbx .
-//go:generate dbx schema -d postgres -d sqlite3 example.dbx .
+//go:generate dbx golang -d pgx -d sqlite3 example.dbx .
+//go:generate dbx schema -d pgx -d sqlite3 example.dbx .
 ```
 
 A great spot to put them would be in the file that modifies the hooks and adds

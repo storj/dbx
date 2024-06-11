@@ -6,11 +6,12 @@ package testrun
 import (
 	"database/sql"
 	"database/sql/driver"
-	spannerdriver "github.com/googleapis/go-sql-spanner"
 	"io"
 	"os"
 	"testing"
 	"time"
+
+	spannerdriver "github.com/googleapis/go-sql-spanner"
 
 	"github.com/stretchr/testify/require"
 )
@@ -28,20 +29,8 @@ func RunDBTest[T io.Closer](t *testing.T, open func(driver, source string) (db T
 
 	dsn := os.Getenv("STORJ_TEST_POSTGRES")
 	if dsn == "" {
-		t.Log("Skipping pq and pgx tests because environment variable STORJ_TEST_POSTGRES is not set")
+		t.Log("Skipping pgx tests because environment variable STORJ_TEST_POSTGRES is not set")
 	} else {
-
-		t.Run("postgres", func(t *testing.T) {
-			pqDb, err := open("postgres", dsn)
-			require.NoError(t, err)
-			defer func() {
-				err := pqDb.Close()
-				require.NoError(t, err)
-			}()
-
-			callback(t, pqDb)
-		})
-
 		t.Run("pgx", func(t *testing.T) {
 			pqDb, err := open("pgx", dsn)
 			require.NoError(t, err)
@@ -56,20 +45,8 @@ func RunDBTest[T io.Closer](t *testing.T, open func(driver, source string) (db T
 
 	dsn = os.Getenv("STORJ_TEST_COCKROACH")
 	if dsn == "" {
-		t.Log("Skipping cockroach and pgxcockroach tests because environment variable STORJ_TEST_COCKROACH is not set")
+		t.Log("Skipping pgxcockroach tests because environment variable STORJ_TEST_COCKROACH is not set")
 	} else {
-
-		t.Run("cockroach", func(t *testing.T) {
-			pqDb, err := open("cockroach", dsn)
-			require.NoError(t, err)
-			defer func() {
-				err := pqDb.Close()
-				require.NoError(t, err)
-			}()
-
-			callback(t, pqDb)
-		})
-
 		t.Run("pgxcockroach", func(t *testing.T) {
 			pqDb, err := open("pgx", dsn)
 			require.NoError(t, err)

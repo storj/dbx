@@ -20,7 +20,6 @@ import (
 	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/lib/pq"
 	"github.com/mattn/go-sqlite3"
 	"math/rand"
 )
@@ -153,10 +152,6 @@ func Open(driver, source string) (db *DB, err error) {
 		sql_db, err = opensqlite3(source)
 	case "pgx":
 		sql_db, err = openpgx(source)
-	case "postgres":
-		sql_db, err = openpostgres(source)
-	case "cockroach":
-		sql_db, err = opencockroach(source)
 	case "pgxcockroach":
 		sql_db, err = openpgxcockroach(source)
 	case "spanner":
@@ -187,10 +182,6 @@ func Open(driver, source string) (db *DB, err error) {
 		db.dbMethods = newsqlite3(db)
 	case "pgx":
 		db.dbMethods = newpgx(db)
-	case "postgres":
-		db.dbMethods = newpostgres(db)
-	case "cockroach":
-		db.dbMethods = newcockroach(db)
 	case "pgxcockroach":
 		db.dbMethods = newpgxcockroach(db)
 	case "spanner":
@@ -406,166 +397,6 @@ type pgxTx struct {
 }
 
 func pgxLogStmt(stmt string, args ...interface{}) {
-	// TODO: render placeholders
-	if Logger != nil {
-		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
-		Logger(out)
-	}
-}
-
-type postgresImpl struct {
-	db      *DB
-	dialect __sqlbundle_postgres
-	driver  driver
-}
-
-func (obj *postgresImpl) Rebind(s string) string {
-	return obj.dialect.Rebind(s)
-}
-
-func (obj *postgresImpl) logStmt(stmt string, args ...interface{}) {
-	postgresLogStmt(stmt, args...)
-}
-
-func (obj *postgresImpl) makeErr(err error) error {
-	constraint, ok := obj.isConstraintError(err)
-	if ok {
-		return constraintViolation(err, constraint)
-	}
-	return makeErr(err)
-}
-
-type postgresDB struct {
-	db *DB
-	*postgresImpl
-}
-
-func newpostgres(db *DB) *postgresDB {
-	return &postgresDB{
-		db: db,
-		postgresImpl: &postgresImpl{
-			db:     db,
-			driver: db.DB,
-		},
-	}
-}
-
-func (obj *postgresDB) Schema() []string {
-	return []string{
-
-		`CREATE TABLE foos (
-	pk bigserial NOT NULL,
-	a text NOT NULL,
-	b text NOT NULL,
-	c text NOT NULL,
-	PRIMARY KEY ( pk )
-)`,
-	}
-}
-
-func (obj *postgresDB) DropSchema() []string {
-	return []string{
-
-		`DROP TABLE IF EXISTS foos`,
-	}
-}
-
-func (obj *postgresDB) wrapTx(tx *sql.Tx) txMethods {
-	return &postgresTx{
-		dialectTx: dialectTx{tx: tx},
-		postgresImpl: &postgresImpl{
-			db:     obj.db,
-			driver: tx,
-		},
-	}
-}
-
-type postgresTx struct {
-	dialectTx
-	*postgresImpl
-}
-
-func postgresLogStmt(stmt string, args ...interface{}) {
-	// TODO: render placeholders
-	if Logger != nil {
-		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
-		Logger(out)
-	}
-}
-
-type cockroachImpl struct {
-	db      *DB
-	dialect __sqlbundle_cockroach
-	driver  driver
-}
-
-func (obj *cockroachImpl) Rebind(s string) string {
-	return obj.dialect.Rebind(s)
-}
-
-func (obj *cockroachImpl) logStmt(stmt string, args ...interface{}) {
-	cockroachLogStmt(stmt, args...)
-}
-
-func (obj *cockroachImpl) makeErr(err error) error {
-	constraint, ok := obj.isConstraintError(err)
-	if ok {
-		return constraintViolation(err, constraint)
-	}
-	return makeErr(err)
-}
-
-type cockroachDB struct {
-	db *DB
-	*cockroachImpl
-}
-
-func newcockroach(db *DB) *cockroachDB {
-	return &cockroachDB{
-		db: db,
-		cockroachImpl: &cockroachImpl{
-			db:     db,
-			driver: db.DB,
-		},
-	}
-}
-
-func (obj *cockroachDB) Schema() []string {
-	return []string{
-
-		`CREATE TABLE foos (
-	pk bigserial NOT NULL,
-	a text NOT NULL,
-	b text NOT NULL,
-	c text NOT NULL,
-	PRIMARY KEY ( pk )
-)`,
-	}
-}
-
-func (obj *cockroachDB) DropSchema() []string {
-	return []string{
-
-		`DROP TABLE IF EXISTS foos`,
-	}
-}
-
-func (obj *cockroachDB) wrapTx(tx *sql.Tx) txMethods {
-	return &cockroachTx{
-		dialectTx: dialectTx{tx: tx},
-		cockroachImpl: &cockroachImpl{
-			db:     obj.db,
-			driver: tx,
-		},
-	}
-}
-
-type cockroachTx struct {
-	dialectTx
-	*cockroachImpl
-}
-
-func cockroachLogStmt(stmt string, args ...interface{}) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -1360,184 +1191,6 @@ func (obj *pgxImpl) deleteAll(ctx context.Context) (count int64, err error) {
 
 }
 
-func (obj *postgresImpl) Create_Foo(ctx context.Context,
-	foo_a Foo_A_Field,
-	foo_b Foo_B_Field,
-	foo_c Foo_C_Field) (
-	foo *Foo, err error) {
-	__a_val := foo_a.value()
-	__b_val := foo_b.value()
-	__c_val := foo_c.value()
-
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO foos ( a, b, c ) VALUES ( ?, ?, ? ) RETURNING foos.pk, foos.a, foos.b, foos.c")
-
-	var __values []interface{}
-	__values = append(__values, __a_val, __b_val, __c_val)
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, __values...)
-
-	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return foo, nil
-
-}
-
-func (obj *postgresImpl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
-	foo_a Foo_A_Field,
-	foo_b Foo_B_Field,
-	foo_c Foo_C_Field) (
-	rows []*Foo, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE (foos.a = ? OR (foos.b = ? OR foos.c = ?))")
-
-	var __values []interface{}
-	__values = append(__values, foo_a.value(), foo_b.value(), foo_c.value())
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, __values...)
-
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
-
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		rows = append(rows, foo)
-	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
-
-}
-
-func (impl postgresImpl) isConstraintError(err error) (
-	constraint string, ok bool) {
-	if e, ok := err.(*pq.Error); ok {
-		if e.Code.Class() == "23" {
-			return e.Constraint, true
-		}
-	}
-	return "", false
-}
-
-func (obj *postgresImpl) deleteAll(ctx context.Context) (count int64, err error) {
-	var __res sql.Result
-	var __count int64
-	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM foos;")
-	if err != nil {
-		return 0, obj.makeErr(err)
-	}
-
-	__count, err = __res.RowsAffected()
-	if err != nil {
-		return 0, obj.makeErr(err)
-	}
-	count += __count
-
-	return count, nil
-
-}
-
-func (obj *cockroachImpl) Create_Foo(ctx context.Context,
-	foo_a Foo_A_Field,
-	foo_b Foo_B_Field,
-	foo_c Foo_C_Field) (
-	foo *Foo, err error) {
-	__a_val := foo_a.value()
-	__b_val := foo_b.value()
-	__c_val := foo_c.value()
-
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO foos ( a, b, c ) VALUES ( ?, ?, ? ) RETURNING foos.pk, foos.a, foos.b, foos.c")
-
-	var __values []interface{}
-	__values = append(__values, __a_val, __b_val, __c_val)
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, __values...)
-
-	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return foo, nil
-
-}
-
-func (obj *cockroachImpl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
-	foo_a Foo_A_Field,
-	foo_b Foo_B_Field,
-	foo_c Foo_C_Field) (
-	rows []*Foo, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE (foos.a = ? OR (foos.b = ? OR foos.c = ?))")
-
-	var __values []interface{}
-	__values = append(__values, foo_a.value(), foo_b.value(), foo_c.value())
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, __values...)
-
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
-
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		rows = append(rows, foo)
-	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
-
-}
-
-func (impl cockroachImpl) isConstraintError(err error) (
-	constraint string, ok bool) {
-	if e, ok := err.(*pq.Error); ok {
-		if e.Code.Class() == "23" {
-			return e.Constraint, true
-		}
-	}
-	return "", false
-}
-
-func (obj *cockroachImpl) deleteAll(ctx context.Context) (count int64, err error) {
-	var __res sql.Result
-	var __count int64
-	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM foos;")
-	if err != nil {
-		return 0, obj.makeErr(err)
-	}
-
-	__count, err = __res.RowsAffected()
-	if err != nil {
-		return 0, obj.makeErr(err)
-	}
-	count += __count
-
-	return count, nil
-
-}
-
 func (obj *pgxcockroachImpl) Create_Foo(ctx context.Context,
 	foo_a Foo_A_Field,
 	foo_b Foo_B_Field,
@@ -1799,21 +1452,6 @@ func opensqlite3(source string) (*sql.DB, error) {
 
 func openpgx(source string) (*sql.DB, error) {
 	return sql.Open("pgx", source)
-}
-
-func openpostgres(source string) (*sql.DB, error) {
-	return sql.Open("postgres", source)
-}
-
-func opencockroach(source string) (*sql.DB, error) {
-	// try first with "cockroach" as a driver in case someone has registered
-	// some special stuff. if that fails, then try again with "postgres" as
-	// the driver.
-	db, err := sql.Open("cockroach", source)
-	if err != nil {
-		db, err = sql.Open("postgres", source)
-	}
-	return db, err
 }
 
 func openpgxcockroach(source string) (*sql.DB, error) {
