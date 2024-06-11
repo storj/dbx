@@ -125,7 +125,15 @@ func (s *spanner) CreateSchema(schema *Schema) []sqlgen.SQL {
 
 		for _, column := range table.Columns {
 			if ref := column.Reference; ref != nil {
-				dir := Build(Lf("CONSTRAINT %s_%s_fkey FOREIGN KEY (%s) REFERENCES %s (%s)", table.Name, column.Name, column.Name, ref.Table, ref.Column))
+				action := ""
+				if ref.OnDelete != "" {
+					action += fmt.Sprintf(" ON DELETE %s ", ref.OnDelete)
+				}
+				if ref.OnUpdate != "" {
+					action += fmt.Sprintf(" ON UPDATE %s ", ref.OnUpdate)
+				}
+				dir := Build(Lf("CONSTRAINT %s_%s_fkey FOREIGN KEY (%s) REFERENCES %s (%s)%s",
+					table.Name, column.Name, column.Name, ref.Table, ref.Column, action))
 				dirs = append(dirs, dir.SQL())
 			}
 		}
@@ -148,6 +156,10 @@ func (s *spanner) CreateSchema(schema *Schema) []sqlgen.SQL {
 		)
 
 		stmts = append(stmts, sqlcompile.Compile(stmt))
+		for _, unique := range table.Unique {
+			indexName := fmt.Sprintf("index_%s_%s", table.Name, unique[0])
+			stmts = append(stmts, Build(Lf("CREATE UNIQUE INDEX %s ON %s (%s)", indexName, table.Name, unique[0])).SQL())
+		}
 	}
 
 	for _, index := range schema.Indexes {
@@ -180,6 +192,10 @@ func (s *spanner) DropSchema(schema *Schema) (res []sqlgen.SQL) {
 				dir := Build(Lf("ALTER TABLE %s DROP CONSTRAINT %s_%s_fkey", table.Name, table.Name, column.Name))
 				stmts = append(stmts, sqlcompile.Compile(dir.SQL()))
 			}
+		}
+		for _, unique := range table.Unique {
+			indexName := fmt.Sprintf("index_%s_%s", table.Name, unique[0])
+			stmts = append(stmts, Build(Lf("DROP INDEX IF EXISTS %s", indexName)).SQL())
 		}
 	}
 

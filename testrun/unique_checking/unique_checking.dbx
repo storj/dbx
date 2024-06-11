@@ -16,8 +16,8 @@ model c (
 	key    id
 	unique b_id
 	field  id   serial64
-	field  lat  float
-	field  lon  float
+	field  lat  float64
+	field  lon  float64
 	field  b_id b.id     restrict
 )
 

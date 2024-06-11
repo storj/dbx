@@ -393,8 +393,8 @@ func (obj *pgxDB) Schema() []string {
 
 		`CREATE TABLE c (
 	id bigserial NOT NULL,
-	lat real NOT NULL,
-	lon real NOT NULL,
+	lat double precision NOT NULL,
+	lon double precision NOT NULL,
 	b_id bigint NOT NULL REFERENCES b( id ),
 	PRIMARY KEY ( id ),
 	UNIQUE ( b_id )
@@ -489,8 +489,8 @@ func (obj *pgxcockroachDB) Schema() []string {
 
 		`CREATE TABLE c (
 	id bigserial NOT NULL,
-	lat real NOT NULL,
-	lon real NOT NULL,
+	lat double precision NOT NULL,
+	lon double precision NOT NULL,
 	b_id bigint NOT NULL REFERENCES b( id ),
 	PRIMARY KEY ( id ),
 	UNIQUE ( b_id )
@@ -595,6 +595,8 @@ func (obj *spannerDB) Schema() []string {
 	b_id INT64 NOT NULL,
 	CONSTRAINT c_b_id_fkey FOREIGN KEY (b_id) REFERENCES b (id)
 ) PRIMARY KEY ( id )`,
+
+		`CREATE UNIQUE INDEX index_c_b_id ON c (b_id)`,
 	}
 }
 
@@ -602,6 +604,8 @@ func (obj *spannerDB) DropSchema() []string {
 	return []string{
 
 		`ALTER TABLE c DROP CONSTRAINT c_b_id_fkey`,
+
+		`DROP INDEX IF EXISTS index_c_b_id`,
 
 		`ALTER TABLE b DROP CONSTRAINT b_a_id_fkey`,
 
@@ -763,8 +767,8 @@ func (B_AId_Field) _Column() string { return "a_id" }
 
 type C struct {
 	Id  int64
-	Lat float32
-	Lon float32
+	Lat float64
+	Lon float64
 	BId int64
 }
 
@@ -795,10 +799,10 @@ func (C_Id_Field) _Column() string { return "id" }
 type C_Lat_Field struct {
 	_set   bool
 	_null  bool
-	_value float32
+	_value float64
 }
 
-func C_Lat(v float32) C_Lat_Field {
+func C_Lat(v float64) C_Lat_Field {
 	return C_Lat_Field{_set: true, _value: v}
 }
 
@@ -814,10 +818,10 @@ func (C_Lat_Field) _Column() string { return "lat" }
 type C_Lon_Field struct {
 	_set   bool
 	_null  bool
-	_value float32
+	_value float64
 }
 
-func C_Lon(v float32) C_Lon_Field {
+func C_Lon(v float64) C_Lon_Field {
 	return C_Lon_Field{_set: true, _value: v}
 }
 

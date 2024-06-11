@@ -17,4 +17,5 @@ CREATE TABLE c (
 	lon FLOAT64 NOT NULL,
 	b_id INT64 NOT NULL,
 	CONSTRAINT c_b_id_fkey FOREIGN KEY (b_id) REFERENCES b (id)
-) PRIMARY KEY ( id )
+) PRIMARY KEY ( id ) ;
+CREATE UNIQUE INDEX index_c_b_id ON c (b_id)
