@@ -4,3 +4,4 @@
 package replace
 
 //go:generate dbx golang --package replace -d sqlite3 -d pgx -d pgxcockroach -d spanner replace.dbx .
+//go:generate dbx schema -d sqlite3 -d pgx -d pgxcockroach -d spanner replace.dbx .
