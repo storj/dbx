@@ -43,7 +43,9 @@ func (s *spanner) ColumnType(field *ir.Field) string {
 	case consts.IntField, consts.Int64Field,
 		consts.UintField, consts.Uint64Field:
 		return "INT64"
-	case consts.FloatField, consts.Float64Field:
+	case consts.FloatField:
+		return "FLOAT32"
+	case consts.Float64Field:
 		return "FLOAT64"
 	case consts.TextField:
 		if field.Length > 0 {

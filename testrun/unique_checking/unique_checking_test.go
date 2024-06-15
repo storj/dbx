@@ -41,13 +41,13 @@ func TestUniqueChecking(t *testing.T) {
 		require.Equal(t, rows[0].A.Id, a.Id)
 		require.Equal(t, rows[0].B.Id, b1.Id)
 		require.Equal(t, rows[0].C.Id, c1.Id)
-		require.Equal(t, float64(0), rows[0].C.Lat)
-		require.Equal(t, float64(0), rows[0].C.Lon)
+		require.Equal(t, float32(0), rows[0].C.Lat)
+		require.Equal(t, float32(0), rows[0].C.Lon)
 
 		require.Equal(t, rows[1].A.Id, a.Id)
 		require.Equal(t, rows[1].B.Id, b2.Id)
 		require.Equal(t, rows[1].C.Id, c2.Id)
-		require.Equal(t, float64(1), rows[1].C.Lat)
-		require.Equal(t, float64(1), rows[1].C.Lon)
+		require.Equal(t, float32(1), rows[1].C.Lat)
+		require.Equal(t, float32(1), rows[1].C.Lon)
 	})
 }

@@ -7,7 +7,7 @@ CREATE TABLE data_dates (
 	id TIMESTAMP NOT NULL
 ) PRIMARY KEY ( id ) ;
 CREATE TABLE data_floats (
-	id FLOAT64 NOT NULL
+	id FLOAT32 NOT NULL
 ) PRIMARY KEY ( id ) ;
 CREATE TABLE data_float64s (
 	id FLOAT64 NOT NULL

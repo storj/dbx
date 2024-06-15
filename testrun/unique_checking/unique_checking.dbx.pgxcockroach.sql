@@ -11,8 +11,8 @@ CREATE TABLE b (
 ) ;
 CREATE TABLE c (
 	id bigserial NOT NULL,
-	lat double precision NOT NULL,
-	lon double precision NOT NULL,
+	lat real NOT NULL,
+	lon real NOT NULL,
 	b_id bigint NOT NULL REFERENCES b( id ),
 	PRIMARY KEY ( id ),
 	UNIQUE ( b_id )
