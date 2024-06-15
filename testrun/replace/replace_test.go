@@ -19,14 +19,7 @@ func TestReplace(t *testing.T) {
 			t.Skip("TODO: ON CONFLICT has different syntax with Spanner Google SQL")
 		}
 
-		for _, stmt := range db.DropSchema() {
-			_, _ = db.Exec(stmt)
-		}
-
-		for _, stmt := range db.Schema() {
-			_, err := db.Exec(stmt)
-			require.NoError(t, err)
-		}
+		testrun.RecreateSchema(t, db)
 
 		err := db.ReplaceNoReturn_Kv(ctx, Kv_Key("key"), Kv_Val("val0"))
 		require.NoError(t, err)

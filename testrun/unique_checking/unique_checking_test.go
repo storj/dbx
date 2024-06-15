@@ -15,15 +15,7 @@ import (
 func TestUniqueChecking(t *testing.T) {
 	ctx := context.Background()
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-
-		for _, stmt := range db.DropSchema() {
-			_, _ = db.Exec(stmt)
-		}
-
-		for _, stmt := range db.Schema() {
-			_, err := db.Exec(stmt)
-			require.NoError(t, err)
-		}
+		testrun.RecreateSchema(t, db)
 
 		a, err := db.Create_A(ctx)
 		require.NoError(t, err)

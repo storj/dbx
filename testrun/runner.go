@@ -101,7 +101,10 @@ func RecreateSchema(t *testing.T, db SchemaHandler) {
 }
 
 // RecreateSchemaOnce will drop and recreate schema.
-func RecreateSchemaOnce(db SchemaHandler) error {
+func RecreateSchemaOnce(db SchemaHandler) (err error) {
+	// TODO(spanner): should use START BATCH DDL here, however there's no
+	// easy way to get the conn via methods at the moment.
+
 	for _, stmt := range db.DropSchema() {
 		_, _ = db.Exec(stmt)
 	}
@@ -112,6 +115,7 @@ func RecreateSchemaOnce(db SchemaHandler) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
