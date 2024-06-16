@@ -27,6 +27,7 @@ RUN wget -qO- https://binaries.cockroachdb.com/cockroach-v23.2.2.linux-amd64.tgz
     mv cockroach-v23.2.2.linux-amd64/cockroach /usr/local/bin/ && \
     mv cockroach-v23.2.2.linux-amd64/lib/* /usr/lib/
 
+
 RUN apt-get update && apt-get install -y curl gpg
 RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
 RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
@@ -35,6 +36,11 @@ RUN apt-get update && apt-get install -y google-cloud-cli google-cloud-cli-spann
     gcloud config set auth/disable_credentials true && \
     gcloud config set project storj-build && \
     gcloud config set api_endpoint_overrides/spanner http://localhost:9020/
+
+RUN wget -qO- https://storage.googleapis.com/cloud-spanner-emulator/releases/1.5.18/cloud-spanner-emulator_linux_amd64-1.5.18.tar.gz | tar xvz && \
+    chmod u+x gateway_main emulator_main && \
+    cp gateway_main /usr/lib/google-cloud-sdk/bin/cloud_spanner_emulator/gateway_main && \
+    cp emulator_main /usr/lib/google-cloud-sdk/bin/cloud_spanner_emulator/emulator_main
 
 WORKDIR /dbx
 COPY . .
