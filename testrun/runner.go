@@ -59,7 +59,10 @@ func RunDBTest[T io.Closer](t *testing.T, open func(driver, source string) (db T
 				t.Skip("Skipping pgxcockroach tests because environment variable STORJ_TEST_COCKROACH is not set")
 			}
 
-			pqDb, err := open("pgx", dsn)
+			if strings.HasPrefix(dsn, "cockroach://") {
+				dsn = "postgres://" + strings.TrimPrefix(dsn, "cockroach://")
+			}
+			pqDb, err := open("pgxcockroach", dsn)
 			require.NoError(t, err)
 			defer func() { require.NoError(t, pqDb.Close()) }()
 
