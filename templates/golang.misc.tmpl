@@ -1,4 +1,4 @@
-{{- define "struct" }}
+{{- define "struct" }}{{/* gotype: storj.io/dbx/code/golang.Struct */}}
 type {{ .Name }} struct {
 {{ range .Fields }}
 	{{ if .Name }}{{ .Name }} {{ end }}{{ .Type }}{{ if .Tags -}}

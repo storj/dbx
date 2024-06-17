@@ -7,7 +7,7 @@ All_{{ .Suffix }}({{ ctxparam .Args }}) (
 All_{{ .Suffix }}({{ ctxarg .Args }})
 {{- end -}}
 
-{{- define "body" }}
+{{- define "body" }}{{/* gotype: storj.io/dbx/code/golang.Get */}}
 	{{ embedplaceholders .Info }}
 	{{ embedsql .Info "__embed_stmt" }}
 

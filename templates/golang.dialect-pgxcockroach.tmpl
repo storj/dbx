@@ -3,7 +3,7 @@
 	_ "github.com/jackc/pgx/v5/stdlib"
 {{ end -}}
 
-{{- define "is-constraint-error" }}
+{{- define "is-constraint-error" }}{{/* gotype: storj.io/dbx/code/golang.deleteWorld */}}
 func (impl {{ .Receiver }}) isConstraintError(err error) (
 	constraint string, ok bool) {
 	if e, ok := err.(*pgconn.PgError); ok {

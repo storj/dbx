@@ -7,7 +7,7 @@ Count_{{ .Suffix }}({{ ctxparam .Args }}) (
 Count_{{ .Suffix }}({{ ctxarg .Args }})
 {{- end -}}
 
-{{- define "body" }}
+{{- define "body" }}{{/* gotype: storj.io/dbx/code/golang.Get */}}
 	{{ embedplaceholders .Info }}
 	{{ embedsql .Info "__embed_stmt" }}
 

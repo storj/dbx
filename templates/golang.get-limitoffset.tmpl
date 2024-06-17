@@ -9,7 +9,7 @@ Limited_{{ .Suffix }}({{ ctxparam .Args }},
 Limited_{{ .Suffix }}({{ ctxarg .Args }}, limit, offset)
 {{- end -}}
 
-{{- define "body" }}
+{{- define "body" }}{{/* gotype: storj.io/dbx/code/golang.Get */}}
 	{{ embedplaceholders .Info }}
 	{{ embedsql .Info "__embed_stmt" }}
 

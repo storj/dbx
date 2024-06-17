@@ -8,7 +8,7 @@ Paged_{{ .Suffix }}({{ ctxparam .Args }},
 Paged_{{ .Suffix }}({{ ctxarg .Args }}, limit, start)
 {{- end -}}
 
-{{- define "body" }}
+{{- define "body" }}{{/* gotype: storj.io/dbx/code/golang.Get */}}
 	{{ embedplaceholders .Info }}
 	{{ embedsql .Info "__embed_stmt" }}
 	{{ embedsql .FirstInfo "__embed_first_stmt" }}

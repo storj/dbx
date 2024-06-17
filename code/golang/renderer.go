@@ -202,23 +202,23 @@ func (r *Renderer) RenderCode(root *ir.Root, dialects []sql.Dialect) (
 	return rendered, nil
 }
 
+type headerDialect struct {
+	Name          string
+	SchemaSQL     []string
+	DropSchemaSQL []string
+}
+
+type headerParams struct {
+	Package      string
+	ExtraImports []string
+	Dialects     []headerDialect
+	Structs      []*ModelStruct
+	Options      Options
+	SQLSupport   string
+}
+
 func (r *Renderer) renderHeader(w io.Writer, root *ir.Root,
 	dialects []sql.Dialect) error {
-
-	type headerDialect struct {
-		Name          string
-		SchemaSQL     []string
-		DropSchemaSQL []string
-	}
-
-	type headerParams struct {
-		Package      string
-		ExtraImports []string
-		Dialects     []headerDialect
-		Structs      []*ModelStruct
-		Options      Options
-		SQLSupport   string
-	}
 
 	params := headerParams{
 		Package:    r.options.Package,
@@ -355,13 +355,13 @@ func (r *Renderer) renderDelete(w io.Writer, ir_del *ir.Delete,
 	}
 }
 
+type deleteWorld struct {
+	Dialect string
+	SQLs    []string
+}
+
 func (r *Renderer) renderDeleteWorld(w io.Writer, ir_models []*ir.Model,
 	dialect sql.Dialect) error {
-
-	type deleteWorld struct {
-		Dialect string
-		SQLs    []string
-	}
 
 	del := deleteWorld{
 		Dialect: dialect.Name(),
@@ -378,6 +378,12 @@ func (r *Renderer) renderDeleteWorld(w io.Writer, ir_models []*ir.Model,
 		return err
 	}
 	return r.renderFunc(tmpl, w, del, dialect)
+}
+
+type funcDecl struct {
+	ReceiverBase string
+	Signature    string
+	Body         string
 }
 
 func (r *Renderer) renderFunc(tmpl *template.Template, w io.Writer,
@@ -409,12 +415,6 @@ func (r *Renderer) renderFunc(tmpl *template.Template, w io.Writer,
 		return err
 	}
 
-	type funcDecl struct {
-		ReceiverBase string
-		Signature    string
-		Body         string
-	}
-
 	decl := funcDecl{
 		ReceiverBase: dialect.Name(),
 		Signature:    method.Signature,
@@ -442,13 +442,13 @@ func isExported(signature string) bool {
 	return unicode.IsUpper(r)
 }
 
+type getLast struct {
+	Info   sqlembedgo.Info
+	Return *Var
+}
+
 func (r *Renderer) renderGetLast(w io.Writer, model *ir.Model,
 	dialect sql.Dialect) error {
-
-	type getLast struct {
-		Info   sqlembedgo.Info
-		Return *Var
-	}
 
 	get_last_sql := sql.GetLastSQL(model, dialect)
 	get_last := getLast{
@@ -463,16 +463,16 @@ func (r *Renderer) renderGetLast(w io.Writer, model *ir.Model,
 	return r.renderFunc(tpl, w, get_last, dialect)
 }
 
+type footerData struct {
+	Methods []publicMethod
+}
+
 func (r *Renderer) renderFooter(w io.Writer) error {
 	var keys []string
 	for key := range r.methods {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
-
-	type footerData struct {
-		Methods []publicMethod
-	}
 
 	data := footerData{}
 
@@ -483,12 +483,12 @@ func (r *Renderer) renderFooter(w io.Writer) error {
 	return tmplutil.Render(r.footer, w, "", data)
 }
 
+type dialectFunc struct {
+	Receiver string
+}
+
 func (r *Renderer) renderDialectFuncs(w io.Writer, dialect sql.Dialect) (
 	err error) {
-
-	type dialectFunc struct {
-		Receiver string
-	}
 
 	dialect_func := dialectFunc{
 		Receiver: fmt.Sprintf("%sImpl", dialect.Name()),

@@ -3,7 +3,7 @@
 	_ "github.com/googleapis/go-sql-spanner"
 {{ end -}}
 
-{{- define "is-constraint-error" }}
+{{- define "is-constraint-error" }}{{/* gotype: storj.io/dbx/code/golang.deleteWorld */}}
 func (impl {{ .Receiver }}) isConstraintError(err error) (
 	constraint string, ok bool) {
 	return "", false

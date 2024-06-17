@@ -7,7 +7,7 @@ Delete_{{ .Suffix }}({{ ctxparam .Args }}) (
 Delete_{{ .Suffix }}({{ ctxarg .Args }})
 {{- end -}}
 
-{{- define "body" -}}
+{{- define "body" -}}{{/* gotype: storj.io/dbx/code/golang.Delete */}}
 	{{ embedplaceholders .Info }}
 	{{ embedsql .Info "__embed_stmt" }}
 

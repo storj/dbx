@@ -7,7 +7,7 @@ First_{{ .Suffix }}({{ ctxparam .Args }}) (
 First_{{ .Suffix }}({{ ctxarg .Args }})
 {{- end -}}
 
-{{- define "body" }}
+{{- define "body" }}{{/* gotype: storj.io/dbx/code/golang.Get */}}
 	{{ embedplaceholders .Info }}
 	{{ embedsql .Info "__embed_stmt" }}
 
