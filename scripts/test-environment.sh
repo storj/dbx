@@ -38,14 +38,9 @@ if [[ ${STORJ_TEST_COCKROACH:=""} != "omit" ]]; then
 fi
 
 if [[ ${STORJ_TEST_SPANNER:=""} != "omit" ]]; then
-   gcloud emulators spanner start >/dev/null 2>&1 &
+   spanner_emulator --host_port 127.0.0.1:9010 2>&1 &
    SPANNER_PID=$!
-   gcloud spanner instances create test-instance --config=emulator-config --description="Test Instance" --nodes=1 || true
-   gcloud spanner databases list --instance=test-instance
-   gcloud spanner databases create metainfo --instance=test-instance
-
-   export SPANNER_EMULATOR_HOST=localhost:9010
-   export STORJ_TEST_SPANNER=projects/storj-build/instances/test-instance/databases/metainfo
+   export STORJ_TEST_SPANNER=spanner://127.0.0.1:9010?emulator=true
 fi
 
 set +e

@@ -27,9 +27,11 @@ The short version is, point these variables to working databases:
 # for Postgres
 export STORJ_TEST_POSTGRES="postgres://postgres@localhost/testdb?sslmode=disable"
 
-# for Spanner
-export SPANNER_EMULATOR_HOST=localhost:9010
-export STORJ_TEST_SPANNER=projects/storj-build/instances/test-instance/databases/metainfo
+# for Spanner Production
+export STORJ_TEST_SPANNER=spanner://projects/PROJECTID/instances/INSTANCEID/databases/metainfo
+
+# for Spanner Emulator
+export STORJ_TEST_SPANNER=spanner://127.0.0.1:9010?emulator
 ```
 
 If you wish to completely ignore tests for a specific database, then you can
