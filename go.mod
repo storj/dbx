@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	cloud.google.com/go/spanner v1.63.0
-	github.com/googleapis/go-sql-spanner v1.4.1-0.20240617121845-ee01ee47b2e6
+	github.com/googleapis/go-sql-spanner v1.4.1-0.20240618063217-66f3a8749e79
 	github.com/jackc/pgx/v5 v5.2.0
 	github.com/jawher/mow.cli v1.2.0
 	github.com/mattn/go-sqlite3 v1.14.16

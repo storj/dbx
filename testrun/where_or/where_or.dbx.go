@@ -286,7 +286,7 @@ func (obj *sqlite3DB) Schema() []string {
 
 		`CREATE TABLE foos (
 	pk INTEGER NOT NULL,
-	a TEXT NOT NULL,
+	a INTEGER NOT NULL,
 	b TEXT NOT NULL,
 	c TEXT NOT NULL,
 	PRIMARY KEY ( pk )
@@ -366,7 +366,7 @@ func (obj *pgxDB) Schema() []string {
 
 		`CREATE TABLE foos (
 	pk bigserial NOT NULL,
-	a text NOT NULL,
+	a integer NOT NULL,
 	b text NOT NULL,
 	c text NOT NULL,
 	PRIMARY KEY ( pk )
@@ -446,7 +446,7 @@ func (obj *pgxcockroachDB) Schema() []string {
 
 		`CREATE TABLE foos (
 	pk bigserial NOT NULL,
-	a text NOT NULL,
+	a integer NOT NULL,
 	b text NOT NULL,
 	c text NOT NULL,
 	PRIMARY KEY ( pk )
@@ -528,7 +528,7 @@ func (obj *spannerDB) Schema() []string {
 
 		`CREATE TABLE foos (
 	pk INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE foos_pk)),
-	a STRING(MAX) NOT NULL,
+	a INT64 NOT NULL,
 	b STRING(MAX) NOT NULL,
 	c STRING(MAX) NOT NULL
 ) PRIMARY KEY ( pk )`,
@@ -608,7 +608,7 @@ nextval:
 
 type Foo struct {
 	Pk int64
-	A  string
+	A  int
 	B  string
 	C  string
 }
@@ -640,10 +640,10 @@ func (Foo_Pk_Field) _Column() string { return "pk" }
 type Foo_A_Field struct {
 	_set   bool
 	_null  bool
-	_value string
+	_value int
 }
 
-func Foo_A(v string) Foo_A_Field {
+func Foo_A(v int) Foo_A_Field {
 	return Foo_A_Field{_set: true, _value: v}
 }
 

@@ -169,14 +169,18 @@ type SchemaHandler interface {
 // To void errors like "Schema change operation rejected because a concurrent schema change operation or read-write transaction is already in progress.".
 func RecreateSchema(t *testing.T, db SchemaHandler) {
 	var err error
-	p := time.Millisecond * 500
+	p := time.Millisecond * 250
 	for i := 0; i < 10; i++ {
 		err = RecreateSchemaOnce(db)
 		if err == nil {
 			return
 		}
 		time.Sleep(p)
+
 		p *= 2
+		if p > 2*time.Second {
+			p = 2 * time.Second
+		}
 	}
 	require.NoError(t, err)
 }

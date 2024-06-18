@@ -2,7 +2,7 @@
 -- DO NOT EDIT
 CREATE TABLE foos (
 	pk bigserial NOT NULL,
-	a text NOT NULL,
+	a integer NOT NULL,
 	b text NOT NULL,
 	c text NOT NULL,
 	PRIMARY KEY ( pk )

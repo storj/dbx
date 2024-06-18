@@ -3,7 +3,7 @@ model foo (
 
 	field pk serial64
 
-	field a text
+	field a int
 	field b text
 	field c text
 )

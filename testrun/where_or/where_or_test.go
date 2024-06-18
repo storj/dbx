@@ -19,12 +19,12 @@ func TestWhereOr(t *testing.T) {
 
 		testrun.RecreateSchema(t, db)
 
-		foo, err := db.Create_Foo(ctx, Foo_A("a"), Foo_B("b"), Foo_C("c"))
+		foo, err := db.Create_Foo(ctx, Foo_A(1), Foo_B("b"), Foo_C("c"))
 		require.NoError(t, err)
 
-		rows, err := db.All_Foo_By__A_Or__B_Or_C(ctx, Foo_A("x"), Foo_B("x"), Foo_C("c"))
+		rows, err := db.All_Foo_By__A_Or__B_Or_C(ctx, Foo_A(1), Foo_B("x"), Foo_C("c"))
 		require.NoError(t, err)
 		require.Equal(t, 1, len(rows))
-		require.Equal(t, Foo{Pk: foo.Pk, A: "a", B: "b", C: "c"}, *rows[0])
+		require.Equal(t, Foo{Pk: foo.Pk, A: 1, B: "b", C: "c"}, *rows[0])
 	})
 }

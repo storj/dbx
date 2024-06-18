@@ -43,7 +43,7 @@ func TestPagedScalar(t *testing.T) {
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 
 		if testrun.IsSpanner[*DB](db.DB) {
-			t.Skip("TODO: spanner couldn't handle ID field (?): Unrecognized ddl::ColumnDefinition: column_name: \"id\" type: NONE proto_type_name: \"REAL\" not_null: true")
+			t.Skip("TODO(spanner): column data_jsons.id has type JSON, but is part of the primary key")
 		}
 
 		testrun.RecreateSchema(t, db)
