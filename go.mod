@@ -7,7 +7,7 @@ require (
 	github.com/googleapis/go-sql-spanner v1.4.1-0.20240618063217-66f3a8749e79
 	github.com/jackc/pgx/v5 v5.2.0
 	github.com/jawher/mow.cli v1.2.0
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/spacemonkeygo/errors v0.0.0-20171212215202-9064522e9fd1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d
