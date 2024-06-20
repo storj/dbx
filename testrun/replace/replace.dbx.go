@@ -1276,7 +1276,7 @@ func (obj *spannerImpl) ReplaceNoReturn_Kv(ctx context.Context,
 	__key_val := kv_key.value()
 	__val_val := kv_val.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO kvs ( key, val ) VALUES ( ?, ? ) ON CONFLICT ( key ) DO UPDATE SET key = EXCLUDED.key, val = EXCLUDED.val")
+	var __embed_stmt = __sqlbundle_Literal("INSERT OR UPDATE INTO kvs ( key, val ) VALUES ( ?, ? )")
 
 	var __values []interface{}
 	__values = append(__values, __key_val, __val_val)

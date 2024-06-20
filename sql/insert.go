@@ -75,6 +75,9 @@ func SQLFromInsert(insert *Insert) sqlgen.SQL {
 			verb = "REPLACE"
 		case ReplaceStyle_Upsert:
 			verb = "UPSERT"
+		case ReplaceStyle_Upsert_Spanner:
+			verb = "INSERT OR UPDATE"
+
 		}
 	}
 
@@ -126,6 +129,7 @@ func SQLFromInsert(insert *Insert) sqlgen.SQL {
 				excluded = append(excluded, Lf("%s = EXCLUDED.%s", col, col))
 			}
 			stmt.Add(J(", ", excluded...))
+		} else if insert.ReplaceStyle != nil && *insert.ReplaceStyle == ReplaceStyle_Upsert_Spanner {
 		} else {
 			stmt.Add(L("DO NOTHING"))
 		}

@@ -5,8 +5,9 @@ package replace
 
 import (
 	"context"
-	"storj.io/dbx/testrun"
 	"testing"
+
+	"storj.io/dbx/testrun"
 
 	"github.com/stretchr/testify/require"
 )
@@ -14,10 +15,6 @@ import (
 func TestReplace(t *testing.T) {
 	ctx := context.Background()
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-
-		if testrun.IsSpanner[*DB](db.DB) {
-			t.Skip("TODO: ON CONFLICT has different syntax with Spanner Google SQL")
-		}
 
 		testrun.RecreateSchema(t, db)
 

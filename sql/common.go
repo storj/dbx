@@ -40,6 +40,7 @@ const (
 	ReplaceStyle_Replace ReplaceStyle = iota
 	ReplaceStyle_OnConflictUpdate
 	ReplaceStyle_Upsert
+	ReplaceStyle_Upsert_Spanner
 )
 
 type Dialect interface {
