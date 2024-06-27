@@ -40,7 +40,7 @@ func main() {
 	copyright, bundle := loadCopyright(), loadBundle()
 	output := []byte(fmt.Sprintf(template, copyright, bundle, prefix))
 
-	err := os.WriteFile("bundle.go", output, 0644)
+	err := os.WriteFile("bundle.go", output, 0o644)
 	if err != nil {
 		panic(err)
 	}

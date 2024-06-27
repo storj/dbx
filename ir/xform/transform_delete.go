@@ -10,9 +10,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func transformDelete(lookup *lookup, ast_del *ast.Delete) (
-	del *ir.Delete, err error) {
-
+func transformDelete(lookup *lookup, ast_del *ast.Delete) (del *ir.Delete, err error) {
 	model, err := lookup.FindModel(ast_del.Model)
 	if err != nil {
 		return nil, err

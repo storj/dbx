@@ -15,7 +15,6 @@ import (
 func TestReplace(t *testing.T) {
 	ctx := context.Background()
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-
 		testrun.RecreateSchema(t, db)
 
 		err := db.ReplaceNoReturn_Kv(ctx, Kv_Key("key"), Kv_Val("val0"))

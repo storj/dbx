@@ -1320,8 +1320,7 @@ func (obj *sqlite3Impl) getLastC(ctx context.Context,
 
 }
 
-func (impl sqlite3Impl) isConstraintError(err error) (
-	constraint string, ok bool) {
+func (impl sqlite3Impl) isConstraintError(err error) (constraint string, ok bool) {
 	if e, ok := err.(sqlite3.Error); ok {
 		if e.Code == sqlite3.ErrConstraint {
 			msg := err.Error()
@@ -1478,8 +1477,7 @@ func (obj *pgxImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C_Lon
 
 }
 
-func (impl pgxImpl) isConstraintError(err error) (
-	constraint string, ok bool) {
+func (impl pgxImpl) isConstraintError(err error) (constraint string, ok bool) {
 	if e, ok := err.(*pgconn.PgError); ok {
 		if e.Code[:2] == "23" {
 			return e.ConstraintName, true
@@ -1631,8 +1629,7 @@ func (obj *pgxcockroachImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_
 
 }
 
-func (impl pgxcockroachImpl) isConstraintError(err error) (
-	constraint string, ok bool) {
+func (impl pgxcockroachImpl) isConstraintError(err error) (constraint string, ok bool) {
 	if e, ok := err.(*pgconn.PgError); ok {
 		if e.Code[:2] == "23" {
 			return e.ConstraintName, true
@@ -1808,8 +1805,7 @@ func (obj *spannerImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C
 
 }
 
-func (impl spannerImpl) isConstraintError(err error) (
-	constraint string, ok bool) {
+func (impl spannerImpl) isConstraintError(err error) (constraint string, ok bool) {
 	return "", false
 }
 

@@ -5,9 +5,9 @@ package default_fields
 
 import (
 	"context"
-	"storj.io/dbx/testrun"
-
 	"testing"
+
+	"storj.io/dbx/testrun"
 
 	"github.com/stretchr/testify/require"
 )

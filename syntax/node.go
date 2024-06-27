@@ -421,9 +421,7 @@ func (t *tupleNode) consumeTokensNamedUntilList(cases tokenCases) error {
 	return nil
 }
 
-func (t *tupleNode) consumeDottedIdents() (
-	first, second *tokenNode, err error) {
-
+func (t *tupleNode) consumeDottedIdents() (first, second *tokenNode, err error) {
 	first, err = t.consumeToken(Ident)
 	if err != nil {
 		return nil, nil, err
@@ -441,9 +439,7 @@ func (t *tupleNode) consumeDottedIdents() (
 	return first, second, nil
 }
 
-func (t *tupleNode) consumeDottedIdentsOrEmpty() (
-	first, second *tokenNode, err error) {
-
+func (t *tupleNode) consumeDottedIdentsOrEmpty() (first, second *tokenNode, err error) {
 	if len(t.value) == 0 {
 		return nil, nil, nil
 	}

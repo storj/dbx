@@ -5,8 +5,9 @@ package joins
 
 import (
 	"context"
-	"storj.io/dbx/testrun"
 	"testing"
+
+	"storj.io/dbx/testrun"
 
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +15,6 @@ import (
 func TestJoin(t *testing.T) {
 	ctx := context.Background()
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-
 		testrun.RecreateSchema(t, db)
 
 		user, err := db.Create_User(ctx)
@@ -36,5 +36,4 @@ func TestJoin(t *testing.T) {
 			panic("invalid")
 		}
 	})
-
 }

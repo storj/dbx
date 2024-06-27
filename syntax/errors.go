@@ -10,9 +10,7 @@ import (
 	"storj.io/dbx/errutil"
 )
 
-func expectedKeyword(pos scanner.Position, actual string, expected ...string) (
-	err error) {
-
+func expectedKeyword(pos scanner.Position, actual string, expected ...string) (err error) {
 	if len(expected) == 1 {
 		return errutil.New(pos, "expected %q, got %q", expected[0], actual)
 	} else {
@@ -20,9 +18,7 @@ func expectedKeyword(pos scanner.Position, actual string, expected ...string) (
 	}
 }
 
-func expectedToken(pos scanner.Position, actual Token, expected ...Token) (
-	err error) {
-
+func expectedToken(pos scanner.Position, actual Token, expected ...Token) (err error) {
 	if len(expected) == 1 {
 		return errutil.New(pos, "expected %q; got %q", expected[0], actual)
 	} else {
@@ -30,9 +26,7 @@ func expectedToken(pos scanner.Position, actual Token, expected ...Token) (
 	}
 }
 
-func previouslyDefined(pos scanner.Position, kind, field string,
-	where scanner.Position) error {
-
+func previouslyDefined(pos scanner.Position, kind, field string, where scanner.Position) error {
 	return errutil.New(pos,
 		"%s already defined on %s. previous definition at %s",
 		field, kind, where)

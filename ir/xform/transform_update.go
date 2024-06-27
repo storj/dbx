@@ -10,9 +10,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func transformUpdate(lookup *lookup, ast_upd *ast.Update) (
-	upd *ir.Update, err error) {
-
+func transformUpdate(lookup *lookup, ast_upd *ast.Update) (upd *ir.Update, err error) {
 	model, err := lookup.FindModel(ast_upd.Model)
 	if err != nil {
 		return nil, err

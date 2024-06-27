@@ -10,9 +10,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func transformModels(lookup *lookup, ast_models []*ast.Model) (
-	models []*ir.Model, err error) {
-
+func transformModels(lookup *lookup, ast_models []*ast.Model) (models []*ir.Model, err error) {
 	// step 1. create all the Model and Field instances and set their pointers
 	// to point at each other appropriately.
 	for _, ast_model := range ast_models {

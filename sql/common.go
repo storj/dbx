@@ -14,7 +14,6 @@ import (
 )
 
 type Features struct {
-
 	// Supports DEFAULT VALUES in INSERT statement
 	DefaultValues bool
 
@@ -63,8 +62,7 @@ type Dialect interface {
 }
 
 // DefaultDialect can be used to make forward compatible Dialects with default implementations for new methods.
-type DefaultDialect struct {
-}
+type DefaultDialect struct{}
 
 // CreateSchema implements Dialect.
 func (d DefaultDialect) CreateSchema(schema *Schema) (res []sqlgen.SQL) {

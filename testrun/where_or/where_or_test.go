@@ -5,10 +5,9 @@ package where_or
 
 import (
 	"context"
+	"testing"
 
 	"storj.io/dbx/testrun"
-
-	"testing"
 
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +15,6 @@ import (
 func TestWhereOr(t *testing.T) {
 	ctx := context.Background()
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-
 		testrun.RecreateSchema(t, db)
 
 		foo, err := db.Create_Foo(ctx, Foo_A(1), Foo_B("b"), Foo_C("c"))

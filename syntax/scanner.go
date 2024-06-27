@@ -196,8 +196,7 @@ func (s *Scanner) peek() (token Token) {
 	return t.tok
 }
 
-func (s *Scanner) ScanIf(token Token) (pos scanner.Position, text string,
-	ok bool) {
+func (s *Scanner) ScanIf(token Token) (pos scanner.Position, text string, ok bool) {
 	if s.peek() == token {
 		_, pos, text = s.scan()
 		ok = true
@@ -205,9 +204,7 @@ func (s *Scanner) ScanIf(token Token) (pos scanner.Position, text string,
 	return pos, text, ok
 }
 
-func (s *Scanner) ScanExact(token Token) (pos scanner.Position, text string,
-	err error) {
-
+func (s *Scanner) ScanExact(token Token) (pos scanner.Position, text string, err error) {
 	candidate, pos, text := s.scan()
 	if candidate != token {
 		return pos, "", expectedToken(pos, candidate, token)
@@ -215,9 +212,7 @@ func (s *Scanner) ScanExact(token Token) (pos scanner.Position, text string,
 	return pos, text, nil
 }
 
-func (s *Scanner) ScanOneOf(tokens ...Token) (token Token,
-	pos scanner.Position, text string, err error) {
-
+func (s *Scanner) ScanOneOf(tokens ...Token) (token Token, pos scanner.Position, text string, err error) {
 	candidate, pos, text := s.scan()
 	for _, token = range tokens {
 		if candidate == token {

@@ -6,6 +6,4 @@ package tmplutil
 
 import "github.com/spacemonkeygo/errors"
 
-var (
-	Error = errors.NewClass("tmplutil")
-)
+var Error = errors.NewClass("tmplutil")

@@ -15,9 +15,7 @@ type rebindTestCase struct {
 	out string
 }
 
-func testDialectsRebind(tw *testutil.T, dialect Dialect,
-	tests []rebindTestCase) {
-
+func testDialectsRebind(tw *testutil.T, dialect Dialect, tests []rebindTestCase) {
 	for i, test := range tests {
 		if got := dialect.Rebind(test.in); got != test.out {
 			tw.Errorf("%d: %q != %q", i, got, test.out)

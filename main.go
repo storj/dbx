@@ -102,9 +102,7 @@ func main() {
 	die(app.Run(os.Args))
 }
 
-func (global *Global) golangCmd(pkg string, dialects_opt []string, template_dir string,
-	userdata bool, dbxfiles []string, outdir string) (err error) {
-
+func (global *Global) golangCmd(pkg string, dialects_opt []string, template_dir string, userdata bool, dbxfiles []string, outdir string) (err error) {
 	if pkg == "" {
 		base := filepath.Base(dbxfiles[0])
 		pkg = base[:len(base)-len(filepath.Ext(base))]
@@ -260,7 +258,7 @@ func (fw *fileWriter) writeFile(suffix string, data []byte) (err error) {
 	file_path := filepath.Join(fw.dir, fw.prefix+"."+suffix)
 	tmp_path := file_path + ".tmp"
 
-	if err := os.WriteFile(tmp_path, data, 0644); err != nil {
+	if err := os.WriteFile(tmp_path, data, 0o644); err != nil {
 		return fmt.Errorf("unable to write %s: %w", tmp_path, err)
 	}
 

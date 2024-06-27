@@ -249,9 +249,7 @@ func max(a, b int) int {
 	return b
 }
 
-func (pps *printerState) iprintf(indention int, format string,
-	args ...interface{}) {
-
+func (pps *printerState) iprintf(indention int, format string, args ...interface{}) {
 	if pps.failed() {
 		return
 	}

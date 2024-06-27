@@ -13,9 +13,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func transformExpr(lookup *lookup, models map[string]scanner.Position,
-	ast_expr *ast.Expr, is_left bool) (expr *ir.Expr, err error) {
-
+func transformExpr(lookup *lookup, models map[string]scanner.Position, ast_expr *ast.Expr, is_left bool) (expr *ir.Expr, err error) {
 	switch {
 	case ast_expr.Null != nil:
 		if is_left {
@@ -84,9 +82,7 @@ func transformExpr(lookup *lookup, models map[string]scanner.Position,
 	}
 }
 
-func transformFuncCall(lookup *lookup, models map[string]scanner.Position,
-	ast_func_call *ast.FuncCall, is_left bool) (*ir.FuncCall, error) {
-
+func transformFuncCall(lookup *lookup, models map[string]scanner.Position, ast_func_call *ast.FuncCall, is_left bool) (*ir.FuncCall, error) {
 	var args []*ir.Expr
 	for _, ast_expr := range ast_func_call.Args {
 		arg, err := transformExpr(lookup, models, ast_expr, is_left)
@@ -114,9 +110,7 @@ func transformFuncCall(lookup *lookup, models map[string]scanner.Position,
 	}, nil
 }
 
-func checkArgs(ast_func_call *ast.FuncCall, args []*ir.Expr,
-	expected_count int) (err error) {
-
+func checkArgs(ast_func_call *ast.FuncCall, args []*ir.Expr, expected_count int) (err error) {
 	if len(args) != expected_count {
 		return errutil.New(ast_func_call.Pos,
 			"expected %d argument, got %d", expected_count, len(args))

@@ -7,10 +7,11 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"storj.io/dbx/testrun"
 	"strings"
 	"testing"
 	"time"
+
+	"storj.io/dbx/testrun"
 
 	"github.com/stretchr/testify/require"
 )
@@ -41,7 +42,6 @@ var descs = []Desc{
 
 func TestPagedScalar(t *testing.T) {
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-
 		if testrun.IsSpanner[*DB](db.DB) {
 			t.Skip("TODO(spanner): column data_jsons.id has type JSON, but is part of the primary key")
 		}
@@ -54,7 +54,6 @@ func TestPagedScalar(t *testing.T) {
 			})
 		}
 	})
-
 }
 
 func runDesc(t *testing.T, db *DB, desc Desc) {
@@ -123,7 +122,9 @@ func next(in interface{}) interface{} {
 	panic(in)
 }
 
-var typ = reflect.TypeOf
-var val = reflect.ValueOf
+var (
+	typ = reflect.TypeOf
+	val = reflect.ValueOf
+)
 
 type vs = []reflect.Value

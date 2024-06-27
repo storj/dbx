@@ -10,9 +10,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func transformCreate(lookup *lookup, ast_cre *ast.Create) (
-	cre *ir.Create, err error) {
-
+func transformCreate(lookup *lookup, ast_cre *ast.Create) (cre *ir.Create, err error) {
 	model, err := lookup.FindModel(ast_cre.Model)
 	if err != nil {
 		return nil, err

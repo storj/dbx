@@ -6,9 +6,10 @@ package paged_composite
 import (
 	"context"
 	"fmt"
-	"storj.io/dbx/testrun"
 	"testing"
 	"time"
+
+	"storj.io/dbx/testrun"
 
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +17,6 @@ import (
 func TestPagedComposite(t *testing.T) {
 	ctx := context.Background()
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-
 		if testrun.IsSpanner[*DB](db.DB) {
 			t.Skip("TODO: spanner doesn't support uint64 for scan. TODO: spanner doesn't support struct based greater than comparison")
 		}

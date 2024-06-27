@@ -6,6 +6,4 @@ package golang
 
 import "github.com/spacemonkeygo/errors"
 
-var (
-	Error = errors.NewClass("golang")
-)
+var Error = errors.NewClass("golang")

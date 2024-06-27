@@ -68,9 +68,7 @@ func tupleGroups(node *listNode) (groups [][]*tupleNode, err error) {
 	return groups, nil
 }
 
-func formatTupleGroups(indent int, groups [][]*tupleNode) (
-	formatted []byte, err error) {
-
+func formatTupleGroups(indent int, groups [][]*tupleNode) (formatted []byte, err error) {
 	for _, group := range groups {
 		formatted_group, err := formatTupleGroup(indent+1, group)
 		if err != nil {
@@ -81,9 +79,7 @@ func formatTupleGroups(indent int, groups [][]*tupleNode) (
 	return formatted, nil
 }
 
-func formatTupleGroup(indent int, group []*tupleNode) (
-	formatted []byte, err error) {
-
+func formatTupleGroup(indent int, group []*tupleNode) (formatted []byte, err error) {
 	var wordss [][]string
 	var lists []*listNode
 	for _, tuple := range group {
@@ -147,9 +143,7 @@ func formatTupleGroup(indent int, group []*tupleNode) (
 	return append(formatted, '\n'), nil
 }
 
-func stringifyTuple(tuple *tupleNode) (words []string, list *listNode,
-	err error) {
-
+func stringifyTuple(tuple *tupleNode) (words []string, list *listNode, err error) {
 	// oh man there has to be a better way :)
 	var word string
 	var operator bool

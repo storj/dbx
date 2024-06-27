@@ -12,9 +12,7 @@ import (
 	"github.com/spacemonkeygo/errors"
 )
 
-var (
-	Error = errors.NewClass("dbx")
-)
+var Error = errors.NewClass("dbx")
 
 var errorPosition = errors.GenSym()
 

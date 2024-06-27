@@ -214,9 +214,7 @@ might be worthwhile for you to add a helper method to the `*DB` type in another
 file like this:
 
 ```
-func (db *DB) WithTx(ctx context.Context,
-	fn func(context.Context, *Tx) error) (err error) {
-
+func (db *DB) WithTx(ctx context.Context, fn func(context.Context, *Tx) error) (err error) {
 	tx, err := db.Open()
 	if err != nil {
 		return err

@@ -11,8 +11,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func transformClauses(lookup *lookup, models map[string]scanner.Position,
-	ast_clauses []*ast.Clause) (clauses []*ir.Clause, err error) {
+func transformClauses(lookup *lookup, models map[string]scanner.Position, ast_clauses []*ast.Clause) (clauses []*ir.Clause, err error) {
 	for _, ast_clause := range ast_clauses {
 		clause, err := transformClause(lookup, models, ast_clause)
 		if err != nil {
@@ -24,8 +23,7 @@ func transformClauses(lookup *lookup, models map[string]scanner.Position,
 	return clauses, nil
 }
 
-func transformClause(lookup *lookup, models map[string]scanner.Position,
-	ast_clause *ast.Clause) (clause *ir.Clause, err error) {
+func transformClause(lookup *lookup, models map[string]scanner.Position, ast_clause *ast.Clause) (clause *ir.Clause, err error) {
 	lexpr, err := transformExpr(lookup, models, ast_clause.Left, true)
 	if err != nil {
 		return nil, err

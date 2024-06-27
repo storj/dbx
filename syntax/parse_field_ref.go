@@ -25,9 +25,7 @@ func parseFieldRefs(node *tupleNode, needs_dot bool) (*ast.FieldRefs, error) {
 	}
 }
 
-func parseFieldRefOrEmpty(node *tupleNode, needs_dot bool) (
-	*ast.FieldRef, error) {
-
+func parseFieldRefOrEmpty(node *tupleNode, needs_dot bool) (*ast.FieldRef, error) {
 	first, second, err := node.consumeDottedIdentsOrEmpty()
 	if err != nil {
 		return nil, err

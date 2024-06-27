@@ -12,9 +12,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func resolveFieldRefs(lookup *lookup, ast_refs []*ast.FieldRef) (
-	fields []*ir.Field, err error) {
-
+func resolveFieldRefs(lookup *lookup, ast_refs []*ast.FieldRef) (fields []*ir.Field, err error) {
 	for _, ast_ref := range ast_refs {
 		field, err := lookup.FindField(ast_ref)
 		if err != nil {
@@ -25,9 +23,7 @@ func resolveFieldRefs(lookup *lookup, ast_refs []*ast.FieldRef) (
 	return fields, nil
 }
 
-func resolveRelativeFieldRefs(model_entry *modelEntry,
-	ast_refs []*ast.RelativeFieldRef) (fields []*ir.Field, err error) {
-
+func resolveRelativeFieldRefs(model_entry *modelEntry, ast_refs []*ast.RelativeFieldRef) (fields []*ir.Field, err error) {
 	for _, ast_ref := range ast_refs {
 		field, err := model_entry.FindField(ast_ref)
 		if err != nil {
@@ -38,16 +34,13 @@ func resolveRelativeFieldRefs(model_entry *modelEntry,
 	return fields, nil
 }
 
-func previouslyDefined(pos scanner.Position, kind string,
-	where scanner.Position) error {
-
+func previouslyDefined(pos scanner.Position, kind string, where scanner.Position) error {
 	return errutil.New(pos,
 		"%s already defined. previous definition at %s",
 		kind, where)
 }
 
-func duplicateQuery(pos scanner.Position, kind string,
-	where scanner.Position) error {
+func duplicateQuery(pos scanner.Position, kind string, where scanner.Position) error {
 	return errutil.New(pos,
 		"%s: duplicate %s (first defined at %s)",
 		pos, kind, where)

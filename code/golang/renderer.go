@@ -93,8 +93,7 @@ func New(loader tmplutil.Loader, options *Options) (r *Renderer, err error) {
 	return r, nil
 }
 
-func (r *Renderer) RenderCode(root *ir.Root, dialects []sql.Dialect) (
-	rendered []byte, err error) {
+func (r *Renderer) RenderCode(root *ir.Root, dialects []sql.Dialect) (rendered []byte, err error) {
 	var buf bytes.Buffer
 
 	if err := r.renderHeader(&buf, root, dialects); err != nil {
@@ -217,9 +216,7 @@ type headerParams struct {
 	SQLSupport   string
 }
 
-func (r *Renderer) renderHeader(w io.Writer, root *ir.Root,
-	dialects []sql.Dialect) error {
-
+func (r *Renderer) renderHeader(w io.Writer, root *ir.Root, dialects []sql.Dialect) error {
 	params := headerParams{
 		Package:    r.options.Package,
 		Structs:    ModelStructsFromIR(root.Models),
@@ -264,9 +261,7 @@ func (r *Renderer) renderHeader(w io.Writer, root *ir.Root,
 	return tmplutil.Render(r.header, w, "", params)
 }
 
-func (r *Renderer) renderCreate(w io.Writer, ir_cre *ir.Create,
-	dialect sql.Dialect) (err error) {
-
+func (r *Renderer) renderCreate(w io.Writer, ir_cre *ir.Create, dialect sql.Dialect) (err error) {
 	if ir_cre.Raw {
 		cre := RawCreateFromIR(ir_cre, dialect)
 		tpl, err := r.LoadTemplate("create-raw", dialect.Name())
@@ -284,9 +279,7 @@ func (r *Renderer) renderCreate(w io.Writer, ir_cre *ir.Create,
 	}
 }
 
-func (r *Renderer) renderRead(w io.Writer, ir_read *ir.Read,
-	dialect sql.Dialect) error {
-
+func (r *Renderer) renderRead(w io.Writer, ir_read *ir.Read, dialect sql.Dialect) error {
 	get := GetFromIR(ir_read, dialect)
 
 	var tmpl *template.Template
@@ -325,9 +318,7 @@ func (r *Renderer) renderRead(w io.Writer, ir_read *ir.Read,
 	return r.renderFunc(tmpl, w, get, dialect)
 }
 
-func (r *Renderer) renderUpdate(w io.Writer, ir_upd *ir.Update,
-	dialect sql.Dialect) error {
-
+func (r *Renderer) renderUpdate(w io.Writer, ir_upd *ir.Update, dialect sql.Dialect) error {
 	upd := UpdateFromIR(ir_upd, dialect)
 	tmpl, err := r.LoadTemplate("update", dialect.Name())
 	if err != nil {
@@ -336,9 +327,7 @@ func (r *Renderer) renderUpdate(w io.Writer, ir_upd *ir.Update,
 	return r.renderFunc(tmpl, w, upd, dialect)
 }
 
-func (r *Renderer) renderDelete(w io.Writer, ir_del *ir.Delete,
-	dialect sql.Dialect) error {
-
+func (r *Renderer) renderDelete(w io.Writer, ir_del *ir.Delete, dialect sql.Dialect) error {
 	del := DeleteFromIR(ir_del, dialect)
 	if ir_del.Distinct() {
 		tmpl, err := r.LoadTemplate("delete", dialect.Name())
@@ -360,9 +349,7 @@ type deleteWorld struct {
 	SQLs    []string
 }
 
-func (r *Renderer) renderDeleteWorld(w io.Writer, ir_models []*ir.Model,
-	dialect sql.Dialect) error {
-
+func (r *Renderer) renderDeleteWorld(w io.Writer, ir_models []*ir.Model, dialect sql.Dialect) error {
 	del := deleteWorld{
 		Dialect: dialect.Name(),
 	}
@@ -386,9 +373,7 @@ type funcDecl struct {
 	Body         string
 }
 
-func (r *Renderer) renderFunc(tmpl *template.Template, w io.Writer,
-	data interface{}, dialect sql.Dialect) (err error) {
-
+func (r *Renderer) renderFunc(tmpl *template.Template, w io.Writer, data interface{}, dialect sql.Dialect) (err error) {
 	var signature bytes.Buffer
 	err = tmplutil.Render(tmpl, &signature, "signature", data)
 	if err != nil {
@@ -447,9 +432,7 @@ type getLast struct {
 	Return *Var
 }
 
-func (r *Renderer) renderGetLast(w io.Writer, model *ir.Model,
-	dialect sql.Dialect) error {
-
+func (r *Renderer) renderGetLast(w io.Writer, model *ir.Model, dialect sql.Dialect) error {
 	get_last_sql := sql.GetLastSQL(model, dialect)
 	get_last := getLast{
 		Info:   sqlembedgo.Embed("__", get_last_sql),
@@ -487,9 +470,7 @@ type dialectFunc struct {
 	Receiver string
 }
 
-func (r *Renderer) renderDialectFuncs(w io.Writer, dialect sql.Dialect) (
-	err error) {
-
+func (r *Renderer) renderDialectFuncs(w io.Writer, dialect sql.Dialect) (err error) {
 	dialect_func := dialectFunc{
 		Receiver: fmt.Sprintf("%sImpl", dialect.Name()),
 	}
@@ -502,9 +483,7 @@ func (r *Renderer) renderDialectFuncs(w io.Writer, dialect sql.Dialect) (
 	return tmplutil.Render(tmpl, w, "is-constraint-error", dialect_func)
 }
 
-func (r *Renderer) renderDialectOpens(w io.Writer, dialects []sql.Dialect) (
-	err error) {
-
+func (r *Renderer) renderDialectOpens(w io.Writer, dialects []sql.Dialect) (err error) {
 	for _, dialect := range dialects {
 		tmpl, err := r.loadDialect(dialect)
 		if err != nil {
@@ -518,9 +497,7 @@ func (r *Renderer) renderDialectOpens(w io.Writer, dialects []sql.Dialect) (
 	return nil
 }
 
-func (r *Renderer) loadDialect(dialect sql.Dialect) (
-	*template.Template, error) {
-
+func (r *Renderer) loadDialect(dialect sql.Dialect) (*template.Template, error) {
 	return r.loader.Load(
 		fmt.Sprintf("golang.dialect-%s.tmpl", dialect.Name()), nil)
 }

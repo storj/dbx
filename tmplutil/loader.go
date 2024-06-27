@@ -20,9 +20,7 @@ type Loader interface {
 type LoaderFunc func(name string, funcs template.FuncMap) (
 	*template.Template, error)
 
-func (fn LoaderFunc) Load(name string, funcs template.FuncMap) (
-	*template.Template, error) {
-
+func (fn LoaderFunc) Load(name string, funcs template.FuncMap) (*template.Template, error) {
 	return fn(name, funcs)
 }
 
@@ -38,9 +36,7 @@ func DirLoader(dir string, fallback Loader) Loader {
 	}
 }
 
-func (d dirLoader) Load(name string, funcs template.FuncMap) (
-	*template.Template, error) {
-
+func (d dirLoader) Load(name string, funcs template.FuncMap) (*template.Template, error) {
 	data, err := os.ReadFile(filepath.Join(d.dir, name))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -57,9 +53,7 @@ func FSLoader(fs fs.FS) Loader {
 
 type fsLoader struct{ fs.FS }
 
-func (b fsLoader) Load(name string, funcs template.FuncMap) (
-	*template.Template, error) {
-
+func (b fsLoader) Load(name string, funcs template.FuncMap) (*template.Template, error) {
 	data, err := fs.ReadFile(b.FS, name)
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -67,9 +61,7 @@ func (b fsLoader) Load(name string, funcs template.FuncMap) (
 	return loadTemplate(name, data, funcs)
 }
 
-func loadTemplate(name string, data []byte, funcs template.FuncMap) (
-	*template.Template, error) {
-
+func loadTemplate(name string, data []byte, funcs template.FuncMap) (*template.Template, error) {
 	if funcs == nil {
 		funcs = make(template.FuncMap)
 	}

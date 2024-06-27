@@ -11,8 +11,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func transformWheres(lookup *lookup, models map[string]scanner.Position,
-	ast_wheres []*ast.Where) (wheres []*ir.Where, err error) {
+func transformWheres(lookup *lookup, models map[string]scanner.Position, ast_wheres []*ast.Where) (wheres []*ir.Where, err error) {
 	for _, ast_where := range ast_wheres {
 		where, err := transformWhere(lookup, models, ast_where)
 		if err != nil {
@@ -24,9 +23,7 @@ func transformWheres(lookup *lookup, models map[string]scanner.Position,
 	return wheres, nil
 }
 
-func transformWhere(lookup *lookup, models map[string]scanner.Position,
-	ast_where *ast.Where) (where *ir.Where, err error) {
-
+func transformWhere(lookup *lookup, models map[string]scanner.Position, ast_where *ast.Where) (where *ir.Where, err error) {
 	clauses, err := transformClauses(lookup, models, ast_where.Clauses)
 	if err != nil {
 		return nil, err

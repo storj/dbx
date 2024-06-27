@@ -80,7 +80,6 @@ func parseExpr(node *tupleNode) (*ast.Expr, error) {
 }
 
 func parseExprs(list *listNode) (exprs []*ast.Expr, err error) {
-
 	for {
 		tuple, err := list.consumeTupleOrEmpty()
 		if err != nil {

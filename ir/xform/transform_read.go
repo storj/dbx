@@ -10,9 +10,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func transformRead(lookup *lookup, ast_read *ast.Read) (
-	reads []*ir.Read, err error) {
-
+func transformRead(lookup *lookup, ast_read *ast.Read) (reads []*ir.Read, err error) {
 	tmpl := &ir.Read{
 		Suffix: transformSuffix(ast_read.Suffix),
 	}

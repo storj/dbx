@@ -23,10 +23,7 @@ import (
 	"storj.io/dbx/ir"
 )
 
-func transformJoins(lookup *lookup, in_scope []*ir.Model,
-	ast_joins []*ast.Join) (models map[string]scanner.Position,
-	joins []*ir.Join, err error) {
-
+func transformJoins(lookup *lookup, in_scope []*ir.Model, ast_joins []*ast.Join) (models map[string]scanner.Position, joins []*ir.Join, err error) {
 	models = make(map[string]scanner.Position)
 
 	in_scope_set := make(map[*ir.Model]bool)

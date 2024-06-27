@@ -34,5 +34,4 @@ func DeleteSQL(ir_del *ir.Delete, dialect Dialect) sqlgen.SQL {
 	}
 
 	return sqlcompile.Compile(stmt.SQL())
-
 }

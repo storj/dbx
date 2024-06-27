@@ -52,7 +52,6 @@ func TestLoadTemplate(t *testing.T) {
 
 	_, err = renderer.LoadTemplate("onlydialect", "d2")
 	require.Error(t, err)
-
 }
 
 type testLoader map[string]string
