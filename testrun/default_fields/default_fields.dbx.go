@@ -131,11 +131,6 @@ type driver interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-var (
-	notAPointer     = errors.New("destination not a pointer")
-	lossyConversion = errors.New("lossy conversion")
-)
-
 type DB struct {
 	*sql.DB
 	dbMethods
