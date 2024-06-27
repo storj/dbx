@@ -17,11 +17,11 @@ import (
 	"unicode"
 
 	_ "cloud.google.com/go/spanner"
+	"crypto/rand"
 	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/mattn/go-sqlite3"
-	"math/rand"
 )
 
 // Prevent conditional imports from causing build failures.
@@ -2799,7 +2799,7 @@ type dbMethods interface {
 
 var sqlite3DriverName = func() string {
 	var id [16]byte
-	rand.Read(id[:])
+	_, _ = rand.Read(id[:])
 	return fmt.Sprintf("sqlite3_%x", string(id[:]))
 }()
 

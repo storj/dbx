@@ -1,5 +1,5 @@
 {{- define "import" }}
-	"math/rand"
+	"crypto/rand"
 	"github.com/mattn/go-sqlite3"
 {{ end -}}
 
@@ -22,7 +22,7 @@ func (impl {{ .Receiver }}) isConstraintError(err error) (constraint string, ok 
 {{- define "open" }}
 var sqlite3DriverName = func() string {
 	var id [16]byte
-	rand.Read(id[:])
+	_, _ = rand.Read(id[:])
 	return fmt.Sprintf("sqlite3_%x", string(id[:]))
 }()
 
