@@ -61,7 +61,7 @@ func runDesc(t *testing.T, db *DB, desc Desc) {
 	create := val(db).MethodByName(fmt.Sprintf("Create_Data%s", desc.Name))
 	paged := val(db).MethodByName(fmt.Sprintf("Paged_Data%s", desc.Name))
 	id := reflect.Zero(desc.Field.Type().In(0)).Interface()
-	field := func(in interface{}) reflect.Value { return desc.Field.Call(vs{val(in)})[0] }
+	field := func(in any) reflect.Value { return desc.Field.Call(vs{val(in)})[0] }
 
 	// create 10 models
 	for i := 0; i < 10; i++ {
@@ -94,7 +94,7 @@ func runDesc(t *testing.T, db *DB, desc Desc) {
 	require.Fail(t, "too many iterations")
 }
 
-func next(in interface{}) interface{} {
+func next(in any) any {
 	switch in := in.(type) {
 	case []byte:
 		return append(in, 'b')

@@ -66,7 +66,7 @@ func loadTemplate(name string, data []byte, funcs template.FuncMap) (*template.T
 		funcs = make(template.FuncMap)
 	}
 
-	safeset := func(name string, fn interface{}) {
+	safeset := func(name string, fn any) {
 		if funcs[name] == nil {
 			funcs[name] = fn
 		}

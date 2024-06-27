@@ -97,14 +97,14 @@ type DBMethods interface {
 The `Methods` interface is shared between the `Tx` and `DB` interfaces and will
 contain methods to interact with the database when they are generated. If you
 were to pass the userdata option on the generate command, then the `User`
-struct would come with an `interface{}` and a `sync.Mutex` to store some
+struct would come with an `any` and a `sync.Mutex` to store some
 arbitrary data on a value.
 
 The package comes with some customizable hooks.
 
 ```
 var WrapErr = func(err *Error) error { return err }
-var Logger func(format string, args ...interface{})
+var Logger func(format string, args ...any)
 ```
 
 - All of the errors returned by the database are passed through the `WrapErr`

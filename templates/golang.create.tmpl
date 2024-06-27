@@ -20,7 +20,7 @@
 	{{ embedplaceholders .Info }}
 	{{ embedsql .Info "__embed_stmt" }}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, {{ arg .StaticFields }})
 
 	{{ if .Struct.InsertableDynamicFields -}}

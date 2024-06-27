@@ -32,14 +32,14 @@ var _ sync.Mutex
 
 var (
 	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...interface{})
+	Logger  func(format string, args ...any)
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
 	errEmptyUpdate       = errors.New("empty update")
 )
 
-func logError(format string, args ...interface{}) {
+func logError(format string, args ...any) {
 	if Logger != nil {
 		Logger(format, args...)
 	}
@@ -126,9 +126,9 @@ func constraintViolation(err error, constraint string) error {
 }
 
 type driver interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 var (
@@ -254,7 +254,7 @@ func (obj *sqlite3Impl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *sqlite3Impl) logStmt(stmt string, args ...interface{}) {
+func (obj *sqlite3Impl) logStmt(stmt string, args ...any) {
 	sqlite3LogStmt(stmt, args...)
 }
 
@@ -332,7 +332,7 @@ type sqlite3Tx struct {
 	*sqlite3Impl
 }
 
-func sqlite3LogStmt(stmt string, args ...interface{}) {
+func sqlite3LogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -350,7 +350,7 @@ func (obj *pgxImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxImpl) logStmt(stmt string, args ...any) {
 	pgxLogStmt(stmt, args...)
 }
 
@@ -428,7 +428,7 @@ type pgxTx struct {
 	*pgxImpl
 }
 
-func pgxLogStmt(stmt string, args ...interface{}) {
+func pgxLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -446,7 +446,7 @@ func (obj *pgxcockroachImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxcockroachImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxcockroachImpl) logStmt(stmt string, args ...any) {
 	pgxcockroachLogStmt(stmt, args...)
 }
 
@@ -524,7 +524,7 @@ type pgxcockroachTx struct {
 	*pgxcockroachImpl
 }
 
-func pgxcockroachLogStmt(stmt string, args ...interface{}) {
+func pgxcockroachLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -542,7 +542,7 @@ func (obj *spannerImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *spannerImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *spannerImpl) logStmt(stmt string, args ...any) {
 	spannerLogStmt(stmt, args...)
 }
 
@@ -644,7 +644,7 @@ type spannerTx struct {
 	*spannerImpl
 }
 
-func spannerLogStmt(stmt string, args ...interface{}) {
+func spannerLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -652,7 +652,7 @@ func spannerLogStmt(stmt string, args ...interface{}) {
 	}
 }
 
-type pretty []interface{}
+type pretty []any
 
 func (p pretty) Format(f fmt.State, c rune) {
 	fmt.Fprint(f, "[")
@@ -708,7 +708,7 @@ func A_Id(v int64) A_Id_Field {
 	return A_Id_Field{_set: true, _value: v}
 }
 
-func (f A_Id_Field) value() interface{} {
+func (f A_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -737,7 +737,7 @@ func B_Id(v int64) B_Id_Field {
 	return B_Id_Field{_set: true, _value: v}
 }
 
-func (f B_Id_Field) value() interface{} {
+func (f B_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -756,7 +756,7 @@ func B_AId(v int64) B_AId_Field {
 	return B_AId_Field{_set: true, _value: v}
 }
 
-func (f B_AId_Field) value() interface{} {
+func (f B_AId_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -787,7 +787,7 @@ func C_Id(v int64) C_Id_Field {
 	return C_Id_Field{_set: true, _value: v}
 }
 
-func (f C_Id_Field) value() interface{} {
+func (f C_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -806,7 +806,7 @@ func C_Lat(v float32) C_Lat_Field {
 	return C_Lat_Field{_set: true, _value: v}
 }
 
-func (f C_Lat_Field) value() interface{} {
+func (f C_Lat_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -825,7 +825,7 @@ func C_Lon(v float32) C_Lon_Field {
 	return C_Lon_Field{_set: true, _value: v}
 }
 
-func (f C_Lon_Field) value() interface{} {
+func (f C_Lon_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -844,7 +844,7 @@ func C_BId(v int64) C_BId_Field {
 	return C_BId_Field{_set: true, _value: v}
 }
 
-func (f C_BId_Field) value() interface{} {
+func (f C_BId_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1157,7 +1157,7 @@ func (obj *sqlite3Impl) Create_A(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a DEFAULT VALUES")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1182,7 +1182,7 @@ func (obj *sqlite3Impl) Create_B(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO b ( a_id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1211,7 +1211,7 @@ func (obj *sqlite3Impl) Create_C(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO c ( lat, lon, b_id ) VALUES ( ?, ?, ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __lat_val, __lon_val, __b_id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1239,7 +1239,7 @@ func (obj *sqlite3Impl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT a.id, b.id, b.a_id, c.id, c.lat, c.lon, c.b_id FROM a  JOIN b ON a.id = b.a_id  JOIN c ON b.id = c.b_id WHERE a.id = ? AND c.lat < ? AND c.lat > ? AND c.lon < ? AND c.lon > ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, a_id.value(), c_lat_less.value(), c_lat_greater.value(), c_lon_less.value(), c_lon_greater.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1377,7 +1377,7 @@ func (obj *pgxImpl) Create_A(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a DEFAULT VALUES RETURNING a.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1399,7 +1399,7 @@ func (obj *pgxImpl) Create_B(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO b ( a_id ) VALUES ( ? ) RETURNING b.id, b.a_id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1425,7 +1425,7 @@ func (obj *pgxImpl) Create_C(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO c ( lat, lon, b_id ) VALUES ( ?, ?, ? ) RETURNING c.id, c.lat, c.lon, c.b_id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __lat_val, __lon_val, __b_id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1450,7 +1450,7 @@ func (obj *pgxImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C_Lon
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT a.id, b.id, b.a_id, c.id, c.lat, c.lon, c.b_id FROM a  JOIN b ON a.id = b.a_id  JOIN c ON b.id = c.b_id WHERE a.id = ? AND c.lat < ? AND c.lat > ? AND c.lon < ? AND c.lon > ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, a_id.value(), c_lat_less.value(), c_lat_greater.value(), c_lon_less.value(), c_lon_greater.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1529,7 +1529,7 @@ func (obj *pgxcockroachImpl) Create_A(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a DEFAULT VALUES RETURNING a.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1551,7 +1551,7 @@ func (obj *pgxcockroachImpl) Create_B(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO b ( a_id ) VALUES ( ? ) RETURNING b.id, b.a_id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1577,7 +1577,7 @@ func (obj *pgxcockroachImpl) Create_C(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO c ( lat, lon, b_id ) VALUES ( ?, ?, ? ) RETURNING c.id, c.lat, c.lon, c.b_id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __lat_val, __lon_val, __b_id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1602,7 +1602,7 @@ func (obj *pgxcockroachImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT a.id, b.id, b.a_id, c.id, c.lat, c.lon, c.b_id FROM a  JOIN b ON a.id = b.a_id  JOIN c ON b.id = c.b_id WHERE a.id = ? AND c.lat < ? AND c.lat > ? AND c.lon < ? AND c.lon > ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, a_id.value(), c_lat_less.value(), c_lat_greater.value(), c_lon_less.value(), c_lon_greater.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1681,7 +1681,7 @@ func (obj *spannerImpl) Create_A(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a ( id ) VALUES ( DEFAULT ) THEN RETURN a.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1711,7 +1711,7 @@ func (obj *spannerImpl) Create_B(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO b ( a_id ) VALUES ( ? ) THEN RETURN b.id, b.a_id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1745,7 +1745,7 @@ func (obj *spannerImpl) Create_C(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO c ( lat, lon, b_id ) VALUES ( ?, ?, ? ) THEN RETURN c.id, c.lat, c.lon, c.b_id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __lat_val, __lon_val, __b_id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1778,7 +1778,7 @@ func (obj *spannerImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT a.id, b.id, b.a_id, c.id, c.lat, c.lon, c.b_id FROM a  JOIN b ON a.id = b.a_id  JOIN c ON b.id = c.b_id WHERE a.id = ? AND c.lat < ? AND c.lat > ? AND c.lon < ? AND c.lon > ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, a_id.value(), c_lat_less.value(), c_lat_greater.value(), c_lon_less.value(), c_lon_greater.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)

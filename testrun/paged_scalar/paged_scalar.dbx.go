@@ -32,14 +32,14 @@ var _ sync.Mutex
 
 var (
 	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...interface{})
+	Logger  func(format string, args ...any)
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
 	errEmptyUpdate       = errors.New("empty update")
 )
 
-func logError(format string, args ...interface{}) {
+func logError(format string, args ...any) {
 	if Logger != nil {
 		Logger(format, args...)
 	}
@@ -126,9 +126,9 @@ func constraintViolation(err error, constraint string) error {
 }
 
 type driver interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 var (
@@ -254,7 +254,7 @@ func (obj *sqlite3Impl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *sqlite3Impl) logStmt(stmt string, args ...interface{}) {
+func (obj *sqlite3Impl) logStmt(stmt string, args ...any) {
 	sqlite3LogStmt(stmt, args...)
 }
 
@@ -404,7 +404,7 @@ type sqlite3Tx struct {
 	*sqlite3Impl
 }
 
-func sqlite3LogStmt(stmt string, args ...interface{}) {
+func sqlite3LogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -422,7 +422,7 @@ func (obj *pgxImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxImpl) logStmt(stmt string, args ...any) {
 	pgxLogStmt(stmt, args...)
 }
 
@@ -572,7 +572,7 @@ type pgxTx struct {
 	*pgxImpl
 }
 
-func pgxLogStmt(stmt string, args ...interface{}) {
+func pgxLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -590,7 +590,7 @@ func (obj *pgxcockroachImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxcockroachImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxcockroachImpl) logStmt(stmt string, args ...any) {
 	pgxcockroachLogStmt(stmt, args...)
 }
 
@@ -740,7 +740,7 @@ type pgxcockroachTx struct {
 	*pgxcockroachImpl
 }
 
-func pgxcockroachLogStmt(stmt string, args ...interface{}) {
+func pgxcockroachLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -758,7 +758,7 @@ func (obj *spannerImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *spannerImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *spannerImpl) logStmt(stmt string, args ...any) {
 	spannerLogStmt(stmt, args...)
 }
 
@@ -954,7 +954,7 @@ type spannerTx struct {
 	*spannerImpl
 }
 
-func spannerLogStmt(stmt string, args ...interface{}) {
+func spannerLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -962,7 +962,7 @@ func spannerLogStmt(stmt string, args ...interface{}) {
 	}
 }
 
-type pretty []interface{}
+type pretty []any
 
 func (p pretty) Format(f fmt.State, c rune) {
 	fmt.Fprint(f, "[")
@@ -1018,7 +1018,7 @@ func DataBlob_Id(v []byte) DataBlob_Id_Field {
 	return DataBlob_Id_Field{_set: true, _value: v}
 }
 
-func (f DataBlob_Id_Field) value() interface{} {
+func (f DataBlob_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1047,7 +1047,7 @@ func DataDate_Id(v time.Time) DataDate_Id_Field {
 	return DataDate_Id_Field{_set: true, _value: v}
 }
 
-func (f DataDate_Id_Field) value() interface{} {
+func (f DataDate_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1075,7 +1075,7 @@ func DataFloat_Id(v float32) DataFloat_Id_Field {
 	return DataFloat_Id_Field{_set: true, _value: v}
 }
 
-func (f DataFloat_Id_Field) value() interface{} {
+func (f DataFloat_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1103,7 +1103,7 @@ func DataFloat64_Id(v float64) DataFloat64_Id_Field {
 	return DataFloat64_Id_Field{_set: true, _value: v}
 }
 
-func (f DataFloat64_Id_Field) value() interface{} {
+func (f DataFloat64_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1131,7 +1131,7 @@ func DataInt_Id(v int) DataInt_Id_Field {
 	return DataInt_Id_Field{_set: true, _value: v}
 }
 
-func (f DataInt_Id_Field) value() interface{} {
+func (f DataInt_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1159,7 +1159,7 @@ func DataInt64_Id(v int64) DataInt64_Id_Field {
 	return DataInt64_Id_Field{_set: true, _value: v}
 }
 
-func (f DataInt64_Id_Field) value() interface{} {
+func (f DataInt64_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1187,7 +1187,7 @@ func DataJson_Id(v []byte) DataJson_Id_Field {
 	return DataJson_Id_Field{_set: true, _value: v}
 }
 
-func (f DataJson_Id_Field) value() interface{} {
+func (f DataJson_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1215,7 +1215,7 @@ func DataSerial_Id(v int) DataSerial_Id_Field {
 	return DataSerial_Id_Field{_set: true, _value: v}
 }
 
-func (f DataSerial_Id_Field) value() interface{} {
+func (f DataSerial_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1243,7 +1243,7 @@ func DataSerial64_Id(v int64) DataSerial64_Id_Field {
 	return DataSerial64_Id_Field{_set: true, _value: v}
 }
 
-func (f DataSerial64_Id_Field) value() interface{} {
+func (f DataSerial64_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1271,7 +1271,7 @@ func DataText_Id(v string) DataText_Id_Field {
 	return DataText_Id_Field{_set: true, _value: v}
 }
 
-func (f DataText_Id_Field) value() interface{} {
+func (f DataText_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1299,7 +1299,7 @@ func DataTimestamp_Id(v time.Time) DataTimestamp_Id_Field {
 	return DataTimestamp_Id_Field{_set: true, _value: v}
 }
 
-func (f DataTimestamp_Id_Field) value() interface{} {
+func (f DataTimestamp_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1327,7 +1327,7 @@ func DataUint_Id(v uint) DataUint_Id_Field {
 	return DataUint_Id_Field{_set: true, _value: v}
 }
 
-func (f DataUint_Id_Field) value() interface{} {
+func (f DataUint_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1355,7 +1355,7 @@ func DataUint64_Id(v uint64) DataUint64_Id_Field {
 	return DataUint64_Id_Field{_set: true, _value: v}
 }
 
-func (f DataUint64_Id_Field) value() interface{} {
+func (f DataUint64_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1384,7 +1384,7 @@ func DataUtimestamp_Id(v time.Time) DataUtimestamp_Id_Field {
 	return DataUtimestamp_Id_Field{_set: true, _value: v}
 }
 
-func (f DataUtimestamp_Id_Field) value() interface{} {
+func (f DataUtimestamp_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1763,7 +1763,7 @@ func (obj *sqlite3Impl) Create_DataBlob(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_blobs ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1788,7 +1788,7 @@ func (obj *sqlite3Impl) Create_DataDate(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_dates ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1813,7 +1813,7 @@ func (obj *sqlite3Impl) Create_DataFloat(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_floats ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1838,7 +1838,7 @@ func (obj *sqlite3Impl) Create_DataFloat64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_float64s ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1863,7 +1863,7 @@ func (obj *sqlite3Impl) Create_DataInt(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_ints ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1888,7 +1888,7 @@ func (obj *sqlite3Impl) Create_DataInt64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_int64s ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1913,7 +1913,7 @@ func (obj *sqlite3Impl) Create_DataJson(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_jsons ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1936,7 +1936,7 @@ func (obj *sqlite3Impl) Create_DataSerial(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials DEFAULT VALUES")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1959,7 +1959,7 @@ func (obj *sqlite3Impl) Create_DataSerial64(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s DEFAULT VALUES")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1984,7 +1984,7 @@ func (obj *sqlite3Impl) Create_DataText(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_texts ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2009,7 +2009,7 @@ func (obj *sqlite3Impl) Create_DataTimestamp(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_timestamps ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2034,7 +2034,7 @@ func (obj *sqlite3Impl) Create_DataUint(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uints ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2059,7 +2059,7 @@ func (obj *sqlite3Impl) Create_DataUint64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uint64s ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2084,7 +2084,7 @@ func (obj *sqlite3Impl) Create_DataUtimestamp(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_utimestamps ( id ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2110,7 +2110,7 @@ func (obj *sqlite3Impl) Paged_DataBlob(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_blobs.id, data_blobs.id FROM data_blobs ORDER BY data_blobs.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2156,7 +2156,7 @@ func (obj *sqlite3Impl) Paged_DataDate(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_dates.id, data_dates.id FROM data_dates ORDER BY data_dates.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2202,7 +2202,7 @@ func (obj *sqlite3Impl) Paged_DataFloat(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_floats.id, data_floats.id FROM data_floats ORDER BY data_floats.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2248,7 +2248,7 @@ func (obj *sqlite3Impl) Paged_DataFloat64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_float64s.id, data_float64s.id FROM data_float64s ORDER BY data_float64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2294,7 +2294,7 @@ func (obj *sqlite3Impl) Paged_DataInt(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_ints.id, data_ints.id FROM data_ints ORDER BY data_ints.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2340,7 +2340,7 @@ func (obj *sqlite3Impl) Paged_DataInt64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_int64s.id, data_int64s.id FROM data_int64s ORDER BY data_int64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2386,7 +2386,7 @@ func (obj *sqlite3Impl) Paged_DataJson(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_jsons.id, data_jsons.id FROM data_jsons ORDER BY data_jsons.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2432,7 +2432,7 @@ func (obj *sqlite3Impl) Paged_DataSerial(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serials.id, data_serials.id FROM data_serials ORDER BY data_serials.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2478,7 +2478,7 @@ func (obj *sqlite3Impl) Paged_DataSerial64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serial64s.id, data_serial64s.id FROM data_serial64s ORDER BY data_serial64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2524,7 +2524,7 @@ func (obj *sqlite3Impl) Paged_DataText(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_texts.id, data_texts.id FROM data_texts ORDER BY data_texts.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2570,7 +2570,7 @@ func (obj *sqlite3Impl) Paged_DataTimestamp(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_timestamps.id, data_timestamps.id FROM data_timestamps ORDER BY data_timestamps.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2616,7 +2616,7 @@ func (obj *sqlite3Impl) Paged_DataUint(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uints.id, data_uints.id FROM data_uints ORDER BY data_uints.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2662,7 +2662,7 @@ func (obj *sqlite3Impl) Paged_DataUint64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uint64s.id, data_uint64s.id FROM data_uint64s ORDER BY data_uint64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -2708,7 +2708,7 @@ func (obj *sqlite3Impl) Paged_DataUtimestamp(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_utimestamps.id, data_utimestamps.id FROM data_utimestamps ORDER BY data_utimestamps.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3167,7 +3167,7 @@ func (obj *pgxImpl) Create_DataBlob(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_blobs ( id ) VALUES ( ? ) RETURNING data_blobs.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3189,7 +3189,7 @@ func (obj *pgxImpl) Create_DataDate(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_dates ( id ) VALUES ( ? ) RETURNING data_dates.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3211,7 +3211,7 @@ func (obj *pgxImpl) Create_DataFloat(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_floats ( id ) VALUES ( ? ) RETURNING data_floats.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3233,7 +3233,7 @@ func (obj *pgxImpl) Create_DataFloat64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_float64s ( id ) VALUES ( ? ) RETURNING data_float64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3255,7 +3255,7 @@ func (obj *pgxImpl) Create_DataInt(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_ints ( id ) VALUES ( ? ) RETURNING data_ints.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3277,7 +3277,7 @@ func (obj *pgxImpl) Create_DataInt64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_int64s ( id ) VALUES ( ? ) RETURNING data_int64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3299,7 +3299,7 @@ func (obj *pgxImpl) Create_DataJson(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_jsons ( id ) VALUES ( ? ) RETURNING data_jsons.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3319,7 +3319,7 @@ func (obj *pgxImpl) Create_DataSerial(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials DEFAULT VALUES RETURNING data_serials.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3339,7 +3339,7 @@ func (obj *pgxImpl) Create_DataSerial64(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s DEFAULT VALUES RETURNING data_serial64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3361,7 +3361,7 @@ func (obj *pgxImpl) Create_DataText(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_texts ( id ) VALUES ( ? ) RETURNING data_texts.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3383,7 +3383,7 @@ func (obj *pgxImpl) Create_DataTimestamp(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_timestamps ( id ) VALUES ( ? ) RETURNING data_timestamps.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3405,7 +3405,7 @@ func (obj *pgxImpl) Create_DataUint(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uints ( id ) VALUES ( ? ) RETURNING data_uints.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3427,7 +3427,7 @@ func (obj *pgxImpl) Create_DataUint64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uint64s ( id ) VALUES ( ? ) RETURNING data_uint64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3449,7 +3449,7 @@ func (obj *pgxImpl) Create_DataUtimestamp(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_utimestamps ( id ) VALUES ( ? ) RETURNING data_utimestamps.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -3472,7 +3472,7 @@ func (obj *pgxImpl) Paged_DataBlob(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_blobs.id, data_blobs.id FROM data_blobs ORDER BY data_blobs.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3518,7 +3518,7 @@ func (obj *pgxImpl) Paged_DataDate(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_dates.id, data_dates.id FROM data_dates ORDER BY data_dates.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3564,7 +3564,7 @@ func (obj *pgxImpl) Paged_DataFloat(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_floats.id, data_floats.id FROM data_floats ORDER BY data_floats.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3610,7 +3610,7 @@ func (obj *pgxImpl) Paged_DataFloat64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_float64s.id, data_float64s.id FROM data_float64s ORDER BY data_float64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3656,7 +3656,7 @@ func (obj *pgxImpl) Paged_DataInt(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_ints.id, data_ints.id FROM data_ints ORDER BY data_ints.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3702,7 +3702,7 @@ func (obj *pgxImpl) Paged_DataInt64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_int64s.id, data_int64s.id FROM data_int64s ORDER BY data_int64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3748,7 +3748,7 @@ func (obj *pgxImpl) Paged_DataJson(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_jsons.id, data_jsons.id FROM data_jsons ORDER BY data_jsons.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3794,7 +3794,7 @@ func (obj *pgxImpl) Paged_DataSerial(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serials.id, data_serials.id FROM data_serials ORDER BY data_serials.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3840,7 +3840,7 @@ func (obj *pgxImpl) Paged_DataSerial64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serial64s.id, data_serial64s.id FROM data_serial64s ORDER BY data_serial64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3886,7 +3886,7 @@ func (obj *pgxImpl) Paged_DataText(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_texts.id, data_texts.id FROM data_texts ORDER BY data_texts.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3932,7 +3932,7 @@ func (obj *pgxImpl) Paged_DataTimestamp(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_timestamps.id, data_timestamps.id FROM data_timestamps ORDER BY data_timestamps.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -3978,7 +3978,7 @@ func (obj *pgxImpl) Paged_DataUint(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uints.id, data_uints.id FROM data_uints ORDER BY data_uints.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4024,7 +4024,7 @@ func (obj *pgxImpl) Paged_DataUint64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uint64s.id, data_uint64s.id FROM data_uint64s ORDER BY data_uint64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4070,7 +4070,7 @@ func (obj *pgxImpl) Paged_DataUtimestamp(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_utimestamps.id, data_utimestamps.id FROM data_utimestamps ORDER BY data_utimestamps.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4272,7 +4272,7 @@ func (obj *pgxcockroachImpl) Create_DataBlob(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_blobs ( id ) VALUES ( ? ) RETURNING data_blobs.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4294,7 +4294,7 @@ func (obj *pgxcockroachImpl) Create_DataDate(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_dates ( id ) VALUES ( ? ) RETURNING data_dates.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4316,7 +4316,7 @@ func (obj *pgxcockroachImpl) Create_DataFloat(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_floats ( id ) VALUES ( ? ) RETURNING data_floats.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4338,7 +4338,7 @@ func (obj *pgxcockroachImpl) Create_DataFloat64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_float64s ( id ) VALUES ( ? ) RETURNING data_float64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4360,7 +4360,7 @@ func (obj *pgxcockroachImpl) Create_DataInt(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_ints ( id ) VALUES ( ? ) RETURNING data_ints.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4382,7 +4382,7 @@ func (obj *pgxcockroachImpl) Create_DataInt64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_int64s ( id ) VALUES ( ? ) RETURNING data_int64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4404,7 +4404,7 @@ func (obj *pgxcockroachImpl) Create_DataJson(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_jsons ( id ) VALUES ( ? ) RETURNING data_jsons.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4424,7 +4424,7 @@ func (obj *pgxcockroachImpl) Create_DataSerial(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials DEFAULT VALUES RETURNING data_serials.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4444,7 +4444,7 @@ func (obj *pgxcockroachImpl) Create_DataSerial64(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s DEFAULT VALUES RETURNING data_serial64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4466,7 +4466,7 @@ func (obj *pgxcockroachImpl) Create_DataText(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_texts ( id ) VALUES ( ? ) RETURNING data_texts.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4488,7 +4488,7 @@ func (obj *pgxcockroachImpl) Create_DataTimestamp(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_timestamps ( id ) VALUES ( ? ) RETURNING data_timestamps.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4510,7 +4510,7 @@ func (obj *pgxcockroachImpl) Create_DataUint(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uints ( id ) VALUES ( ? ) RETURNING data_uints.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4532,7 +4532,7 @@ func (obj *pgxcockroachImpl) Create_DataUint64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uint64s ( id ) VALUES ( ? ) RETURNING data_uint64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4554,7 +4554,7 @@ func (obj *pgxcockroachImpl) Create_DataUtimestamp(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_utimestamps ( id ) VALUES ( ? ) RETURNING data_utimestamps.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -4577,7 +4577,7 @@ func (obj *pgxcockroachImpl) Paged_DataBlob(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_blobs.id, data_blobs.id FROM data_blobs ORDER BY data_blobs.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4623,7 +4623,7 @@ func (obj *pgxcockroachImpl) Paged_DataDate(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_dates.id, data_dates.id FROM data_dates ORDER BY data_dates.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4669,7 +4669,7 @@ func (obj *pgxcockroachImpl) Paged_DataFloat(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_floats.id, data_floats.id FROM data_floats ORDER BY data_floats.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4715,7 +4715,7 @@ func (obj *pgxcockroachImpl) Paged_DataFloat64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_float64s.id, data_float64s.id FROM data_float64s ORDER BY data_float64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4761,7 +4761,7 @@ func (obj *pgxcockroachImpl) Paged_DataInt(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_ints.id, data_ints.id FROM data_ints ORDER BY data_ints.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4807,7 +4807,7 @@ func (obj *pgxcockroachImpl) Paged_DataInt64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_int64s.id, data_int64s.id FROM data_int64s ORDER BY data_int64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4853,7 +4853,7 @@ func (obj *pgxcockroachImpl) Paged_DataJson(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_jsons.id, data_jsons.id FROM data_jsons ORDER BY data_jsons.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4899,7 +4899,7 @@ func (obj *pgxcockroachImpl) Paged_DataSerial(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serials.id, data_serials.id FROM data_serials ORDER BY data_serials.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4945,7 +4945,7 @@ func (obj *pgxcockroachImpl) Paged_DataSerial64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serial64s.id, data_serial64s.id FROM data_serial64s ORDER BY data_serial64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -4991,7 +4991,7 @@ func (obj *pgxcockroachImpl) Paged_DataText(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_texts.id, data_texts.id FROM data_texts ORDER BY data_texts.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -5037,7 +5037,7 @@ func (obj *pgxcockroachImpl) Paged_DataTimestamp(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_timestamps.id, data_timestamps.id FROM data_timestamps ORDER BY data_timestamps.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -5083,7 +5083,7 @@ func (obj *pgxcockroachImpl) Paged_DataUint(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uints.id, data_uints.id FROM data_uints ORDER BY data_uints.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -5129,7 +5129,7 @@ func (obj *pgxcockroachImpl) Paged_DataUint64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uint64s.id, data_uint64s.id FROM data_uint64s ORDER BY data_uint64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -5175,7 +5175,7 @@ func (obj *pgxcockroachImpl) Paged_DataUtimestamp(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_utimestamps.id, data_utimestamps.id FROM data_utimestamps ORDER BY data_utimestamps.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -5377,7 +5377,7 @@ func (obj *spannerImpl) Create_DataBlob(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_blobs ( id ) VALUES ( ? ) THEN RETURN data_blobs.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5407,7 +5407,7 @@ func (obj *spannerImpl) Create_DataDate(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_dates ( id ) VALUES ( ? ) THEN RETURN data_dates.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5437,7 +5437,7 @@ func (obj *spannerImpl) Create_DataFloat(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_floats ( id ) VALUES ( ? ) THEN RETURN data_floats.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5467,7 +5467,7 @@ func (obj *spannerImpl) Create_DataFloat64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_float64s ( id ) VALUES ( ? ) THEN RETURN data_float64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5497,7 +5497,7 @@ func (obj *spannerImpl) Create_DataInt(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_ints ( id ) VALUES ( ? ) THEN RETURN data_ints.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5527,7 +5527,7 @@ func (obj *spannerImpl) Create_DataInt64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_int64s ( id ) VALUES ( ? ) THEN RETURN data_int64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5557,7 +5557,7 @@ func (obj *spannerImpl) Create_DataJson(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_jsons ( id ) VALUES ( ? ) THEN RETURN data_jsons.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5585,7 +5585,7 @@ func (obj *spannerImpl) Create_DataSerial(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials ( id ) VALUES ( DEFAULT ) THEN RETURN data_serials.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5613,7 +5613,7 @@ func (obj *spannerImpl) Create_DataSerial64(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s ( id ) VALUES ( DEFAULT ) THEN RETURN data_serial64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5643,7 +5643,7 @@ func (obj *spannerImpl) Create_DataText(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_texts ( id ) VALUES ( ? ) THEN RETURN data_texts.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5673,7 +5673,7 @@ func (obj *spannerImpl) Create_DataTimestamp(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_timestamps ( id ) VALUES ( ? ) THEN RETURN data_timestamps.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5703,7 +5703,7 @@ func (obj *spannerImpl) Create_DataUint(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uints ( id ) VALUES ( ? ) THEN RETURN data_uints.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5733,7 +5733,7 @@ func (obj *spannerImpl) Create_DataUint64(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uint64s ( id ) VALUES ( ? ) THEN RETURN data_uint64s.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5763,7 +5763,7 @@ func (obj *spannerImpl) Create_DataUtimestamp(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_utimestamps ( id ) VALUES ( ? ) THEN RETURN data_utimestamps.id")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __id_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -5794,7 +5794,7 @@ func (obj *spannerImpl) Paged_DataBlob(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_blobs.id, data_blobs.id FROM data_blobs ORDER BY data_blobs.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -5840,7 +5840,7 @@ func (obj *spannerImpl) Paged_DataDate(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_dates.id, data_dates.id FROM data_dates ORDER BY data_dates.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -5886,7 +5886,7 @@ func (obj *spannerImpl) Paged_DataFloat(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_floats.id, data_floats.id FROM data_floats ORDER BY data_floats.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -5932,7 +5932,7 @@ func (obj *spannerImpl) Paged_DataFloat64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_float64s.id, data_float64s.id FROM data_float64s ORDER BY data_float64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -5978,7 +5978,7 @@ func (obj *spannerImpl) Paged_DataInt(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_ints.id, data_ints.id FROM data_ints ORDER BY data_ints.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -6024,7 +6024,7 @@ func (obj *spannerImpl) Paged_DataInt64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_int64s.id, data_int64s.id FROM data_int64s ORDER BY data_int64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -6070,7 +6070,7 @@ func (obj *spannerImpl) Paged_DataJson(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_jsons.id, data_jsons.id FROM data_jsons ORDER BY data_jsons.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -6116,7 +6116,7 @@ func (obj *spannerImpl) Paged_DataSerial(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serials.id, data_serials.id FROM data_serials ORDER BY data_serials.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -6162,7 +6162,7 @@ func (obj *spannerImpl) Paged_DataSerial64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serial64s.id, data_serial64s.id FROM data_serial64s ORDER BY data_serial64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -6208,7 +6208,7 @@ func (obj *spannerImpl) Paged_DataText(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_texts.id, data_texts.id FROM data_texts ORDER BY data_texts.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -6254,7 +6254,7 @@ func (obj *spannerImpl) Paged_DataTimestamp(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_timestamps.id, data_timestamps.id FROM data_timestamps ORDER BY data_timestamps.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -6300,7 +6300,7 @@ func (obj *spannerImpl) Paged_DataUint(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uints.id, data_uints.id FROM data_uints ORDER BY data_uints.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -6346,7 +6346,7 @@ func (obj *spannerImpl) Paged_DataUint64(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uint64s.id, data_uint64s.id FROM data_uint64s ORDER BY data_uint64s.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {
@@ -6392,7 +6392,7 @@ func (obj *spannerImpl) Paged_DataUtimestamp(ctx context.Context,
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_utimestamps.id, data_utimestamps.id FROM data_utimestamps ORDER BY data_utimestamps.id LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt string
 	if start != nil && start._set {

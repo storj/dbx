@@ -21,7 +21,7 @@ func renameFn(name string, v *Var) *Var {
 	return vc
 }
 
-func sliceofFn(intf interface{}) (string, error) {
+func sliceofFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).SliceOf)
 	if err != nil {
 		return "", err
@@ -29,7 +29,7 @@ func sliceofFn(intf interface{}) (string, error) {
 	return strings.Join(vs, ", "), nil
 }
 
-func paramFn(intf interface{}) (string, error) {
+func paramFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).Param)
 	if err != nil {
 		return "", err
@@ -37,7 +37,7 @@ func paramFn(intf interface{}) (string, error) {
 	return strings.Join(vs, ",\n"), nil
 }
 
-func argFn(intf interface{}) (string, error) {
+func argFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).Arg)
 	if err != nil {
 		return "", err
@@ -45,7 +45,7 @@ func argFn(intf interface{}) (string, error) {
 	return strings.Join(vs, ", "), nil
 }
 
-func valueFn(intf interface{}) (string, error) {
+func valueFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).Value)
 	if err != nil {
 		return "", err
@@ -53,7 +53,7 @@ func valueFn(intf interface{}) (string, error) {
 	return strings.Join(vs, ", "), nil
 }
 
-func addrofFn(intf interface{}) (string, error) {
+func addrofFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).AddrOf)
 	if err != nil {
 		return "", err
@@ -61,7 +61,7 @@ func addrofFn(intf interface{}) (string, error) {
 	return strings.Join(vs, ", "), nil
 }
 
-func initFn(intf interface{}) (string, error) {
+func initFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).Init)
 	if err != nil {
 		return "", err
@@ -69,7 +69,7 @@ func initFn(intf interface{}) (string, error) {
 	return strings.Join(vs, "\n"), nil
 }
 
-func initnewFn(intf interface{}) (string, error) {
+func initnewFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).InitNew)
 	if err != nil {
 		return "", err
@@ -77,7 +77,7 @@ func initnewFn(intf interface{}) (string, error) {
 	return strings.Join(vs, "\n"), nil
 }
 
-func declareFn(intf interface{}) (string, error) {
+func declareFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).Declare)
 	if err != nil {
 		return "", err
@@ -85,7 +85,7 @@ func declareFn(intf interface{}) (string, error) {
 	return strings.Join(vs, "\n"), nil
 }
 
-func zeroFn(intf interface{}) (string, error) {
+func zeroFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).Zero)
 	if err != nil {
 		return "", err
@@ -93,7 +93,7 @@ func zeroFn(intf interface{}) (string, error) {
 	return strings.Join(vs, ", "), nil
 }
 
-func flattenFn(intf interface{}) (flattened []*Var, err error) {
+func flattenFn(intf any) (flattened []*Var, err error) {
 	switch obj := intf.(type) {
 	case *Var:
 		flattened = obj.Flatten()
@@ -107,7 +107,7 @@ func flattenFn(intf interface{}) (flattened []*Var, err error) {
 	return flattened, nil
 }
 
-func ctxparamFn(intf interface{}) (string, error) {
+func ctxparamFn(intf any) (string, error) {
 	param, err := paramFn(intf)
 	if err != nil {
 		return "", err
@@ -118,7 +118,7 @@ func ctxparamFn(intf interface{}) (string, error) {
 	return "ctx context.Context,\n" + param, nil
 }
 
-func ctxargFn(intf interface{}) (string, error) {
+func ctxargFn(intf any) (string, error) {
 	arg, err := argFn(intf)
 	if err != nil {
 		return "", err
@@ -143,7 +143,7 @@ func doubleFn(vs []*Var) (out []*Var) {
 	return out
 }
 
-func sliceFn(start, end int, intf interface{}) interface{} {
+func sliceFn(start, end int, intf any) any {
 	rv := reflect.ValueOf(intf)
 	if start < 0 {
 		start += rv.Len()
@@ -154,7 +154,7 @@ func sliceFn(start, end int, intf interface{}) interface{} {
 	return rv.Slice(start, end).Interface()
 }
 
-func forVars(intf interface{}, fn func(v *Var) string) ([]string, error) {
+func forVars(intf any, fn func(v *Var) string) ([]string, error) {
 	var elems []string
 	switch obj := intf.(type) {
 	case ConditionArg:

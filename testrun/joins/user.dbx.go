@@ -32,14 +32,14 @@ var _ sync.Mutex
 
 var (
 	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...interface{})
+	Logger  func(format string, args ...any)
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
 	errEmptyUpdate       = errors.New("empty update")
 )
 
-func logError(format string, args ...interface{}) {
+func logError(format string, args ...any) {
 	if Logger != nil {
 		Logger(format, args...)
 	}
@@ -126,9 +126,9 @@ func constraintViolation(err error, constraint string) error {
 }
 
 type driver interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 var (
@@ -254,7 +254,7 @@ func (obj *sqlite3Impl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *sqlite3Impl) logStmt(stmt string, args ...interface{}) {
+func (obj *sqlite3Impl) logStmt(stmt string, args ...any) {
 	sqlite3LogStmt(stmt, args...)
 }
 
@@ -329,7 +329,7 @@ type sqlite3Tx struct {
 	*sqlite3Impl
 }
 
-func sqlite3LogStmt(stmt string, args ...interface{}) {
+func sqlite3LogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -347,7 +347,7 @@ func (obj *pgxImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxImpl) logStmt(stmt string, args ...any) {
 	pgxLogStmt(stmt, args...)
 }
 
@@ -422,7 +422,7 @@ type pgxTx struct {
 	*pgxImpl
 }
 
-func pgxLogStmt(stmt string, args ...interface{}) {
+func pgxLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -440,7 +440,7 @@ func (obj *pgxcockroachImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxcockroachImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxcockroachImpl) logStmt(stmt string, args ...any) {
 	pgxcockroachLogStmt(stmt, args...)
 }
 
@@ -515,7 +515,7 @@ type pgxcockroachTx struct {
 	*pgxcockroachImpl
 }
 
-func pgxcockroachLogStmt(stmt string, args ...interface{}) {
+func pgxcockroachLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -533,7 +533,7 @@ func (obj *spannerImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *spannerImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *spannerImpl) logStmt(stmt string, args ...any) {
 	spannerLogStmt(stmt, args...)
 }
 
@@ -629,7 +629,7 @@ type spannerTx struct {
 	*spannerImpl
 }
 
-func spannerLogStmt(stmt string, args ...interface{}) {
+func spannerLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -637,7 +637,7 @@ func spannerLogStmt(stmt string, args ...interface{}) {
 	}
 }
 
-type pretty []interface{}
+type pretty []any
 
 func (p pretty) Format(f fmt.State, c rune) {
 	fmt.Fprint(f, "[")
@@ -693,7 +693,7 @@ func User_Pk(v int64) User_Pk_Field {
 	return User_Pk_Field{_set: true, _value: v}
 }
 
-func (f User_Pk_Field) value() interface{} {
+func (f User_Pk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -722,7 +722,7 @@ func AssociatedAccount_Pk(v int64) AssociatedAccount_Pk_Field {
 	return AssociatedAccount_Pk_Field{_set: true, _value: v}
 }
 
-func (f AssociatedAccount_Pk_Field) value() interface{} {
+func (f AssociatedAccount_Pk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -741,7 +741,7 @@ func AssociatedAccount_UserPk(v int64) AssociatedAccount_UserPk_Field {
 	return AssociatedAccount_UserPk_Field{_set: true, _value: v}
 }
 
-func (f AssociatedAccount_UserPk_Field) value() interface{} {
+func (f AssociatedAccount_UserPk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -770,7 +770,7 @@ func Session_Id(v int64) Session_Id_Field {
 	return Session_Id_Field{_set: true, _value: v}
 }
 
-func (f Session_Id_Field) value() interface{} {
+func (f Session_Id_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -789,7 +789,7 @@ func Session_UserPk(v int64) Session_UserPk_Field {
 	return Session_UserPk_Field{_set: true, _value: v}
 }
 
-func (f Session_UserPk_Field) value() interface{} {
+func (f Session_UserPk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1100,7 +1100,7 @@ func (obj *sqlite3Impl) Create_User(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users DEFAULT VALUES")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1125,7 +1125,7 @@ func (obj *sqlite3Impl) Create_AssociatedAccount(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO associated_accounts ( user_pk ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __user_pk_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1150,7 +1150,7 @@ func (obj *sqlite3Impl) Create_Session(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO sessions ( user_pk ) VALUES ( ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __user_pk_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1174,7 +1174,7 @@ func (obj *sqlite3Impl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Conte
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT sessions.id FROM sessions  JOIN users ON sessions.user_pk = users.pk  JOIN associated_accounts ON users.pk = associated_accounts.user_pk WHERE associated_accounts.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, associated_account_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1312,7 +1312,7 @@ func (obj *pgxImpl) Create_User(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users DEFAULT VALUES RETURNING users.pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1334,7 +1334,7 @@ func (obj *pgxImpl) Create_AssociatedAccount(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO associated_accounts ( user_pk ) VALUES ( ? ) RETURNING associated_accounts.pk, associated_accounts.user_pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __user_pk_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1356,7 +1356,7 @@ func (obj *pgxImpl) Create_Session(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO sessions ( user_pk ) VALUES ( ? ) RETURNING sessions.id, sessions.user_pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __user_pk_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1377,7 +1377,7 @@ func (obj *pgxImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT sessions.id FROM sessions  JOIN users ON sessions.user_pk = users.pk  JOIN associated_accounts ON users.pk = associated_accounts.user_pk WHERE associated_accounts.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, associated_account_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1456,7 +1456,7 @@ func (obj *pgxcockroachImpl) Create_User(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users DEFAULT VALUES RETURNING users.pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1478,7 +1478,7 @@ func (obj *pgxcockroachImpl) Create_AssociatedAccount(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO associated_accounts ( user_pk ) VALUES ( ? ) RETURNING associated_accounts.pk, associated_accounts.user_pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __user_pk_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1500,7 +1500,7 @@ func (obj *pgxcockroachImpl) Create_Session(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO sessions ( user_pk ) VALUES ( ? ) RETURNING sessions.id, sessions.user_pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __user_pk_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1521,7 +1521,7 @@ func (obj *pgxcockroachImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT sessions.id FROM sessions  JOIN users ON sessions.user_pk = users.pk  JOIN associated_accounts ON users.pk = associated_accounts.user_pk WHERE associated_accounts.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, associated_account_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1600,7 +1600,7 @@ func (obj *spannerImpl) Create_User(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users ( pk ) VALUES ( DEFAULT ) THEN RETURN users.pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1630,7 +1630,7 @@ func (obj *spannerImpl) Create_AssociatedAccount(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO associated_accounts ( user_pk ) VALUES ( ? ) THEN RETURN associated_accounts.pk, associated_accounts.user_pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __user_pk_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1660,7 +1660,7 @@ func (obj *spannerImpl) Create_Session(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO sessions ( user_pk ) VALUES ( ? ) THEN RETURN sessions.id, sessions.user_pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __user_pk_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1689,7 +1689,7 @@ func (obj *spannerImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Conte
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT sessions.id FROM sessions  JOIN users ON sessions.user_pk = users.pk  JOIN associated_accounts ON users.pk = associated_accounts.user_pk WHERE associated_accounts.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, associated_account_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)

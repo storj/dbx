@@ -32,14 +32,14 @@ var _ sync.Mutex
 
 var (
 	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...interface{})
+	Logger  func(format string, args ...any)
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
 	errEmptyUpdate       = errors.New("empty update")
 )
 
-func logError(format string, args ...interface{}) {
+func logError(format string, args ...any) {
 	if Logger != nil {
 		Logger(format, args...)
 	}
@@ -126,9 +126,9 @@ func constraintViolation(err error, constraint string) error {
 }
 
 type driver interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 var (
@@ -254,7 +254,7 @@ func (obj *sqlite3Impl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *sqlite3Impl) logStmt(stmt string, args ...interface{}) {
+func (obj *sqlite3Impl) logStmt(stmt string, args ...any) {
 	sqlite3LogStmt(stmt, args...)
 }
 
@@ -316,7 +316,7 @@ type sqlite3Tx struct {
 	*sqlite3Impl
 }
 
-func sqlite3LogStmt(stmt string, args ...interface{}) {
+func sqlite3LogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -334,7 +334,7 @@ func (obj *pgxImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxImpl) logStmt(stmt string, args ...any) {
 	pgxLogStmt(stmt, args...)
 }
 
@@ -396,7 +396,7 @@ type pgxTx struct {
 	*pgxImpl
 }
 
-func pgxLogStmt(stmt string, args ...interface{}) {
+func pgxLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -414,7 +414,7 @@ func (obj *pgxcockroachImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxcockroachImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxcockroachImpl) logStmt(stmt string, args ...any) {
 	pgxcockroachLogStmt(stmt, args...)
 }
 
@@ -476,7 +476,7 @@ type pgxcockroachTx struct {
 	*pgxcockroachImpl
 }
 
-func pgxcockroachLogStmt(stmt string, args ...interface{}) {
+func pgxcockroachLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -494,7 +494,7 @@ func (obj *spannerImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *spannerImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *spannerImpl) logStmt(stmt string, args ...any) {
 	spannerLogStmt(stmt, args...)
 }
 
@@ -561,7 +561,7 @@ type spannerTx struct {
 	*spannerImpl
 }
 
-func spannerLogStmt(stmt string, args ...interface{}) {
+func spannerLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -569,7 +569,7 @@ func spannerLogStmt(stmt string, args ...interface{}) {
 	}
 }
 
-type pretty []interface{}
+type pretty []any
 
 func (p pretty) Format(f fmt.State, c rune) {
 	fmt.Fprint(f, "[")
@@ -628,7 +628,7 @@ func Foo_Pk(v int64) Foo_Pk_Field {
 	return Foo_Pk_Field{_set: true, _value: v}
 }
 
-func (f Foo_Pk_Field) value() interface{} {
+func (f Foo_Pk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -647,7 +647,7 @@ func Foo_A(v int) Foo_A_Field {
 	return Foo_A_Field{_set: true, _value: v}
 }
 
-func (f Foo_A_Field) value() interface{} {
+func (f Foo_A_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -666,7 +666,7 @@ func Foo_B(v string) Foo_B_Field {
 	return Foo_B_Field{_set: true, _value: v}
 }
 
-func (f Foo_B_Field) value() interface{} {
+func (f Foo_B_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -685,7 +685,7 @@ func Foo_C(v string) Foo_C_Field {
 	return Foo_C_Field{_set: true, _value: v}
 }
 
-func (f Foo_C_Field) value() interface{} {
+func (f Foo_C_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -998,7 +998,7 @@ func (obj *sqlite3Impl) Create_Foo(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO foos ( a, b, c ) VALUES ( ?, ?, ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_val, __b_val, __c_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1024,7 +1024,7 @@ func (obj *sqlite3Impl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE (foos.a = ? OR (foos.b = ? OR foos.c = ?))")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, foo_a.value(), foo_b.value(), foo_c.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1112,7 +1112,7 @@ func (obj *pgxImpl) Create_Foo(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO foos ( a, b, c ) VALUES ( ?, ?, ? ) RETURNING foos.pk, foos.a, foos.b, foos.c")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_val, __b_val, __c_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1135,7 +1135,7 @@ func (obj *pgxImpl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE (foos.a = ? OR (foos.b = ? OR foos.c = ?))")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, foo_a.value(), foo_b.value(), foo_c.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1200,7 +1200,7 @@ func (obj *pgxcockroachImpl) Create_Foo(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO foos ( a, b, c ) VALUES ( ?, ?, ? ) RETURNING foos.pk, foos.a, foos.b, foos.c")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_val, __b_val, __c_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1223,7 +1223,7 @@ func (obj *pgxcockroachImpl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE (foos.a = ? OR (foos.b = ? OR foos.c = ?))")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, foo_a.value(), foo_b.value(), foo_c.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1288,7 +1288,7 @@ func (obj *spannerImpl) Create_Foo(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO foos ( a, b, c ) VALUES ( ?, ?, ? ) THEN RETURN foos.pk, foos.a, foos.b, foos.c")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_val, __b_val, __c_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1319,7 +1319,7 @@ func (obj *spannerImpl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE (foos.a = ? OR (foos.b = ? OR foos.c = ?))")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, foo_a.value(), foo_b.value(), foo_c.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)

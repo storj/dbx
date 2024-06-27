@@ -13,7 +13,7 @@ Limited_{{ .Suffix }}({{ ctxarg .Args }}, limit, offset)
 	{{ embedplaceholders .Info }}
 	{{ embedsql .Info "__embed_stmt" }}
 
-	var __values []interface{}
+	var __values []any
 	{{ embedvalues .Args "__values" }}
 	__values = append(__values, limit, offset)
 

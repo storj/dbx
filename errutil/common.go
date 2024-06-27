@@ -16,7 +16,7 @@ var Error = errors.NewClass("dbx")
 
 var errorPosition = errors.GenSym()
 
-func New(pos scanner.Position, format string, args ...interface{}) error {
+func New(pos scanner.Position, format string, args ...any) error {
 	str := fmt.Sprintf("%s: %s", pos, fmt.Sprintf(format, args...))
 	return Error.NewWith(str, SetErrorPosition(pos))
 }

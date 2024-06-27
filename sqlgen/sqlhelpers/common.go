@@ -31,7 +31,7 @@ func L(sql string) sqlgen.SQL {
 }
 
 // Lf constructs a literal from a format string
-func Lf(sqlf string, args ...interface{}) sqlgen.SQL {
+func Lf(sqlf string, args ...any) sqlgen.SQL {
 	return sqlgen.Literal(fmt.Sprintf(sqlf, args...))
 }
 

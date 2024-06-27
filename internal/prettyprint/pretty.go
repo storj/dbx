@@ -28,29 +28,29 @@ func New(w io.Writer) *Printer {
 	}
 }
 
-func Fprint(w io.Writer, x interface{}) (err error) {
+func Fprint(w io.Writer, x any) (err error) {
 	return New(w).Print(x)
 }
 
-func Fprintln(w io.Writer, x interface{}) (err error) {
+func Fprintln(w io.Writer, x any) (err error) {
 	return New(w).Println(x)
 }
 
-func Println(x interface{}) (err error) {
+func Println(x any) (err error) {
 	return Fprintln(os.Stdout, x)
 }
 
-func Print(x interface{}) error {
+func Print(x any) error {
 	return Fprint(os.Stdout, x)
 }
 
-func Sprint(x interface{}) string {
+func Sprint(x any) string {
 	var buf bytes.Buffer
 	_ = Fprint(&buf, x)
 	return buf.String()
 }
 
-func Sprintln(x interface{}) string {
+func Sprintln(x any) string {
 	var buf bytes.Buffer
 	_ = Fprintln(&buf, x)
 	return buf.String()
@@ -70,15 +70,15 @@ type printerState struct {
 	visited   map[uintptr]bool
 }
 
-func (pp Printer) Print(x interface{}) error {
+func (pp Printer) Print(x any) error {
 	return pp.print(x, false)
 }
 
-func (pp Printer) Println(x interface{}) error {
+func (pp Printer) Println(x any) error {
 	return pp.print(x, true)
 }
 
-func (pp Printer) print(x interface{}, nl bool) error {
+func (pp Printer) print(x any, nl bool) error {
 	pps := &printerState{
 		pp:      pp,
 		visited: map[uintptr]bool{},
@@ -249,15 +249,15 @@ func max(a, b int) int {
 	return b
 }
 
-func (pps *printerState) iprintf(indention int, format string, args ...interface{}) {
+func (pps *printerState) iprintf(indention int, format string, args ...any) {
 	if pps.failed() {
 		return
 	}
 	_, pps.err = fmt.Fprintf(pps.pp.Writer, "%s"+format,
-		append([]interface{}{pps.indent(indention)}, args...)...)
+		append([]any{pps.indent(indention)}, args...)...)
 }
 
-func (pps *printerState) printf(format string, args ...interface{}) {
+func (pps *printerState) printf(format string, args ...any) {
 	if pps.failed() {
 		return
 	}

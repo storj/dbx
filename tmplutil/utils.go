@@ -10,7 +10,7 @@ import (
 	"text/template"
 )
 
-func RenderString(tmpl *template.Template, name string, data interface{}) (string, error) {
+func RenderString(tmpl *template.Template, name string, data any) (string, error) {
 	var buf bytes.Buffer
 	if err := Render(tmpl, &buf, name, data); err != nil {
 		return "", err
@@ -18,7 +18,7 @@ func RenderString(tmpl *template.Template, name string, data interface{}) (strin
 	return buf.String(), nil
 }
 
-func Render(tmpl *template.Template, w io.Writer, name string, data interface{}) error {
+func Render(tmpl *template.Template, w io.Writer, name string, data any) error {
 	if name == "" {
 		return Error.Wrap(tmpl.Execute(w, data))
 	}

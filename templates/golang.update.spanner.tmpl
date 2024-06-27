@@ -17,8 +17,8 @@ Update{{ if not .Return }}NoReturn{{ end }}_{{ .Suffix }}
 	{{ embedsql .Info "__embed_stmt" }}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
-	var __values []interface{}
-	var __args []interface{}
+	var __values []any
+	var __args []any
 
 	{{ range .Struct.UpdatableFields }}
 	if update.{{ .Name }}._set {

@@ -32,14 +32,14 @@ var _ sync.Mutex
 
 var (
 	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...interface{})
+	Logger  func(format string, args ...any)
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
 	errEmptyUpdate       = errors.New("empty update")
 )
 
-func logError(format string, args ...interface{}) {
+func logError(format string, args ...any) {
 	if Logger != nil {
 		Logger(format, args...)
 	}
@@ -126,9 +126,9 @@ func constraintViolation(err error, constraint string) error {
 }
 
 type driver interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 var (
@@ -254,7 +254,7 @@ func (obj *sqlite3Impl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *sqlite3Impl) logStmt(stmt string, args ...interface{}) {
+func (obj *sqlite3Impl) logStmt(stmt string, args ...any) {
 	sqlite3LogStmt(stmt, args...)
 }
 
@@ -352,7 +352,7 @@ type sqlite3Tx struct {
 	*sqlite3Impl
 }
 
-func sqlite3LogStmt(stmt string, args ...interface{}) {
+func sqlite3LogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -370,7 +370,7 @@ func (obj *pgxImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxImpl) logStmt(stmt string, args ...any) {
 	pgxLogStmt(stmt, args...)
 }
 
@@ -468,7 +468,7 @@ type pgxTx struct {
 	*pgxImpl
 }
 
-func pgxLogStmt(stmt string, args ...interface{}) {
+func pgxLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -486,7 +486,7 @@ func (obj *pgxcockroachImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxcockroachImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxcockroachImpl) logStmt(stmt string, args ...any) {
 	pgxcockroachLogStmt(stmt, args...)
 }
 
@@ -584,7 +584,7 @@ type pgxcockroachTx struct {
 	*pgxcockroachImpl
 }
 
-func pgxcockroachLogStmt(stmt string, args ...interface{}) {
+func pgxcockroachLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -602,7 +602,7 @@ func (obj *spannerImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *spannerImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *spannerImpl) logStmt(stmt string, args ...any) {
 	spannerLogStmt(stmt, args...)
 }
 
@@ -725,7 +725,7 @@ type spannerTx struct {
 	*spannerImpl
 }
 
-func spannerLogStmt(stmt string, args ...interface{}) {
+func spannerLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -733,7 +733,7 @@ func spannerLogStmt(stmt string, args ...interface{}) {
 	}
 }
 
-type pretty []interface{}
+type pretty []any
 
 func (p pretty) Format(f fmt.State, c rune) {
 	fmt.Fprint(f, "[")
@@ -796,7 +796,7 @@ func Bar_Pk(v int64) Bar_Pk_Field {
 	return Bar_Pk_Field{_set: true, _value: v}
 }
 
-func (f Bar_Pk_Field) value() interface{} {
+func (f Bar_Pk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -815,7 +815,7 @@ func Bar_A(v int) Bar_A_Field {
 	return Bar_A_Field{_set: true, _value: v}
 }
 
-func (f Bar_A_Field) value() interface{} {
+func (f Bar_A_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -834,7 +834,7 @@ func Bar_B(v int) Bar_B_Field {
 	return Bar_B_Field{_set: true, _value: v}
 }
 
-func (f Bar_B_Field) value() interface{} {
+func (f Bar_B_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -853,7 +853,7 @@ func Bar_C(v int) Bar_C_Field {
 	return Bar_C_Field{_set: true, _value: v}
 }
 
-func (f Bar_C_Field) value() interface{} {
+func (f Bar_C_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -890,7 +890,7 @@ func Baz_Pk(v int64) Baz_Pk_Field {
 	return Baz_Pk_Field{_set: true, _value: v}
 }
 
-func (f Baz_Pk_Field) value() interface{} {
+func (f Baz_Pk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -909,7 +909,7 @@ func Baz_A(v int) Baz_A_Field {
 	return Baz_A_Field{_set: true, _value: v}
 }
 
-func (f Baz_A_Field) value() interface{} {
+func (f Baz_A_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -928,7 +928,7 @@ func Baz_B(v int) Baz_B_Field {
 	return Baz_B_Field{_set: true, _value: v}
 }
 
-func (f Baz_B_Field) value() interface{} {
+func (f Baz_B_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -947,7 +947,7 @@ func Baz_C(v int) Baz_C_Field {
 	return Baz_C_Field{_set: true, _value: v}
 }
 
-func (f Baz_C_Field) value() interface{} {
+func (f Baz_C_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -982,7 +982,7 @@ func Foo_Pk(v int64) Foo_Pk_Field {
 	return Foo_Pk_Field{_set: true, _value: v}
 }
 
-func (f Foo_Pk_Field) value() interface{} {
+func (f Foo_Pk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1001,7 +1001,7 @@ func Foo_A(v int) Foo_A_Field {
 	return Foo_A_Field{_set: true, _value: v}
 }
 
-func (f Foo_A_Field) value() interface{} {
+func (f Foo_A_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1020,7 +1020,7 @@ func Foo_B(v int) Foo_B_Field {
 	return Foo_B_Field{_set: true, _value: v}
 }
 
-func (f Foo_B_Field) value() interface{} {
+func (f Foo_B_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1039,7 +1039,7 @@ func Foo_C(v int) Foo_C_Field {
 	return Foo_C_Field{_set: true, _value: v}
 }
 
-func (f Foo_C_Field) value() interface{} {
+func (f Foo_C_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1067,7 +1067,7 @@ func Minimal_Pk(v int64) Minimal_Pk_Field {
 	return Minimal_Pk_Field{_set: true, _value: v}
 }
 
-func (f Minimal_Pk_Field) value() interface{} {
+func (f Minimal_Pk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1102,7 +1102,7 @@ func Special_Pk(v int64) Special_Pk_Field {
 	return Special_Pk_Field{_set: true, _value: v}
 }
 
-func (f Special_Pk_Field) value() interface{} {
+func (f Special_Pk_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1121,7 +1121,7 @@ func Special_A(v time.Time) Special_A_Field {
 	return Special_A_Field{_set: true, _value: v}
 }
 
-func (f Special_A_Field) value() interface{} {
+func (f Special_A_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1140,7 +1140,7 @@ func Special_B(v []byte) Special_B_Field {
 	return Special_B_Field{_set: true, _value: v}
 }
 
-func (f Special_B_Field) value() interface{} {
+func (f Special_B_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1453,7 +1453,7 @@ func (obj *sqlite3Impl) Create_Foo(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO foos "), __clause}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __b_val)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -1502,7 +1502,7 @@ func (obj *sqlite3Impl) Create_Bar(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bars "), __clause}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_val, __b_val)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -1547,7 +1547,7 @@ func (obj *sqlite3Impl) Create_Baz(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -1599,7 +1599,7 @@ func (obj *sqlite3Impl) Create_Minimal(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals DEFAULT VALUES")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1623,7 +1623,7 @@ func (obj *sqlite3Impl) Get_Foo_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE foos.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, foo_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1644,7 +1644,7 @@ func (obj *sqlite3Impl) Get_Bar_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bars.pk, bars.a, bars.b, bars.c FROM bars WHERE bars.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, bar_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1665,7 +1665,7 @@ func (obj *sqlite3Impl) Get_Baz_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bazs.pk, bazs.a, bazs.b, bazs.c FROM bazs WHERE bazs.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, baz_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1835,7 +1835,7 @@ func (obj *pgxImpl) Create_Foo(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO foos "), __clause, __sqlbundle_Literal(" RETURNING foos.pk, foos.a, foos.b, foos.c")}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __b_val)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -1881,7 +1881,7 @@ func (obj *pgxImpl) Create_Bar(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bars "), __clause, __sqlbundle_Literal(" RETURNING bars.pk, bars.a, bars.b, bars.c")}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_val, __b_val)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -1923,7 +1923,7 @@ func (obj *pgxImpl) Create_Baz(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause, __sqlbundle_Literal(" RETURNING bazs.pk, bazs.a, bazs.b, bazs.c")}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -1972,7 +1972,7 @@ func (obj *pgxImpl) Create_Minimal(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals DEFAULT VALUES RETURNING minimals.pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1993,7 +1993,7 @@ func (obj *pgxImpl) Get_Foo_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE foos.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, foo_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2014,7 +2014,7 @@ func (obj *pgxImpl) Get_Bar_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bars.pk, bars.a, bars.b, bars.c FROM bars WHERE bars.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, bar_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2035,7 +2035,7 @@ func (obj *pgxImpl) Get_Baz_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bazs.pk, bazs.a, bazs.b, bazs.c FROM bazs WHERE bazs.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, baz_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2128,7 +2128,7 @@ func (obj *pgxcockroachImpl) Create_Foo(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO foos "), __clause, __sqlbundle_Literal(" RETURNING foos.pk, foos.a, foos.b, foos.c")}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __b_val)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -2174,7 +2174,7 @@ func (obj *pgxcockroachImpl) Create_Bar(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bars "), __clause, __sqlbundle_Literal(" RETURNING bars.pk, bars.a, bars.b, bars.c")}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_val, __b_val)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -2216,7 +2216,7 @@ func (obj *pgxcockroachImpl) Create_Baz(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause, __sqlbundle_Literal(" RETURNING bazs.pk, bazs.a, bazs.b, bazs.c")}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -2265,7 +2265,7 @@ func (obj *pgxcockroachImpl) Create_Minimal(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals DEFAULT VALUES RETURNING minimals.pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2286,7 +2286,7 @@ func (obj *pgxcockroachImpl) Get_Foo_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE foos.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, foo_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2307,7 +2307,7 @@ func (obj *pgxcockroachImpl) Get_Bar_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bars.pk, bars.a, bars.b, bars.c FROM bars WHERE bars.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, bar_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2328,7 +2328,7 @@ func (obj *pgxcockroachImpl) Get_Baz_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bazs.pk, bazs.a, bazs.b, bazs.c FROM bazs WHERE bazs.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, baz_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2421,7 +2421,7 @@ func (obj *spannerImpl) Create_Foo(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO foos "), __clause, __sqlbundle_Literal(" THEN RETURN foos.pk, foos.a, foos.b, foos.c")}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __b_val)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -2479,7 +2479,7 @@ func (obj *spannerImpl) Create_Bar(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bars "), __clause, __sqlbundle_Literal(" THEN RETURN bars.pk, bars.a, bars.b, bars.c")}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __a_val, __b_val)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -2533,7 +2533,7 @@ func (obj *spannerImpl) Create_Baz(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause, __sqlbundle_Literal(" THEN RETURN bazs.pk, bazs.a, bazs.b, bazs.c")}}
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
@@ -2600,7 +2600,7 @@ func (obj *spannerImpl) Create_Minimal(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals ( pk ) VALUES ( DEFAULT ) THEN RETURN minimals.pk")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2629,7 +2629,7 @@ func (obj *spannerImpl) Get_Foo_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE foos.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, foo_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2650,7 +2650,7 @@ func (obj *spannerImpl) Get_Bar_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bars.pk, bars.a, bars.b, bars.c FROM bars WHERE bars.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, bar_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2671,7 +2671,7 @@ func (obj *spannerImpl) Get_Baz_By_Pk(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bazs.pk, bazs.a, bazs.b, bazs.c FROM bazs WHERE bazs.pk = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, baz_pk.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)

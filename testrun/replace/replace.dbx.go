@@ -32,14 +32,14 @@ var _ sync.Mutex
 
 var (
 	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...interface{})
+	Logger  func(format string, args ...any)
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
 	errEmptyUpdate       = errors.New("empty update")
 )
 
-func logError(format string, args ...interface{}) {
+func logError(format string, args ...any) {
 	if Logger != nil {
 		Logger(format, args...)
 	}
@@ -126,9 +126,9 @@ func constraintViolation(err error, constraint string) error {
 }
 
 type driver interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 var (
@@ -254,7 +254,7 @@ func (obj *sqlite3Impl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *sqlite3Impl) logStmt(stmt string, args ...interface{}) {
+func (obj *sqlite3Impl) logStmt(stmt string, args ...any) {
 	sqlite3LogStmt(stmt, args...)
 }
 
@@ -314,7 +314,7 @@ type sqlite3Tx struct {
 	*sqlite3Impl
 }
 
-func sqlite3LogStmt(stmt string, args ...interface{}) {
+func sqlite3LogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -332,7 +332,7 @@ func (obj *pgxImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxImpl) logStmt(stmt string, args ...any) {
 	pgxLogStmt(stmt, args...)
 }
 
@@ -392,7 +392,7 @@ type pgxTx struct {
 	*pgxImpl
 }
 
-func pgxLogStmt(stmt string, args ...interface{}) {
+func pgxLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -410,7 +410,7 @@ func (obj *pgxcockroachImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxcockroachImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxcockroachImpl) logStmt(stmt string, args ...any) {
 	pgxcockroachLogStmt(stmt, args...)
 }
 
@@ -470,7 +470,7 @@ type pgxcockroachTx struct {
 	*pgxcockroachImpl
 }
 
-func pgxcockroachLogStmt(stmt string, args ...interface{}) {
+func pgxcockroachLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -488,7 +488,7 @@ func (obj *spannerImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *spannerImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *spannerImpl) logStmt(stmt string, args ...any) {
 	spannerLogStmt(stmt, args...)
 }
 
@@ -551,7 +551,7 @@ type spannerTx struct {
 	*spannerImpl
 }
 
-func spannerLogStmt(stmt string, args ...interface{}) {
+func spannerLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -559,7 +559,7 @@ func spannerLogStmt(stmt string, args ...interface{}) {
 	}
 }
 
-type pretty []interface{}
+type pretty []any
 
 func (p pretty) Format(f fmt.State, c rune) {
 	fmt.Fprint(f, "[")
@@ -616,7 +616,7 @@ func Kv_Key(v string) Kv_Key_Field {
 	return Kv_Key_Field{_set: true, _value: v}
 }
 
-func (f Kv_Key_Field) value() interface{} {
+func (f Kv_Key_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -635,7 +635,7 @@ func Kv_Val(v string) Kv_Val_Field {
 	return Kv_Val_Field{_set: true, _value: v}
 }
 
-func (f Kv_Val_Field) value() interface{} {
+func (f Kv_Val_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -946,7 +946,7 @@ func (obj *sqlite3Impl) ReplaceNoReturn_Kv(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("REPLACE INTO kvs ( key, val ) VALUES ( ?, ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __key_val, __val_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -965,7 +965,7 @@ func (obj *sqlite3Impl) All_Kv(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT kvs.key, kvs.val FROM kvs")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -997,7 +997,7 @@ func (obj *sqlite3Impl) Get_Kv_By_Key(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT kvs.key, kvs.val FROM kvs WHERE kvs.key = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, kv_key.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1071,7 +1071,7 @@ func (obj *pgxImpl) ReplaceNoReturn_Kv(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO kvs ( key, val ) VALUES ( ?, ? ) ON CONFLICT ( key ) DO UPDATE SET key = EXCLUDED.key, val = EXCLUDED.val")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __key_val, __val_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1090,7 +1090,7 @@ func (obj *pgxImpl) All_Kv(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT kvs.key, kvs.val FROM kvs")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1122,7 +1122,7 @@ func (obj *pgxImpl) Get_Kv_By_Key(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT kvs.key, kvs.val FROM kvs WHERE kvs.key = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, kv_key.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1173,7 +1173,7 @@ func (obj *pgxcockroachImpl) ReplaceNoReturn_Kv(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("UPSERT INTO kvs ( key, val ) VALUES ( ?, ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __key_val, __val_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1192,7 +1192,7 @@ func (obj *pgxcockroachImpl) All_Kv(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT kvs.key, kvs.val FROM kvs")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1224,7 +1224,7 @@ func (obj *pgxcockroachImpl) Get_Kv_By_Key(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT kvs.key, kvs.val FROM kvs WHERE kvs.key = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, kv_key.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1275,7 +1275,7 @@ func (obj *spannerImpl) ReplaceNoReturn_Kv(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT OR UPDATE INTO kvs ( key, val ) VALUES ( ?, ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __key_val, __val_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1294,7 +1294,7 @@ func (obj *spannerImpl) All_Kv(ctx context.Context) (
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT kvs.key, kvs.val FROM kvs")
 
-	var __values []interface{}
+	var __values []any
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1326,7 +1326,7 @@ func (obj *spannerImpl) Get_Kv_By_Key(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT kvs.key, kvs.val FROM kvs WHERE kvs.key = ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, kv_key.value())
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)

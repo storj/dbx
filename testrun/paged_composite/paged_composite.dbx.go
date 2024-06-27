@@ -32,14 +32,14 @@ var _ sync.Mutex
 
 var (
 	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...interface{})
+	Logger  func(format string, args ...any)
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
 	errEmptyUpdate       = errors.New("empty update")
 )
 
-func logError(format string, args ...interface{}) {
+func logError(format string, args ...any) {
 	if Logger != nil {
 		Logger(format, args...)
 	}
@@ -126,9 +126,9 @@ func constraintViolation(err error, constraint string) error {
 }
 
 type driver interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 var (
@@ -254,7 +254,7 @@ func (obj *sqlite3Impl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *sqlite3Impl) logStmt(stmt string, args ...interface{}) {
+func (obj *sqlite3Impl) logStmt(stmt string, args ...any) {
 	sqlite3LogStmt(stmt, args...)
 }
 
@@ -319,7 +319,7 @@ type sqlite3Tx struct {
 	*sqlite3Impl
 }
 
-func sqlite3LogStmt(stmt string, args ...interface{}) {
+func sqlite3LogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -337,7 +337,7 @@ func (obj *pgxImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxImpl) logStmt(stmt string, args ...any) {
 	pgxLogStmt(stmt, args...)
 }
 
@@ -402,7 +402,7 @@ type pgxTx struct {
 	*pgxImpl
 }
 
-func pgxLogStmt(stmt string, args ...interface{}) {
+func pgxLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -420,7 +420,7 @@ func (obj *pgxcockroachImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *pgxcockroachImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *pgxcockroachImpl) logStmt(stmt string, args ...any) {
 	pgxcockroachLogStmt(stmt, args...)
 }
 
@@ -485,7 +485,7 @@ type pgxcockroachTx struct {
 	*pgxcockroachImpl
 }
 
-func pgxcockroachLogStmt(stmt string, args ...interface{}) {
+func pgxcockroachLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -503,7 +503,7 @@ func (obj *spannerImpl) Rebind(s string) string {
 	return obj.dialect.Rebind(s)
 }
 
-func (obj *spannerImpl) logStmt(stmt string, args ...interface{}) {
+func (obj *spannerImpl) logStmt(stmt string, args ...any) {
 	spannerLogStmt(stmt, args...)
 }
 
@@ -591,7 +591,7 @@ type spannerTx struct {
 	*spannerImpl
 }
 
-func spannerLogStmt(stmt string, args ...interface{}) {
+func spannerLogStmt(stmt string, args ...any) {
 	// TODO: render placeholders
 	if Logger != nil {
 		out := fmt.Sprintf("stmt: %s\nargs: %v\n", stmt, pretty(args))
@@ -599,7 +599,7 @@ func spannerLogStmt(stmt string, args ...interface{}) {
 	}
 }
 
-type pretty []interface{}
+type pretty []any
 
 func (p pretty) Format(f fmt.State, c rune) {
 	fmt.Fprint(f, "[")
@@ -662,7 +662,7 @@ func ConsumedSerial_ExpiresAt(v time.Time) ConsumedSerial_ExpiresAt_Field {
 	return ConsumedSerial_ExpiresAt_Field{_set: true, _value: v}
 }
 
-func (f ConsumedSerial_ExpiresAt_Field) value() interface{} {
+func (f ConsumedSerial_ExpiresAt_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -681,7 +681,7 @@ func ConsumedSerial_StorageNodeId(v []byte) ConsumedSerial_StorageNodeId_Field {
 	return ConsumedSerial_StorageNodeId_Field{_set: true, _value: v}
 }
 
-func (f ConsumedSerial_StorageNodeId_Field) value() interface{} {
+func (f ConsumedSerial_StorageNodeId_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -700,7 +700,7 @@ func ConsumedSerial_ProjectId(v []byte) ConsumedSerial_ProjectId_Field {
 	return ConsumedSerial_ProjectId_Field{_set: true, _value: v}
 }
 
-func (f ConsumedSerial_ProjectId_Field) value() interface{} {
+func (f ConsumedSerial_ProjectId_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -719,7 +719,7 @@ func ConsumedSerial_BucketName(v []byte) ConsumedSerial_BucketName_Field {
 	return ConsumedSerial_BucketName_Field{_set: true, _value: v}
 }
 
-func (f ConsumedSerial_BucketName_Field) value() interface{} {
+func (f ConsumedSerial_BucketName_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -738,7 +738,7 @@ func ConsumedSerial_Action(v uint) ConsumedSerial_Action_Field {
 	return ConsumedSerial_Action_Field{_set: true, _value: v}
 }
 
-func (f ConsumedSerial_Action_Field) value() interface{} {
+func (f ConsumedSerial_Action_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -757,7 +757,7 @@ func ConsumedSerial_SerialNumber(v []byte) ConsumedSerial_SerialNumber_Field {
 	return ConsumedSerial_SerialNumber_Field{_set: true, _value: v}
 }
 
-func (f ConsumedSerial_SerialNumber_Field) value() interface{} {
+func (f ConsumedSerial_SerialNumber_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -776,7 +776,7 @@ func ConsumedSerial_Settled(v uint64) ConsumedSerial_Settled_Field {
 	return ConsumedSerial_Settled_Field{_set: true, _value: v}
 }
 
-func (f ConsumedSerial_Settled_Field) value() interface{} {
+func (f ConsumedSerial_Settled_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1107,7 +1107,7 @@ func (obj *sqlite3Impl) CreateNoReturn_ConsumedSerial(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO consumed_serials ( expires_at, storage_node_id, project_id, bucket_name, action, serial_number, settled ) VALUES ( ?, ?, ?, ?, ?, ?, ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __expires_at_val, __storage_node_id_val, __project_id_val, __bucket_name_val, __action_val, __serial_number_val, __settled_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1130,7 +1130,7 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number, consumed_serials.settled, consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number FROM consumed_serials WHERE consumed_serials.expires_at > ? ORDER BY consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, consumed_serial_expires_at_greater.value())
 
 	var __stmt string
@@ -1238,7 +1238,7 @@ func (obj *pgxImpl) CreateNoReturn_ConsumedSerial(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO consumed_serials ( expires_at, storage_node_id, project_id, bucket_name, action, serial_number, settled ) VALUES ( ?, ?, ?, ?, ?, ?, ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __expires_at_val, __storage_node_id_val, __project_id_val, __bucket_name_val, __action_val, __serial_number_val, __settled_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1261,7 +1261,7 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Contex
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number, consumed_serials.settled, consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number FROM consumed_serials WHERE consumed_serials.expires_at > ? ORDER BY consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, consumed_serial_expires_at_greater.value())
 
 	var __stmt string
@@ -1346,7 +1346,7 @@ func (obj *pgxcockroachImpl) CreateNoReturn_ConsumedSerial(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO consumed_serials ( expires_at, storage_node_id, project_id, bucket_name, action, serial_number, settled ) VALUES ( ?, ?, ?, ?, ?, ?, ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __expires_at_val, __storage_node_id_val, __project_id_val, __bucket_name_val, __action_val, __serial_number_val, __settled_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1369,7 +1369,7 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx conte
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number, consumed_serials.settled, consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number FROM consumed_serials WHERE consumed_serials.expires_at > ? ORDER BY consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, consumed_serial_expires_at_greater.value())
 
 	var __stmt string
@@ -1454,7 +1454,7 @@ func (obj *spannerImpl) CreateNoReturn_ConsumedSerial(ctx context.Context,
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO consumed_serials ( expires_at, storage_node_id, project_id, bucket_name, action, serial_number, settled ) VALUES ( ?, ?, ?, ?, ?, ?, ? )")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, __expires_at_val, __storage_node_id_val, __project_id_val, __bucket_name_val, __action_val, __serial_number_val, __settled_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1477,7 +1477,7 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number, consumed_serials.settled, consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number FROM consumed_serials WHERE consumed_serials.expires_at > ? ORDER BY consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number LIMIT ?")
 
-	var __values []interface{}
+	var __values []any
 	__values = append(__values, consumed_serial_expires_at_greater.value())
 
 	var __stmt string

@@ -373,7 +373,7 @@ type funcDecl struct {
 	Body         string
 }
 
-func (r *Renderer) renderFunc(tmpl *template.Template, w io.Writer, data interface{}, dialect sql.Dialect) (err error) {
+func (r *Renderer) renderFunc(tmpl *template.Template, w io.Writer, data any, dialect sql.Dialect) (err error) {
 	var signature bytes.Buffer
 	err = tmplutil.Render(tmpl, &signature, "signature", data)
 	if err != nil {
