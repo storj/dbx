@@ -170,7 +170,6 @@ issues:
 
   exclude-files:
     - ".*\\.pb\\.go$"
-    - ".*\\.dbx\\.go$"
 
   exclude-rules:
     - linters:
