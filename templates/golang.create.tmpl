@@ -21,7 +21,7 @@
 	{{ embedsql .Info "__embed_stmt" }}
 
 	var __values []any
-	__values = append(__values, {{ arg .StaticFields }})
+	{{ if .StaticFields }}__values = append(__values, {{ arg .StaticFields }}){{ end }}
 
 	{{ if .Struct.InsertableDynamicFields -}}
 	__optional_columns := __sqlbundle_Literals{Join: ", "}

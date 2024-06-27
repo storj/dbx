@@ -1096,7 +1096,6 @@ func (obj *sqlite3Impl) Create_User(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users DEFAULT VALUES")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1308,7 +1307,6 @@ func (obj *pgxImpl) Create_User(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users DEFAULT VALUES RETURNING users.pk")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1452,7 +1450,6 @@ func (obj *pgxcockroachImpl) Create_User(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users DEFAULT VALUES RETURNING users.pk")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1596,7 +1593,6 @@ func (obj *spannerImpl) Create_User(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users ( pk ) VALUES ( DEFAULT ) THEN RETURN users.pk")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)

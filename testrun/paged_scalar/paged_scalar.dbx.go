@@ -1932,7 +1932,6 @@ func (obj *sqlite3Impl) Create_DataSerial(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials DEFAULT VALUES")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1955,7 +1954,6 @@ func (obj *sqlite3Impl) Create_DataSerial64(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s DEFAULT VALUES")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -3315,7 +3313,6 @@ func (obj *pgxImpl) Create_DataSerial(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials DEFAULT VALUES RETURNING data_serials.id")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -3335,7 +3332,6 @@ func (obj *pgxImpl) Create_DataSerial64(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s DEFAULT VALUES RETURNING data_serial64s.id")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -4420,7 +4416,6 @@ func (obj *pgxcockroachImpl) Create_DataSerial(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials DEFAULT VALUES RETURNING data_serials.id")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -4440,7 +4435,6 @@ func (obj *pgxcockroachImpl) Create_DataSerial64(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s DEFAULT VALUES RETURNING data_serial64s.id")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -5581,7 +5575,6 @@ func (obj *spannerImpl) Create_DataSerial(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials ( id ) VALUES ( DEFAULT ) THEN RETURN data_serials.id")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -5609,7 +5602,6 @@ func (obj *spannerImpl) Create_DataSerial64(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s ( id ) VALUES ( DEFAULT ) THEN RETURN data_serial64s.id")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)

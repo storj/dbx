@@ -1153,7 +1153,6 @@ func (obj *sqlite3Impl) Create_A(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a DEFAULT VALUES")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1373,7 +1372,6 @@ func (obj *pgxImpl) Create_A(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a DEFAULT VALUES RETURNING a.id")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1525,7 +1523,6 @@ func (obj *pgxcockroachImpl) Create_A(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a DEFAULT VALUES RETURNING a.id")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1677,7 +1674,6 @@ func (obj *spannerImpl) Create_A(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a ( id ) VALUES ( DEFAULT ) THEN RETURN a.id")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)

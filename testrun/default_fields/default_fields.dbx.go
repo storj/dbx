@@ -1543,7 +1543,6 @@ func (obj *sqlite3Impl) Create_Baz(ctx context.Context,
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause}}
 
 	var __values []any
-	__values = append(__values)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
 	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
@@ -1595,7 +1594,6 @@ func (obj *sqlite3Impl) Create_Minimal(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals DEFAULT VALUES")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1919,7 +1917,6 @@ func (obj *pgxImpl) Create_Baz(ctx context.Context,
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause, __sqlbundle_Literal(" RETURNING bazs.pk, bazs.a, bazs.b, bazs.c")}}
 
 	var __values []any
-	__values = append(__values)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
 	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
@@ -1968,7 +1965,6 @@ func (obj *pgxImpl) Create_Minimal(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals DEFAULT VALUES RETURNING minimals.pk")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -2212,7 +2208,6 @@ func (obj *pgxcockroachImpl) Create_Baz(ctx context.Context,
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause, __sqlbundle_Literal(" RETURNING bazs.pk, bazs.a, bazs.b, bazs.c")}}
 
 	var __values []any
-	__values = append(__values)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
 	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
@@ -2261,7 +2256,6 @@ func (obj *pgxcockroachImpl) Create_Minimal(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals DEFAULT VALUES RETURNING minimals.pk")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -2529,7 +2523,6 @@ func (obj *spannerImpl) Create_Baz(ctx context.Context,
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause, __sqlbundle_Literal(" THEN RETURN bazs.pk, bazs.a, bazs.b, bazs.c")}}
 
 	var __values []any
-	__values = append(__values)
 
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
 	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
@@ -2596,7 +2589,6 @@ func (obj *spannerImpl) Create_Minimal(ctx context.Context) (
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals ( pk ) VALUES ( DEFAULT ) THEN RETURN minimals.pk")
 
 	var __values []any
-	__values = append(__values)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
