@@ -85,5 +85,5 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
 RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
     --mount=type=cache,target=/go/pkg/mod,id=gopkg \
     check-mod-tidy
-RUN check-imports -race ./...
+RUN check-imports ./...
 RUN check-downgrades

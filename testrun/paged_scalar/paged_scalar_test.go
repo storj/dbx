@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"storj.io/dbx/testrun"
-
 	"github.com/stretchr/testify/require"
+
+	"storj.io/dbx/testrun"
 )
 
 type Desc struct {

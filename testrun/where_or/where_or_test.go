@@ -7,9 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"storj.io/dbx/testrun"
-
 	"github.com/stretchr/testify/require"
+
+	"storj.io/dbx/testrun"
 )
 
 func TestWhereOr(t *testing.T) {
