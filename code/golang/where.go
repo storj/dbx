@@ -15,6 +15,8 @@ type ConditionArg struct {
 	Var         *Var
 	IsCondition bool
 	Condition   int
+	RawDataType string
+	IsNullable  bool
 }
 
 func ConditionArgsFromWheres(wheres []*ir.Where) (out []ConditionArg) {
@@ -55,14 +57,17 @@ func (c *conditionArgGenerator) FromClause(clause *ir.Clause) *ConditionArg {
 		name += "_" + clause.Op.Suffix()
 	}
 
-	arg := new(ConditionArg)
+	modelField := ModelFieldFromIR(expr.Field)
 
+	arg := new(ConditionArg)
 	// we don't set ZeroVal or InitVal because these args should only be used
 	// as incoming arguments to function calls.
 	arg.Var = &Var{
 		Name: name,
-		Type: ModelFieldFromIR(expr.Field).StructName(),
+		Type: modelField.StructName(),
 	}
+	arg.RawDataType = modelField.Type
+	arg.IsNullable = modelField.Nullable
 
 	if clause.NeedsCondition() {
 		arg.IsCondition = true

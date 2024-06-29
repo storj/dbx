@@ -41,39 +41,17 @@ type Renderer struct {
 	header          *template.Template
 	misc            *template.Template
 	footer          *template.Template
-	funcs           template.FuncMap
 	loadedTemplates map[string]*template.Template
 }
 
 var _ code.Renderer = (*Renderer)(nil)
 
 func New(loader tmplutil.Loader, options *Options) (r *Renderer, err error) {
-	funcs := template.FuncMap{
-		"sliceof":           sliceofFn,
-		"param":             paramFn,
-		"arg":               argFn,
-		"value":             valueFn,
-		"zero":              zeroFn,
-		"init":              initFn,
-		"initnew":           initnewFn,
-		"declare":           declareFn,
-		"addrof":            addrofFn,
-		"flatten":           flattenFn,
-		"comma":             commaFn,
-		"ctxparam":          ctxparamFn,
-		"ctxarg":            ctxargFn,
-		"embedsql":          embedsqlFn,
-		"embedplaceholders": embedplaceholdersFn,
-		"embedvalues":       embedvaluesFn,
-		"rename":            renameFn,
-		"double":            doubleFn,
-		"slice":             sliceFn,
-	}
+
 	r = &Renderer{
 		loader:          loader,
 		options:         *options,
 		methods:         map[string]publicMethod{},
-		funcs:           funcs,
 		loadedTemplates: make(map[string]*template.Template),
 	}
 	r.header, err = loader.Load("golang.header.tmpl", nil)
@@ -190,6 +168,10 @@ func (r *Renderer) RenderCode(root *ir.Root, dialects []sql.Dialect) (rendered [
 	}
 
 	if err := r.renderDialectOpens(&buf, dialects); err != nil {
+		return nil, err
+	}
+
+	if err := r.renderDialectDefinitions(&buf, dialects); err != nil {
 		return nil, err
 	}
 
@@ -497,6 +479,20 @@ func (r *Renderer) renderDialectOpens(w io.Writer, dialects []sql.Dialect) (err 
 	return nil
 }
 
+func (r *Renderer) renderDialectDefinitions(w io.Writer, dialects []sql.Dialect) (err error) {
+	for _, dialect := range dialects {
+		tmpl, err := r.loadDialect(dialect)
+		if err != nil {
+			return err
+		}
+		if err := tmplutil.Render(tmpl, w, "definitions", nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (r *Renderer) loadDialect(dialect sql.Dialect) (*template.Template, error) {
 	return r.loader.Load(
 		fmt.Sprintf("golang.dialect-%s.tmpl", dialect.Name()), nil)
@@ -507,9 +503,12 @@ func (r *Renderer) LoadTemplate(name string, dialect string) (*template.Template
 	if loaded, found := r.loadedTemplates[key]; found {
 		return loaded, nil
 	}
-	loaded, err := r.loader.Load(fmt.Sprintf("golang.%s.%s.tmpl", name, dialect), r.funcs)
+
+	funcs := funcMap(dialect)
+
+	loaded, err := r.loader.Load(fmt.Sprintf("golang.%s.%s.tmpl", name, dialect), funcs)
 	if err != nil && strings.Contains(err.Error(), "does not exist") {
-		loaded, err = r.loader.Load(fmt.Sprintf("golang.%s.tmpl", name), r.funcs)
+		loaded, err = r.loader.Load(fmt.Sprintf("golang.%s.tmpl", name), funcs)
 	}
 	if err != nil {
 		return nil, err

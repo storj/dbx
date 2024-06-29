@@ -20,12 +20,7 @@ Update{{ if not .Return }}NoReturn{{ end }}_{{ .Suffix }}
 	var __values []any
 	var __args []any
 
-	{{ range .Struct.UpdatableFields }}
-	if update.{{ .Name }}._set {
-		__values = append(__values, update.{{ .Name }}.value())
-		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("{{ .Column }} = ?"))
-	}
-	{{ end }}
+	{{ setupdatablefields .Struct.UpdatableFields }}
 
 	{{- if .NeedsNow }}
 	__now := obj.db.Hooks.Now().UTC()

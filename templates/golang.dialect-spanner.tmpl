@@ -1,6 +1,8 @@
 {{- define "import" }}
 	_ "cloud.google.com/go/spanner"
 	_ "github.com/googleapis/go-sql-spanner"
+	sqldriver "database/sql/driver"
+	"math"
 {{ end -}}
 
 {{- define "is-constraint-error" }}{{/* gotype: storj.io/dbx/code/golang.deleteWorld */}}
@@ -12,5 +14,43 @@ func (impl {{ .Receiver }}) isConstraintError(err error) (constraint string, ok 
 {{- define "open" }}
 func openspanner(source string) (*sql.DB, error) {
 	return sql.Open("spanner", strings.TrimPrefix(source, "spanner://"))
+}
+{{ end -}}
+
+{{- define "definitions" }}
+func spannerConvertArgument(v any) any {
+	switch v := v.(type) {
+	case uint64:
+		return spannerUint64{val: v}
+	case *uint64:
+		return spannerPointerUint64{val: v}
+	default:
+		return v
+	}
+}
+
+type spannerUint64 struct {
+	val uint64
+}
+
+func (s spannerUint64) Value() (sqldriver.Value, error) {
+	if s.val > math.MaxInt64{
+		return nil, fmt.Errorf("value %d is larger than max supported INT64 column value %d", s.val, math.MaxInt64)
+	}
+	return int64(s.val), nil
+}
+
+type spannerPointerUint64 struct {
+	val *uint64
+}
+
+func (s spannerPointerUint64) Value() (sqldriver.Value, error) {
+	if s.val == nil {
+		return nil, nil
+	}
+	if *s.val > math.MaxInt64{
+		return nil, fmt.Errorf("value %d is larger than max supported INT64 column value %d", *s.val, math.MaxInt64)
+	}
+	return int64(*s.val), nil
 }
 {{ end -}}

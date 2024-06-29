@@ -18,10 +18,12 @@ import (
 
 	_ "cloud.google.com/go/spanner"
 	"crypto/rand"
+	sqldriver "database/sql/driver"
 	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/mattn/go-sqlite3"
+	"math"
 )
 
 // Prevent conditional imports from causing build failures.
@@ -1481,4 +1483,40 @@ func openpgxcockroach(source string) (*sql.DB, error) {
 
 func openspanner(source string) (*sql.DB, error) {
 	return sql.Open("spanner", strings.TrimPrefix(source, "spanner://"))
+}
+
+func spannerConvertArgument(v any) any {
+	switch v := v.(type) {
+	case uint64:
+		return spannerUint64{val: v}
+	case *uint64:
+		return spannerPointerUint64{val: v}
+	default:
+		return v
+	}
+}
+
+type spannerUint64 struct {
+	val uint64
+}
+
+func (s spannerUint64) Value() (sqldriver.Value, error) {
+	if s.val > math.MaxInt64 {
+		return nil, fmt.Errorf("value %d is larger than max supported INT64 column value %d", s.val, math.MaxInt64)
+	}
+	return int64(s.val), nil
+}
+
+type spannerPointerUint64 struct {
+	val *uint64
+}
+
+func (s spannerPointerUint64) Value() (sqldriver.Value, error) {
+	if s.val == nil {
+		return nil, nil
+	}
+	if *s.val > math.MaxInt64 {
+		return nil, fmt.Errorf("value %d is larger than max supported INT64 column value %d", *s.val, math.MaxInt64)
+	}
+	return int64(*s.val), nil
 }

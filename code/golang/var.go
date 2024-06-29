@@ -193,3 +193,10 @@ func (v *Var) Flatten() (flattened []*Var) {
 	}
 	return flattened
 }
+
+func (v *Var) SpannerInitNew() string {
+	if spannerNeedsWrapperType(v.Type) {
+		return fmt.Sprintf("%s := spannerConvertArgument(%s)", v.Name, v.InitVal)
+	}
+	return fmt.Sprintf("%s := %s", v.Name, v.InitVal)
+}

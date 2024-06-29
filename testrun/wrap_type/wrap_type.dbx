@@ -1,0 +1,31 @@
+model person (
+	key pk
+	field pk serial64
+	field a  text
+	field b  uint64   (updatable) 
+	field c  uint64   (nullable, updatable)
+	field d  uint64
+	field e  uint64   (nullable)
+)
+
+create person (  )
+
+read one ( select person, where person.pk = ? )
+
+read one (
+	select person
+	where person.d = ?
+	where person.e = ?
+)
+
+update person ( 
+	where person.pk = ? 
+	where person.d = ?
+	where person.e = ?
+)
+
+delete person ( 
+	where person.pk = ? 
+	where person.d = ?
+	where person.e = ?
+)

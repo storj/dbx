@@ -9,11 +9,44 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"text/template"
 
 	"storj.io/dbx/internal/inflect"
 	"storj.io/dbx/ir"
 	"storj.io/dbx/sqlgen/sqlembedgo"
 )
+
+func funcMap(dialect string) template.FuncMap {
+	funcs := template.FuncMap{
+		"sliceof":           sliceofFn,
+		"param":             paramFn,
+		"arg":               argFn,
+		"value":             valueFn,
+		"zero":              zeroFn,
+		"init":              initFn,
+		"initnew":           initnewFn,
+		"declare":           declareFn,
+		"addrof":            addrofFn,
+		"flatten":           flattenFn,
+		"comma":             commaFn,
+		"ctxparam":          ctxparamFn,
+		"ctxarg":            ctxargFn,
+		"embedsql":          embedsqlFn,
+		"embedplaceholders": embedplaceholdersFn,
+		"embedvalues":       embedvaluesFn,
+		"rename":            renameFn,
+		"double":            doubleFn,
+		"slice":             sliceFn,
+	}
+
+	if dialect == "spanner" {
+		funcs["initnew"] = spanner_initnewFn
+		funcs["embedvalues"] = spanner_embedvaluesFn
+		funcs["setupdatablefields"] = spanner_setupdatablefieldsFn
+	}
+
+	return funcs
+}
 
 func renameFn(name string, v *Var) *Var {
 	vc := v.Copy()
@@ -232,4 +265,72 @@ func embedvaluesFn(args []ConditionArg, name string) string {
 	}
 
 	return out.String()
+}
+
+func spanner_initnewFn(intf interface{}) (string, error) {
+	vs, err := forVars(intf, (*Var).SpannerInitNew)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(vs, "\n"), nil
+}
+
+func spanner_embedvaluesFn(args []ConditionArg, name string) string {
+	var out bytes.Buffer
+	var run []string
+
+	for _, arg := range args {
+		if arg.IsCondition {
+			if len(run) > 0 {
+				fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+				run = run[:0]
+			}
+
+			fmt.Fprintf(&out, "if !%s.isnull() {\n", arg.Var.Name)
+			fmt.Fprintf(&out, "\t__cond_%d.Null = false\n", arg.Condition)
+
+			if spannerNeedsWrapperType(arg.RawDataType) {
+				fmt.Fprintf(&out, "\t%s = append(%s, spannerConvertArgument(%s.value()))\n", name, name, arg.Var.Name)
+			} else {
+				fmt.Fprintf(&out, "\t%s = append(%s, %s.value())\n", name, name, arg.Var.Name)
+			}
+
+			fmt.Fprintf(&out, "}\n")
+		} else {
+			if spannerNeedsWrapperType(arg.RawDataType) {
+				run = append(run, fmt.Sprintf("spannerConvertArgument(%s.value())", arg.Var.Name))
+			} else {
+				run = append(run, fmt.Sprintf("%s.value()", arg.Var.Name))
+			}
+		}
+	}
+	if len(run) > 0 {
+		fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+	}
+
+	return out.String()
+}
+
+func spanner_setupdatablefieldsFn(modelFields []*ModelField) string {
+	var out bytes.Buffer
+
+	for _, field := range modelFields {
+		if field == nil {
+			continue
+		}
+
+		fmt.Fprintf(&out, "if update.%s._set {\n", field.Name)
+		if spannerNeedsWrapperType(field.Type) {
+			fmt.Fprintf(&out, "\t__values = append(__values, spannerConvertArgument(update.%s.value()))\n", field.Name)
+		} else {
+			fmt.Fprintf(&out, "\t__values = append(__values, update.%s.value())\n", field.Name)
+		}
+		fmt.Fprintf(&out, "\t__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal(\"%s = ?\"))\n", field.Column)
+		fmt.Fprintf(&out, "}\n")
+	}
+	return out.String()
+}
+
+func spannerNeedsWrapperType(v string) bool {
+	return v == "uint64" || v == "*uint64"
 }
