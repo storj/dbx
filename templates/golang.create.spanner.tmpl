@@ -59,15 +59,26 @@
 	{{ else -}}
 	{{ if .SupportsReturning }}
 	{{ init .Return }}
-	tx, err := obj.db.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, obj.makeErr(err)
+	d := obj.driver
+	var tx *sql.Tx
+	if !obj.txn {
+		tx, err = obj.db.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, obj.makeErr(err)
+		}
+		d = tx
+		defer func() {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+				err = obj.makeErr(errors.Join(err, txErr))
+			}
+		}()
 	}
-	err = tx.QueryRowContext(ctx, __stmt, __values...).Scan({{ addrof (flatten .Return) }})
-	if err != nil {
-		return nil, obj.makeErr(err)
+	err = d.QueryRowContext(ctx, __stmt, __values...).Scan({{ addrof (flatten .Return) }})
+	if !obj.txn {
+		if err == nil {
+			err = obj.makeErr(tx.Commit())
+		}
 	}
-	err = tx.Commit()
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -85,4 +96,3 @@
 	{{ end -}}
 	{{ end -}}
 {{ end -}}
-

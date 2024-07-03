@@ -84,7 +84,11 @@ func makeErr(err error) error {
 	if err == nil {
 		return nil
 	}
-	e := &Error{Err: err}
+	var e *Error
+	if errors.As(err, &e) {
+		return wrapErr(e)
+	}
+	e = &Error{Err: err}
 	switch err {
 	case sql.ErrNoRows:
 		e.Code = ErrorCode_NoRows
@@ -241,6 +245,7 @@ type {{ $impltype }} struct {
 	db      *DB
 	dialect __sqlbundle_{{ .Name }}
 	driver  driver
+	txn bool
 }
 
 func (obj *{{ $impltype }}) Rebind(s string) string {
@@ -296,6 +301,7 @@ func (obj *{{ $dbtype }}) wrapTx(tx *sql.Tx) txMethods {
 		{{ $impltype }}: &{{ $impltype }}{
 			db:      obj.db,
 			driver:  tx,
+			txn: 	 true,
 		},
 	}
 }

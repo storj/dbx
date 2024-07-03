@@ -84,7 +84,11 @@ func makeErr(err error) error {
 	if err == nil {
 		return nil
 	}
-	e := &Error{Err: err}
+	var e *Error
+	if errors.As(err, &e) {
+		return wrapErr(e)
+	}
+	e = &Error{Err: err}
 	switch err {
 	case sql.ErrNoRows:
 		e.Code = ErrorCode_NoRows
@@ -243,6 +247,7 @@ type sqlite3Impl struct {
 	db      *DB
 	dialect __sqlbundle_sqlite3
 	driver  driver
+	txn     bool
 }
 
 func (obj *sqlite3Impl) Rebind(s string) string {
@@ -305,6 +310,7 @@ func (obj *sqlite3DB) wrapTx(tx *sql.Tx) txMethods {
 		sqlite3Impl: &sqlite3Impl{
 			db:     obj.db,
 			driver: tx,
+			txn:    true,
 		},
 	}
 }
@@ -326,6 +332,7 @@ type pgxImpl struct {
 	db      *DB
 	dialect __sqlbundle_pgx
 	driver  driver
+	txn     bool
 }
 
 func (obj *pgxImpl) Rebind(s string) string {
@@ -388,6 +395,7 @@ func (obj *pgxDB) wrapTx(tx *sql.Tx) txMethods {
 		pgxImpl: &pgxImpl{
 			db:     obj.db,
 			driver: tx,
+			txn:    true,
 		},
 	}
 }
@@ -409,6 +417,7 @@ type pgxcockroachImpl struct {
 	db      *DB
 	dialect __sqlbundle_pgxcockroach
 	driver  driver
+	txn     bool
 }
 
 func (obj *pgxcockroachImpl) Rebind(s string) string {
@@ -471,6 +480,7 @@ func (obj *pgxcockroachDB) wrapTx(tx *sql.Tx) txMethods {
 		pgxcockroachImpl: &pgxcockroachImpl{
 			db:     obj.db,
 			driver: tx,
+			txn:    true,
 		},
 	}
 }
@@ -492,6 +502,7 @@ type spannerImpl struct {
 	db      *DB
 	dialect __sqlbundle_spanner
 	driver  driver
+	txn     bool
 }
 
 func (obj *spannerImpl) Rebind(s string) string {
@@ -577,6 +588,7 @@ func (obj *spannerDB) wrapTx(tx *sql.Tx) txMethods {
 		spannerImpl: &spannerImpl{
 			db:     obj.db,
 			driver: tx,
+			txn:    true,
 		},
 	}
 }

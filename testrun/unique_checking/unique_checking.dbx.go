@@ -84,7 +84,11 @@ func makeErr(err error) error {
 	if err == nil {
 		return nil
 	}
-	e := &Error{Err: err}
+	var e *Error
+	if errors.As(err, &e) {
+		return wrapErr(e)
+	}
+	e = &Error{Err: err}
 	switch err {
 	case sql.ErrNoRows:
 		e.Code = ErrorCode_NoRows
@@ -243,6 +247,7 @@ type sqlite3Impl struct {
 	db      *DB
 	dialect __sqlbundle_sqlite3
 	driver  driver
+	txn     bool
 }
 
 func (obj *sqlite3Impl) Rebind(s string) string {
@@ -318,6 +323,7 @@ func (obj *sqlite3DB) wrapTx(tx *sql.Tx) txMethods {
 		sqlite3Impl: &sqlite3Impl{
 			db:     obj.db,
 			driver: tx,
+			txn:    true,
 		},
 	}
 }
@@ -339,6 +345,7 @@ type pgxImpl struct {
 	db      *DB
 	dialect __sqlbundle_pgx
 	driver  driver
+	txn     bool
 }
 
 func (obj *pgxImpl) Rebind(s string) string {
@@ -414,6 +421,7 @@ func (obj *pgxDB) wrapTx(tx *sql.Tx) txMethods {
 		pgxImpl: &pgxImpl{
 			db:     obj.db,
 			driver: tx,
+			txn:    true,
 		},
 	}
 }
@@ -435,6 +443,7 @@ type pgxcockroachImpl struct {
 	db      *DB
 	dialect __sqlbundle_pgxcockroach
 	driver  driver
+	txn     bool
 }
 
 func (obj *pgxcockroachImpl) Rebind(s string) string {
@@ -510,6 +519,7 @@ func (obj *pgxcockroachDB) wrapTx(tx *sql.Tx) txMethods {
 		pgxcockroachImpl: &pgxcockroachImpl{
 			db:     obj.db,
 			driver: tx,
+			txn:    true,
 		},
 	}
 }
@@ -531,6 +541,7 @@ type spannerImpl struct {
 	db      *DB
 	dialect __sqlbundle_spanner
 	driver  driver
+	txn     bool
 }
 
 func (obj *spannerImpl) Rebind(s string) string {
@@ -630,6 +641,7 @@ func (obj *spannerDB) wrapTx(tx *sql.Tx) txMethods {
 		spannerImpl: &spannerImpl{
 			db:     obj.db,
 			driver: tx,
+			txn:    true,
 		},
 	}
 }
@@ -1679,15 +1691,26 @@ func (obj *spannerImpl) Create_A(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	tx, err := obj.db.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, obj.makeErr(err)
+	d := obj.driver
+	var tx *sql.Tx
+	if !obj.txn {
+		tx, err = obj.db.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, obj.makeErr(err)
+		}
+		d = tx
+		defer func() {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+				err = obj.makeErr(errors.Join(err, txErr))
+			}
+		}()
 	}
-	err = tx.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Id)
-	if err != nil {
-		return nil, obj.makeErr(err)
+	err = d.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Id)
+	if !obj.txn {
+		if err == nil {
+			err = obj.makeErr(tx.Commit())
+		}
 	}
-	err = tx.Commit()
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1709,15 +1732,26 @@ func (obj *spannerImpl) Create_B(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	tx, err := obj.db.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, obj.makeErr(err)
+	d := obj.driver
+	var tx *sql.Tx
+	if !obj.txn {
+		tx, err = obj.db.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, obj.makeErr(err)
+		}
+		d = tx
+		defer func() {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+				err = obj.makeErr(errors.Join(err, txErr))
+			}
+		}()
 	}
-	err = tx.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Id, &b.AId)
-	if err != nil {
-		return nil, obj.makeErr(err)
+	err = d.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Id, &b.AId)
+	if !obj.txn {
+		if err == nil {
+			err = obj.makeErr(tx.Commit())
+		}
 	}
-	err = tx.Commit()
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1743,15 +1777,26 @@ func (obj *spannerImpl) Create_C(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	c = &C{}
-	tx, err := obj.db.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, obj.makeErr(err)
+	d := obj.driver
+	var tx *sql.Tx
+	if !obj.txn {
+		tx, err = obj.db.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, obj.makeErr(err)
+		}
+		d = tx
+		defer func() {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+				err = obj.makeErr(errors.Join(err, txErr))
+			}
+		}()
 	}
-	err = tx.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Id, &c.Lat, &c.Lon, &c.BId)
-	if err != nil {
-		return nil, obj.makeErr(err)
+	err = d.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Id, &c.Lat, &c.Lon, &c.BId)
+	if !obj.txn {
+		if err == nil {
+			err = obj.makeErr(tx.Commit())
+		}
 	}
-	err = tx.Commit()
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
