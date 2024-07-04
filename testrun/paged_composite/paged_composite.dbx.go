@@ -1450,7 +1450,7 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 	limit int, start *Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation) (
 	rows []*ConsumedSerial, next *Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number, consumed_serials.settled, consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number FROM consumed_serials WHERE consumed_serials.expires_at > ? AND (consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number) > (?, ?, ?, ?, ?, ?) ORDER BY consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number, consumed_serials.settled, consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number FROM consumed_serials WHERE consumed_serials.expires_at > ? AND ((consumed_serials.expires_at) > ? OR ((consumed_serials.expires_at) = ? AND (consumed_serials.storage_node_id) > ?) OR ((consumed_serials.expires_at) = ? AND (consumed_serials.storage_node_id) = ? AND (consumed_serials.project_id) > ?) OR ((consumed_serials.expires_at) = ? AND (consumed_serials.storage_node_id) = ? AND (consumed_serials.project_id) = ? AND (consumed_serials.bucket_name) > ?) OR ((consumed_serials.expires_at) = ? AND (consumed_serials.storage_node_id) = ? AND (consumed_serials.project_id) = ? AND (consumed_serials.bucket_name) = ? AND (consumed_serials.action) > ?) OR ((consumed_serials.expires_at) = ? AND (consumed_serials.storage_node_id) = ? AND (consumed_serials.project_id) = ? AND (consumed_serials.bucket_name) = ? AND (consumed_serials.action) = ? AND (consumed_serials.serial_number) > ?)) ORDER BY consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number, consumed_serials.settled, consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number FROM consumed_serials WHERE consumed_serials.expires_at > ? ORDER BY consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number LIMIT ?")
 
@@ -1459,7 +1459,20 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_expires_at, start._value_storage_node_id, start._value_project_id, start._value_bucket_name, start._value_action, start._value_serial_number, limit)
+
+		__values = append(__values, start._value_expires_at)
+
+		__values = append(__values, start._value_expires_at, start._value_storage_node_id)
+
+		__values = append(__values, start._value_expires_at, start._value_storage_node_id, start._value_project_id)
+
+		__values = append(__values, start._value_expires_at, start._value_storage_node_id, start._value_project_id, start._value_bucket_name)
+
+		__values = append(__values, start._value_expires_at, start._value_storage_node_id, start._value_project_id, start._value_bucket_name, start._value_action)
+
+		__values = append(__values, start._value_expires_at, start._value_storage_node_id, start._value_project_id, start._value_bucket_name, start._value_action, start._value_serial_number)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)

@@ -5631,7 +5631,10 @@ func (obj *spannerImpl) Paged_DataBlob(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5677,7 +5680,10 @@ func (obj *spannerImpl) Paged_DataDate(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5723,7 +5729,10 @@ func (obj *spannerImpl) Paged_DataFloat(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5769,7 +5778,10 @@ func (obj *spannerImpl) Paged_DataFloat64(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5815,7 +5827,10 @@ func (obj *spannerImpl) Paged_DataInt(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5861,7 +5876,10 @@ func (obj *spannerImpl) Paged_DataInt64(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5907,7 +5925,10 @@ func (obj *spannerImpl) Paged_DataJson(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5953,7 +5974,10 @@ func (obj *spannerImpl) Paged_DataSerial(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5999,7 +6023,10 @@ func (obj *spannerImpl) Paged_DataSerial64(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6045,7 +6072,10 @@ func (obj *spannerImpl) Paged_DataText(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6091,7 +6121,10 @@ func (obj *spannerImpl) Paged_DataTimestamp(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6137,7 +6170,10 @@ func (obj *spannerImpl) Paged_DataUint(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6183,7 +6219,10 @@ func (obj *spannerImpl) Paged_DataUint64(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6229,7 +6268,10 @@ func (obj *spannerImpl) Paged_DataUtimestamp(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-		__values = append(__values, start._value_id, limit)
+
+		__values = append(__values, start._value_id)
+
+		__values = append(__values, limit)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)

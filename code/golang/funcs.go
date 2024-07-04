@@ -267,7 +267,7 @@ func embedvaluesFn(args []ConditionArg, name string) string {
 	return out.String()
 }
 
-func spanner_initnewFn(intf interface{}) (string, error) {
+func spanner_initnewFn(intf any) (string, error) {
 	vs, err := forVars(intf, (*Var).SpannerInitNew)
 	if err != nil {
 		return "", err

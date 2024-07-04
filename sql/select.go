@@ -62,8 +62,27 @@ func SelectFromIRRead(ir_read *ir.Read, dialect Dialect) *Select {
 		sel.Limit = "?"
 		sel.Offset = "?"
 	case ir.Paged:
+		Where := []sqlgen.SQL{}
+		var w sqlgen.SQL
 		pk := ir_read.From.PrimaryKey
-		sel.Where = append(sel.Where, WhereSQL([]*ir.Where{pagedWhereFromPK(pk)}, dialect)...)
+		if dialect.Name() == "spanner" {
+			tpk := []*ir.Field{}
+			for i, p := range pk {
+				tpk = append(tpk, p)
+				w := J(" AND ", WhereSQL(pagedWhereFromPKSpanner(tpk, i), dialect)...)
+				if i > 0 {
+					w = J("", L("("), w, L(")"))
+				}
+				Where = append(Where, w)
+			}
+			w = J(" OR ", Where...)
+			if len(Where) > 1 {
+				w = J("", L("("), w, L(")"))
+			}
+			sel.Where = append(sel.Where, w)
+		} else {
+			sel.Where = append(sel.Where, WhereSQL([]*ir.Where{pagedWhereFromPK(pk)}, dialect)...)
+		}
 		sel.OrderBy = new(OrderBy)
 		for _, field := range pk {
 			sel.OrderBy.Entries = append(sel.OrderBy.Entries, OrderByEntry{
@@ -87,7 +106,6 @@ func SelectFromIRRead(ir_read *ir.Read, dialect Dialect) *Select {
 	default:
 		panic(fmt.Sprintf("unsupported select view %s", ir_read.View))
 	}
-
 	return sel
 }
 
@@ -97,6 +115,25 @@ func pagedWhereFromPK(pk []*ir.Field) *ir.Where {
 		Op:    consts.GT,
 		Right: &ir.Expr{Placeholder: len(pk)},
 	}}
+}
+
+func pagedWhereFromPKSpanner(pk []*ir.Field, i int) []*ir.Where {
+	where := []*ir.Where{}
+	for j := 0; j <= i; j++ {
+		op := consts.EQ
+		if j == i {
+			op = consts.GT
+		}
+		n := ir.Where{Clause: &ir.Clause{
+			Left:  &ir.Expr{Row: []*ir.Field{pk[j]}},
+			Op:    op,
+			Right: &ir.Expr{Placeholder: 1},
+		},
+		}
+		where = append(where, &n)
+	}
+
+	return where
 }
 
 func SQLFromSelect(sel *Select) sqlgen.SQL {
