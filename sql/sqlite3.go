@@ -26,9 +26,10 @@ func (s *sqlite3) Name() string {
 
 func (s *sqlite3) Features() Features {
 	return Features{
-		DefaultValues: true,
-		NoLimitToken:  "-1",
-		ReplaceStyle:  ReplaceStyle_Replace,
+		DefaultValues:       true,
+		PositionalArguments: true, // SQLite3 supports it with `?NNN`, see https://www.sqlite.org/lang_expr.html#varparam
+		NoLimitToken:        "-1",
+		ReplaceStyle:        ReplaceStyle_Replace,
 	}
 }
 
@@ -66,6 +67,8 @@ func (s *sqlite3) Rebind(sql string) string {
 var sqlite3Replacer = strings.NewReplacer(
 	`'`, `''`,
 )
+
+func (p *sqlite3) ArgumentPrefix() string { return "?" }
 
 func (p *sqlite3) EscapeString(s string) string {
 	return sqlite3Replacer.Replace(s)
