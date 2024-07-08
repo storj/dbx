@@ -5622,7 +5622,7 @@ func (obj *spannerImpl) Paged_DataBlob(ctx context.Context,
 	limit int, start *Paged_DataBlob_Continuation) (
 	rows []*DataBlob, next *Paged_DataBlob_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_blobs.id, data_blobs.id FROM data_blobs WHERE (data_blobs.id) > ? ORDER BY data_blobs.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_blobs.id, data_blobs.id FROM data_blobs WHERE data_blobs.id > ? ORDER BY data_blobs.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_blobs.id, data_blobs.id FROM data_blobs ORDER BY data_blobs.id LIMIT ?")
 
@@ -5630,10 +5630,10 @@ func (obj *spannerImpl) Paged_DataBlob(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5671,7 +5671,7 @@ func (obj *spannerImpl) Paged_DataDate(ctx context.Context,
 	limit int, start *Paged_DataDate_Continuation) (
 	rows []*DataDate, next *Paged_DataDate_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_dates.id, data_dates.id FROM data_dates WHERE (data_dates.id) > ? ORDER BY data_dates.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_dates.id, data_dates.id FROM data_dates WHERE data_dates.id > ? ORDER BY data_dates.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_dates.id, data_dates.id FROM data_dates ORDER BY data_dates.id LIMIT ?")
 
@@ -5679,10 +5679,10 @@ func (obj *spannerImpl) Paged_DataDate(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5720,7 +5720,7 @@ func (obj *spannerImpl) Paged_DataFloat(ctx context.Context,
 	limit int, start *Paged_DataFloat_Continuation) (
 	rows []*DataFloat, next *Paged_DataFloat_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_floats.id, data_floats.id FROM data_floats WHERE (data_floats.id) > ? ORDER BY data_floats.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_floats.id, data_floats.id FROM data_floats WHERE data_floats.id > ? ORDER BY data_floats.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_floats.id, data_floats.id FROM data_floats ORDER BY data_floats.id LIMIT ?")
 
@@ -5728,10 +5728,10 @@ func (obj *spannerImpl) Paged_DataFloat(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5769,7 +5769,7 @@ func (obj *spannerImpl) Paged_DataFloat64(ctx context.Context,
 	limit int, start *Paged_DataFloat64_Continuation) (
 	rows []*DataFloat64, next *Paged_DataFloat64_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_float64s.id, data_float64s.id FROM data_float64s WHERE (data_float64s.id) > ? ORDER BY data_float64s.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_float64s.id, data_float64s.id FROM data_float64s WHERE data_float64s.id > ? ORDER BY data_float64s.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_float64s.id, data_float64s.id FROM data_float64s ORDER BY data_float64s.id LIMIT ?")
 
@@ -5777,10 +5777,10 @@ func (obj *spannerImpl) Paged_DataFloat64(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5818,7 +5818,7 @@ func (obj *spannerImpl) Paged_DataInt(ctx context.Context,
 	limit int, start *Paged_DataInt_Continuation) (
 	rows []*DataInt, next *Paged_DataInt_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_ints.id, data_ints.id FROM data_ints WHERE (data_ints.id) > ? ORDER BY data_ints.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_ints.id, data_ints.id FROM data_ints WHERE data_ints.id > ? ORDER BY data_ints.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_ints.id, data_ints.id FROM data_ints ORDER BY data_ints.id LIMIT ?")
 
@@ -5826,10 +5826,10 @@ func (obj *spannerImpl) Paged_DataInt(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5867,7 +5867,7 @@ func (obj *spannerImpl) Paged_DataInt64(ctx context.Context,
 	limit int, start *Paged_DataInt64_Continuation) (
 	rows []*DataInt64, next *Paged_DataInt64_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_int64s.id, data_int64s.id FROM data_int64s WHERE (data_int64s.id) > ? ORDER BY data_int64s.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_int64s.id, data_int64s.id FROM data_int64s WHERE data_int64s.id > ? ORDER BY data_int64s.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_int64s.id, data_int64s.id FROM data_int64s ORDER BY data_int64s.id LIMIT ?")
 
@@ -5875,10 +5875,10 @@ func (obj *spannerImpl) Paged_DataInt64(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5916,7 +5916,7 @@ func (obj *spannerImpl) Paged_DataJson(ctx context.Context,
 	limit int, start *Paged_DataJson_Continuation) (
 	rows []*DataJson, next *Paged_DataJson_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_jsons.id, data_jsons.id FROM data_jsons WHERE (data_jsons.id) > ? ORDER BY data_jsons.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_jsons.id, data_jsons.id FROM data_jsons WHERE data_jsons.id > ? ORDER BY data_jsons.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_jsons.id, data_jsons.id FROM data_jsons ORDER BY data_jsons.id LIMIT ?")
 
@@ -5924,10 +5924,10 @@ func (obj *spannerImpl) Paged_DataJson(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -5965,7 +5965,7 @@ func (obj *spannerImpl) Paged_DataSerial(ctx context.Context,
 	limit int, start *Paged_DataSerial_Continuation) (
 	rows []*DataSerial, next *Paged_DataSerial_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_serials.id, data_serials.id FROM data_serials WHERE (data_serials.id) > ? ORDER BY data_serials.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_serials.id, data_serials.id FROM data_serials WHERE data_serials.id > ? ORDER BY data_serials.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serials.id, data_serials.id FROM data_serials ORDER BY data_serials.id LIMIT ?")
 
@@ -5973,10 +5973,10 @@ func (obj *spannerImpl) Paged_DataSerial(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6014,7 +6014,7 @@ func (obj *spannerImpl) Paged_DataSerial64(ctx context.Context,
 	limit int, start *Paged_DataSerial64_Continuation) (
 	rows []*DataSerial64, next *Paged_DataSerial64_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_serial64s.id, data_serial64s.id FROM data_serial64s WHERE (data_serial64s.id) > ? ORDER BY data_serial64s.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_serial64s.id, data_serial64s.id FROM data_serial64s WHERE data_serial64s.id > ? ORDER BY data_serial64s.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_serial64s.id, data_serial64s.id FROM data_serial64s ORDER BY data_serial64s.id LIMIT ?")
 
@@ -6022,10 +6022,10 @@ func (obj *spannerImpl) Paged_DataSerial64(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6063,7 +6063,7 @@ func (obj *spannerImpl) Paged_DataText(ctx context.Context,
 	limit int, start *Paged_DataText_Continuation) (
 	rows []*DataText, next *Paged_DataText_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_texts.id, data_texts.id FROM data_texts WHERE (data_texts.id) > ? ORDER BY data_texts.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_texts.id, data_texts.id FROM data_texts WHERE data_texts.id > ? ORDER BY data_texts.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_texts.id, data_texts.id FROM data_texts ORDER BY data_texts.id LIMIT ?")
 
@@ -6071,10 +6071,10 @@ func (obj *spannerImpl) Paged_DataText(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6112,7 +6112,7 @@ func (obj *spannerImpl) Paged_DataTimestamp(ctx context.Context,
 	limit int, start *Paged_DataTimestamp_Continuation) (
 	rows []*DataTimestamp, next *Paged_DataTimestamp_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_timestamps.id, data_timestamps.id FROM data_timestamps WHERE (data_timestamps.id) > ? ORDER BY data_timestamps.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_timestamps.id, data_timestamps.id FROM data_timestamps WHERE data_timestamps.id > ? ORDER BY data_timestamps.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_timestamps.id, data_timestamps.id FROM data_timestamps ORDER BY data_timestamps.id LIMIT ?")
 
@@ -6120,10 +6120,10 @@ func (obj *spannerImpl) Paged_DataTimestamp(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6161,7 +6161,7 @@ func (obj *spannerImpl) Paged_DataUint(ctx context.Context,
 	limit int, start *Paged_DataUint_Continuation) (
 	rows []*DataUint, next *Paged_DataUint_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_uints.id, data_uints.id FROM data_uints WHERE (data_uints.id) > ? ORDER BY data_uints.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_uints.id, data_uints.id FROM data_uints WHERE data_uints.id > ? ORDER BY data_uints.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uints.id, data_uints.id FROM data_uints ORDER BY data_uints.id LIMIT ?")
 
@@ -6169,10 +6169,10 @@ func (obj *spannerImpl) Paged_DataUint(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6210,7 +6210,7 @@ func (obj *spannerImpl) Paged_DataUint64(ctx context.Context,
 	limit int, start *Paged_DataUint64_Continuation) (
 	rows []*DataUint64, next *Paged_DataUint64_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_uint64s.id, data_uint64s.id FROM data_uint64s WHERE (data_uint64s.id) > ? ORDER BY data_uint64s.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_uint64s.id, data_uint64s.id FROM data_uint64s WHERE data_uint64s.id > ? ORDER BY data_uint64s.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_uint64s.id, data_uint64s.id FROM data_uint64s ORDER BY data_uint64s.id LIMIT ?")
 
@@ -6218,10 +6218,10 @@ func (obj *spannerImpl) Paged_DataUint64(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)
@@ -6259,7 +6259,7 @@ func (obj *spannerImpl) Paged_DataUtimestamp(ctx context.Context,
 	limit int, start *Paged_DataUtimestamp_Continuation) (
 	rows []*DataUtimestamp, next *Paged_DataUtimestamp_Continuation, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_utimestamps.id, data_utimestamps.id FROM data_utimestamps WHERE (data_utimestamps.id) > ? ORDER BY data_utimestamps.id LIMIT ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT data_utimestamps.id, data_utimestamps.id FROM data_utimestamps WHERE data_utimestamps.id > ? ORDER BY data_utimestamps.id LIMIT ?")
 
 	var __embed_first_stmt = __sqlbundle_Literal("SELECT data_utimestamps.id, data_utimestamps.id FROM data_utimestamps ORDER BY data_utimestamps.id LIMIT ?")
 
@@ -6267,10 +6267,10 @@ func (obj *spannerImpl) Paged_DataUtimestamp(ctx context.Context,
 
 	var __stmt string
 	if start != nil && start._set {
-
-		__values = append(__values, start._value_id)
-
-		__values = append(__values, limit)
+		__values = append(__values,
+			start._value_id,
+			limit,
+		)
 		__stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	} else {
 		__values = append(__values, limit)

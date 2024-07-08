@@ -27,6 +27,7 @@ func (s *spanner) Features() Features {
 	return Features{
 		DefaultValues:       false,
 		PositionalArguments: true,
+		TupleComparsion:     false,
 		NoLimitToken:        "ALL",
 		ReplaceStyle:        ReplaceStyle_Upsert_Spanner,
 	}

@@ -20,6 +20,8 @@ type Get struct {
 	Row          *Var
 	FirstInfo    sqlembedgo.Info
 	Continuation *Var
+
+	SupportsTupleComparison bool
 }
 
 func GetFromIR(ir_read *ir.Read, dialect sql.Dialect) *Get {
@@ -29,6 +31,8 @@ func GetFromIR(ir_read *ir.Read, dialect sql.Dialect) *Get {
 		Info:   sqlembedgo.Embed("__", select_sql),
 		Suffix: convertSuffix(ir_read.Suffix),
 		Row:    GetRowFromIR(ir_read),
+
+		SupportsTupleComparison: dialect.Features().TupleComparsion,
 	}
 
 	if ir_read.View == ir.Paged {

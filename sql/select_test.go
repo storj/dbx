@@ -20,7 +20,7 @@ func TestPagedWhereFromPK(t *testing.T) {
 		{Model: &ir.Model{Table: "t"}, Column: "a4"},
 	}
 
-	where := pagedWhereFromPK(pk)
+	where := pagedWhereFromPK(pk, &sqlite3{})
 	sqls := WhereSQL([]*ir.Where{where}, SQLite3())
 	for _, sql := range sqls {
 		fmt.Printf("%+v\n", sqlembedgo.Embed("prefix", sqlcompile.Compile(sql)))

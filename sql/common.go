@@ -17,6 +17,9 @@ type Features struct {
 	// Supports DEFAULT VALUES in INSERT statement
 	DefaultValues bool
 
+	// Supports comparing tuples, such as (a, b) < (c, d)
+	TupleComparsion bool
+
 	// Supports positional argument placeholders
 	PositionalArguments bool
 

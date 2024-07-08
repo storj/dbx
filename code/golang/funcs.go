@@ -38,6 +38,14 @@ func funcMap(dialect string) template.FuncMap {
 		"rename":            renameFn,
 		"double":            doubleFn,
 		"slice":             sliceFn,
+
+		"add": func(arg0 int, args ...int) int {
+			total := arg0
+			for _, v := range args {
+				total += v
+			}
+			return total
+		},
 	}
 
 	if dialect == "spanner" {

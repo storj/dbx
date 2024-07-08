@@ -29,6 +29,7 @@ func (p *pgxcockroach) Features() Features {
 	return Features{
 		DefaultValues:       true,
 		PositionalArguments: true,
+		TupleComparsion:     true,
 		NoLimitToken:        "ALL",
 		ReplaceStyle:        ReplaceStyle_Upsert,
 		Storing:             true,

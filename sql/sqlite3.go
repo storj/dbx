@@ -27,6 +27,7 @@ func (s *sqlite3) Name() string {
 func (s *sqlite3) Features() Features {
 	return Features{
 		DefaultValues:       true,
+		TupleComparsion:     true,
 		PositionalArguments: true, // SQLite3 supports it with `?NNN`, see https://www.sqlite.org/lang_expr.html#varparam
 		NoLimitToken:        "-1",
 		ReplaceStyle:        ReplaceStyle_Replace,

@@ -62,27 +62,8 @@ func SelectFromIRRead(ir_read *ir.Read, dialect Dialect) *Select {
 		sel.Limit = "?"
 		sel.Offset = "?"
 	case ir.Paged:
-		Where := []sqlgen.SQL{}
-		var w sqlgen.SQL
 		pk := ir_read.From.PrimaryKey
-		if dialect.Name() == "spanner" {
-			tpk := []*ir.Field{}
-			for i, p := range pk {
-				tpk = append(tpk, p)
-				w := J(" AND ", WhereSQL(pagedWhereFromPKSpanner(tpk, i), dialect)...)
-				if i > 0 {
-					w = J("", L("("), w, L(")"))
-				}
-				Where = append(Where, w)
-			}
-			w = J(" OR ", Where...)
-			if len(Where) > 1 {
-				w = J("", L("("), w, L(")"))
-			}
-			sel.Where = append(sel.Where, w)
-		} else {
-			sel.Where = append(sel.Where, WhereSQL([]*ir.Where{pagedWhereFromPK(pk)}, dialect)...)
-		}
+		sel.Where = append(sel.Where, WhereSQL([]*ir.Where{pagedWhereFromPK(pk, dialect)}, dialect)...)
 		sel.OrderBy = new(OrderBy)
 		for _, field := range pk {
 			sel.OrderBy.Entries = append(sel.OrderBy.Entries, OrderByEntry{
@@ -109,7 +90,11 @@ func SelectFromIRRead(ir_read *ir.Read, dialect Dialect) *Select {
 	return sel
 }
 
-func pagedWhereFromPK(pk []*ir.Field) *ir.Where {
+func pagedWhereFromPK(pk []*ir.Field, dialect Dialect) *ir.Where {
+	if !dialect.Features().TupleComparsion {
+		return pagedWhereFromPK_WithoutTuples(pk)
+	}
+
 	return &ir.Where{Clause: &ir.Clause{
 		Left:  &ir.Expr{Row: pk},
 		Op:    consts.GT,
@@ -117,23 +102,32 @@ func pagedWhereFromPK(pk []*ir.Field) *ir.Where {
 	}}
 }
 
-func pagedWhereFromPKSpanner(pk []*ir.Field, i int) []*ir.Where {
-	where := []*ir.Where{}
-	for j := 0; j <= i; j++ {
-		op := consts.EQ
-		if j == i {
-			op = consts.GT
-		}
-		n := ir.Where{Clause: &ir.Clause{
-			Left:  &ir.Expr{Row: []*ir.Field{pk[j]}},
-			Op:    op,
-			Right: &ir.Expr{Placeholder: 1},
-		},
-		}
-		where = append(where, &n)
+func pagedWhereFromPK_WithoutTuples(pk []*ir.Field) *ir.Where {
+	where := &ir.Where{Clause: &ir.Clause{
+		Left:  &ir.Expr{Field: pk[0]},
+		Op:    consts.GT,
+		Right: &ir.Expr{Placeholder: 1},
+	}}
+	if len(pk) == 1 {
+		return where
 	}
 
-	return where
+	return &ir.Where{
+		Or: &[2]*ir.Where{
+			where,
+			{
+				And: &[2]*ir.Where{
+					{
+						Clause: &ir.Clause{
+							Left:  &ir.Expr{Field: pk[0]},
+							Op:    consts.EQ,
+							Right: &ir.Expr{Placeholder: 1},
+						},
+					},
+					pagedWhereFromPK_WithoutTuples(pk[1:]),
+				},
+			},
+		}}
 }
 
 func SQLFromSelect(sel *Select) sqlgen.SQL {
