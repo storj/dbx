@@ -77,8 +77,12 @@ func VarFromModel(model *ir.Model) *Var {
 
 func VarFromField(field *ir.Field) *Var {
 	return &Var{
-		Name:    field.Name,
-		Type:    valueType(field.Type, field.Nullable),
+		Name: field.Name,
+		Type: valueType(field.Type, field.Nullable),
+		Underlying: UnderlyingType{
+			Type:     field.Type,
+			Nullable: field.Nullable,
+		},
 		ZeroVal: zeroVal(field.Type, field.Nullable),
 		InitVal: initVal(field.Type, field.Nullable),
 	}
@@ -94,9 +98,11 @@ func VarsFromFields(fields []*ir.Field) (vars []*Var) {
 func ArgFromField(field *ir.Field) *Var {
 	// we don't set ZeroVal or InitVal because these args should only be used
 	// as incoming arguments to function calls.
+	model := ModelFieldFromIR(field)
 	return &Var{
-		Name: field.UnderRef(),
-		Type: ModelFieldFromIR(field).StructName(),
+		Name:       field.UnderRef(),
+		Type:       model.StructName(),
+		Underlying: model.Underlying,
 	}
 }
 
@@ -111,19 +117,21 @@ func StructVar(name string, typ string, vars []*Var) *Var {
 }
 
 type Var struct {
-	Name    string
-	Type    string
-	ZeroVal string
-	InitVal string
-	Fields  []*Var
+	Name       string
+	Type       string
+	Underlying UnderlyingType
+	ZeroVal    string
+	InitVal    string
+	Fields     []*Var
 }
 
 func (v *Var) Copy() *Var {
 	out := &Var{
-		Name:    v.Name,
-		Type:    v.Type,
-		ZeroVal: v.ZeroVal,
-		InitVal: v.InitVal,
+		Name:       v.Name,
+		Type:       v.Type,
+		Underlying: v.Underlying,
+		ZeroVal:    v.ZeroVal,
+		InitVal:    v.InitVal,
 	}
 	for _, field := range v.Fields {
 		out.Fields = append(out.Fields, field.Copy())
@@ -195,7 +203,7 @@ func (v *Var) Flatten() (flattened []*Var) {
 }
 
 func (v *Var) SpannerInitNew() string {
-	if spannerNeedsWrapperType(v.Type) {
+	if spannerNeedsWrapperType(v.Underlying) {
 		return fmt.Sprintf("%s := spannerConvertArgument(%s)", v.Name, v.InitVal)
 	}
 	return fmt.Sprintf("%s := %s", v.Name, v.InitVal)

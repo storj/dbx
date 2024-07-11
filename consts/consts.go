@@ -48,7 +48,8 @@ func (o Operator) Suffix() string {
 type FieldType int
 
 const (
-	SerialField FieldType = iota
+	UnknownField FieldType = iota
+	SerialField
 	Serial64Field
 	IntField
 	Int64Field

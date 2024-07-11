@@ -11,6 +11,7 @@ import (
 	"strings"
 	"text/template"
 
+	"storj.io/dbx/consts"
 	"storj.io/dbx/internal/inflect"
 	"storj.io/dbx/ir"
 	"storj.io/dbx/sqlgen/sqlembedgo"
@@ -289,7 +290,7 @@ func spanner_embedvaluesFn(args []ConditionArg, name string) string {
 			fmt.Fprintf(&out, "if !%s.isnull() {\n", arg.Var.Name)
 			fmt.Fprintf(&out, "\t__cond_%d.Null = false\n", arg.Condition)
 
-			if spannerNeedsWrapperType(arg.RawDataType) {
+			if spannerNeedsWrapperType(arg.Var.Underlying) {
 				fmt.Fprintf(&out, "\t%s = append(%s, spannerConvertArgument(%s.value()))\n", name, name, arg.Var.Name)
 			} else {
 				fmt.Fprintf(&out, "\t%s = append(%s, %s.value())\n", name, name, arg.Var.Name)
@@ -297,7 +298,7 @@ func spanner_embedvaluesFn(args []ConditionArg, name string) string {
 
 			fmt.Fprintf(&out, "}\n")
 		} else {
-			if spannerNeedsWrapperType(arg.RawDataType) {
+			if spannerNeedsWrapperType(arg.Var.Underlying) {
 				run = append(run, fmt.Sprintf("spannerConvertArgument(%s.value())", arg.Var.Name))
 			} else {
 				run = append(run, fmt.Sprintf("%s.value()", arg.Var.Name))
@@ -320,7 +321,7 @@ func spanner_setupdatablefieldsFn(modelFields []*ModelField) string {
 		}
 
 		fmt.Fprintf(&out, "if update.%s._set {\n", field.Name)
-		if spannerNeedsWrapperType(field.Type) {
+		if spannerNeedsWrapperType(field.Underlying) {
 			fmt.Fprintf(&out, "\t__values = append(__values, spannerConvertArgument(update.%s.value()))\n", field.Name)
 		} else {
 			fmt.Fprintf(&out, "\t__values = append(__values, update.%s.value())\n", field.Name)
@@ -331,6 +332,6 @@ func spanner_setupdatablefieldsFn(modelFields []*ModelField) string {
 	return out.String()
 }
 
-func spannerNeedsWrapperType(v string) bool {
-	return v == "uint64" || v == "*uint64"
+func spannerNeedsWrapperType(v UnderlyingType) bool {
+	return v.Type == consts.Uint64Field // either nullable or not
 }

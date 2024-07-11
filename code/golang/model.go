@@ -92,6 +92,7 @@ type ModelField struct {
 	Name       string
 	ModelName  string
 	Type       string
+	Underlying UnderlyingType
 	CtorValue  string
 	MutateFn   string
 	Column     string
@@ -104,11 +105,20 @@ type ModelField struct {
 	TakeAddr   bool
 }
 
+type UnderlyingType struct {
+	Type     consts.FieldType
+	Nullable bool
+}
+
 func ModelFieldFromIR(field *ir.Field) *ModelField {
 	return &ModelField{
-		Name:       fieldName(field),
-		ModelName:  structName(field.Model),
-		Type:       valueType(field.Type, field.Nullable),
+		Name:      fieldName(field),
+		ModelName: structName(field.Model),
+		Type:      valueType(field.Type, field.Nullable),
+		Underlying: UnderlyingType{
+			Type:     field.Type,
+			Nullable: field.Nullable,
+		},
 		CtorValue:  valueType(field.Type, false),
 		MutateFn:   mutateFn(field.Type),
 		Column:     field.Column,
