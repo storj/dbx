@@ -269,7 +269,7 @@ func embedvaluesFn(args []ConditionArg, name string) string {
 }
 
 func spanner_initnewFn(intf any) (string, error) {
-	vs, err := forVars(intf, (*Var).SpannerInitNew)
+	vs, err := forVars(intf, spanner_Var_InitNew)
 	if err != nil {
 		return "", err
 	}
@@ -290,16 +290,16 @@ func spanner_embedvaluesFn(args []ConditionArg, name string) string {
 			fmt.Fprintf(&out, "if !%s.isnull() {\n", arg.Var.Name)
 			fmt.Fprintf(&out, "\t__cond_%d.Null = false\n", arg.Condition)
 
-			if spannerNeedsWrapperType(arg.Var.Underlying) {
-				fmt.Fprintf(&out, "\t%s = append(%s, spannerConvertArgument(%s.value()))\n", name, name, arg.Var.Name)
+			if wrap := spannerWrapFunc(arg.Var.Underlying); wrap != "" {
+				fmt.Fprintf(&out, "\t%s = append(%s, %v(%s.value()))\n", name, name, wrap, arg.Var.Name)
 			} else {
 				fmt.Fprintf(&out, "\t%s = append(%s, %s.value())\n", name, name, arg.Var.Name)
 			}
 
 			fmt.Fprintf(&out, "}\n")
 		} else {
-			if spannerNeedsWrapperType(arg.Var.Underlying) {
-				run = append(run, fmt.Sprintf("spannerConvertArgument(%s.value())", arg.Var.Name))
+			if wrap := spannerWrapFunc(arg.Var.Underlying); wrap != "" {
+				run = append(run, fmt.Sprintf("%v(%s.value())", wrap, arg.Var.Name))
 			} else {
 				run = append(run, fmt.Sprintf("%s.value()", arg.Var.Name))
 			}
@@ -321,8 +321,8 @@ func spanner_setupdatablefieldsFn(modelFields []*ModelField) string {
 		}
 
 		fmt.Fprintf(&out, "if update.%s._set {\n", field.Name)
-		if spannerNeedsWrapperType(field.Underlying) {
-			fmt.Fprintf(&out, "\t__values = append(__values, spannerConvertArgument(update.%s.value()))\n", field.Name)
+		if wrap := spannerWrapFunc(field.Underlying); wrap != "" {
+			fmt.Fprintf(&out, "\t__values = append(__values, %v(update.%s.value()))\n", wrap, field.Name)
 		} else {
 			fmt.Fprintf(&out, "\t__values = append(__values, update.%s.value())\n", field.Name)
 		}
@@ -332,6 +332,19 @@ func spanner_setupdatablefieldsFn(modelFields []*ModelField) string {
 	return out.String()
 }
 
-func spannerNeedsWrapperType(v UnderlyingType) bool {
-	return v.Type == consts.Uint64Field // either nullable or not
+func spanner_Var_InitNew(v *Var) string {
+	if wrap := spannerWrapFunc(v.Underlying); wrap != "" {
+		return fmt.Sprintf("%s := %v(%s)", v.Name, wrap, v.InitVal)
+	} else {
+		return fmt.Sprintf("%s := %s", v.Name, v.InitVal)
+	}
+}
+
+func spannerWrapFunc(v UnderlyingType) string {
+	switch v.Type {
+	case consts.Uint64Field:
+		return "spannerConvertArgument"
+	default:
+		return ""
+	}
 }
