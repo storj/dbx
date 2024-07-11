@@ -425,8 +425,6 @@ func (f {{ $fstruct }}) isnull() bool {	return !f._set || f._null || f._value ==
 
 func (f {{ $fstruct }}) value() any { if !f._set || f._null { return nil }; return f._value }
 
-func ({{ $fstruct }}) _Column() string { return "{{ .Column }}" }
-
 {{- end -}}
 {{- end }}
 

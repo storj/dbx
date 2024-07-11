@@ -1034,8 +1034,6 @@ func (f DataBlob_Id_Field) value() any {
 	return f._value
 }
 
-func (DataBlob_Id_Field) _Column() string { return "id" }
-
 type DataDate struct {
 	Id time.Time
 }
@@ -1063,8 +1061,6 @@ func (f DataDate_Id_Field) value() any {
 	return f._value
 }
 
-func (DataDate_Id_Field) _Column() string { return "id" }
-
 type DataFloat struct {
 	Id float32
 }
@@ -1090,8 +1086,6 @@ func (f DataFloat_Id_Field) value() any {
 	}
 	return f._value
 }
-
-func (DataFloat_Id_Field) _Column() string { return "id" }
 
 type DataFloat64 struct {
 	Id float64
@@ -1119,8 +1113,6 @@ func (f DataFloat64_Id_Field) value() any {
 	return f._value
 }
 
-func (DataFloat64_Id_Field) _Column() string { return "id" }
-
 type DataInt struct {
 	Id int
 }
@@ -1146,8 +1138,6 @@ func (f DataInt_Id_Field) value() any {
 	}
 	return f._value
 }
-
-func (DataInt_Id_Field) _Column() string { return "id" }
 
 type DataInt64 struct {
 	Id int64
@@ -1175,8 +1165,6 @@ func (f DataInt64_Id_Field) value() any {
 	return f._value
 }
 
-func (DataInt64_Id_Field) _Column() string { return "id" }
-
 type DataJson struct {
 	Id []byte
 }
@@ -1202,8 +1190,6 @@ func (f DataJson_Id_Field) value() any {
 	}
 	return f._value
 }
-
-func (DataJson_Id_Field) _Column() string { return "id" }
 
 type DataSerial struct {
 	Id int
@@ -1231,8 +1217,6 @@ func (f DataSerial_Id_Field) value() any {
 	return f._value
 }
 
-func (DataSerial_Id_Field) _Column() string { return "id" }
-
 type DataSerial64 struct {
 	Id int64
 }
@@ -1258,8 +1242,6 @@ func (f DataSerial64_Id_Field) value() any {
 	}
 	return f._value
 }
-
-func (DataSerial64_Id_Field) _Column() string { return "id" }
 
 type DataText struct {
 	Id string
@@ -1287,8 +1269,6 @@ func (f DataText_Id_Field) value() any {
 	return f._value
 }
 
-func (DataText_Id_Field) _Column() string { return "id" }
-
 type DataTimestamp struct {
 	Id time.Time
 }
@@ -1314,8 +1294,6 @@ func (f DataTimestamp_Id_Field) value() any {
 	}
 	return f._value
 }
-
-func (DataTimestamp_Id_Field) _Column() string { return "id" }
 
 type DataUint struct {
 	Id uint
@@ -1343,8 +1321,6 @@ func (f DataUint_Id_Field) value() any {
 	return f._value
 }
 
-func (DataUint_Id_Field) _Column() string { return "id" }
-
 type DataUint64 struct {
 	Id uint64
 }
@@ -1370,8 +1346,6 @@ func (f DataUint64_Id_Field) value() any {
 	}
 	return f._value
 }
-
-func (DataUint64_Id_Field) _Column() string { return "id" }
 
 type DataUtimestamp struct {
 	Id time.Time
@@ -1399,8 +1373,6 @@ func (f DataUtimestamp_Id_Field) value() any {
 	}
 	return f._value
 }
-
-func (DataUtimestamp_Id_Field) _Column() string { return "id" }
 
 func toUTC(t time.Time) time.Time {
 	return t.UTC()

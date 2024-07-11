@@ -724,8 +724,6 @@ func (f A_Id_Field) value() any {
 	return f._value
 }
 
-func (A_Id_Field) _Column() string { return "id" }
-
 type B struct {
 	Id  int64
 	AId int64
@@ -753,8 +751,6 @@ func (f B_Id_Field) value() any {
 	return f._value
 }
 
-func (B_Id_Field) _Column() string { return "id" }
-
 type B_AId_Field struct {
 	_set   bool
 	_null  bool
@@ -771,8 +767,6 @@ func (f B_AId_Field) value() any {
 	}
 	return f._value
 }
-
-func (B_AId_Field) _Column() string { return "a_id" }
 
 type C struct {
 	Id  int64
@@ -803,8 +797,6 @@ func (f C_Id_Field) value() any {
 	return f._value
 }
 
-func (C_Id_Field) _Column() string { return "id" }
-
 type C_Lat_Field struct {
 	_set   bool
 	_null  bool
@@ -821,8 +813,6 @@ func (f C_Lat_Field) value() any {
 	}
 	return f._value
 }
-
-func (C_Lat_Field) _Column() string { return "lat" }
 
 type C_Lon_Field struct {
 	_set   bool
@@ -841,8 +831,6 @@ func (f C_Lon_Field) value() any {
 	return f._value
 }
 
-func (C_Lon_Field) _Column() string { return "lon" }
-
 type C_BId_Field struct {
 	_set   bool
 	_null  bool
@@ -859,8 +847,6 @@ func (f C_BId_Field) value() any {
 	}
 	return f._value
 }
-
-func (C_BId_Field) _Column() string { return "b_id" }
 
 func toUTC(t time.Time) time.Time {
 	return t.UTC()

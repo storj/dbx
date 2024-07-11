@@ -678,8 +678,6 @@ func (f ConsumedSerial_ExpiresAt_Field) value() any {
 	return f._value
 }
 
-func (ConsumedSerial_ExpiresAt_Field) _Column() string { return "expires_at" }
-
 type ConsumedSerial_StorageNodeId_Field struct {
 	_set   bool
 	_null  bool
@@ -696,8 +694,6 @@ func (f ConsumedSerial_StorageNodeId_Field) value() any {
 	}
 	return f._value
 }
-
-func (ConsumedSerial_StorageNodeId_Field) _Column() string { return "storage_node_id" }
 
 type ConsumedSerial_ProjectId_Field struct {
 	_set   bool
@@ -716,8 +712,6 @@ func (f ConsumedSerial_ProjectId_Field) value() any {
 	return f._value
 }
 
-func (ConsumedSerial_ProjectId_Field) _Column() string { return "project_id" }
-
 type ConsumedSerial_BucketName_Field struct {
 	_set   bool
 	_null  bool
@@ -734,8 +728,6 @@ func (f ConsumedSerial_BucketName_Field) value() any {
 	}
 	return f._value
 }
-
-func (ConsumedSerial_BucketName_Field) _Column() string { return "bucket_name" }
 
 type ConsumedSerial_Action_Field struct {
 	_set   bool
@@ -754,8 +746,6 @@ func (f ConsumedSerial_Action_Field) value() any {
 	return f._value
 }
 
-func (ConsumedSerial_Action_Field) _Column() string { return "action" }
-
 type ConsumedSerial_SerialNumber_Field struct {
 	_set   bool
 	_null  bool
@@ -773,8 +763,6 @@ func (f ConsumedSerial_SerialNumber_Field) value() any {
 	return f._value
 }
 
-func (ConsumedSerial_SerialNumber_Field) _Column() string { return "serial_number" }
-
 type ConsumedSerial_Settled_Field struct {
 	_set   bool
 	_null  bool
@@ -791,8 +779,6 @@ func (f ConsumedSerial_Settled_Field) value() any {
 	}
 	return f._value
 }
-
-func (ConsumedSerial_Settled_Field) _Column() string { return "settled" }
 
 func toUTC(t time.Time) time.Time {
 	return t.UTC()

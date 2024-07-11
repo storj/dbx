@@ -661,8 +661,6 @@ func (f Person_Pk_Field) value() any {
 	return f._value
 }
 
-func (Person_Pk_Field) _Column() string { return "pk" }
-
 type Person_A_Field struct {
 	_set   bool
 	_null  bool
@@ -680,8 +678,6 @@ func (f Person_A_Field) value() any {
 	return f._value
 }
 
-func (Person_A_Field) _Column() string { return "a" }
-
 type Person_B_Field struct {
 	_set   bool
 	_null  bool
@@ -698,8 +694,6 @@ func (f Person_B_Field) value() any {
 	}
 	return f._value
 }
-
-func (Person_B_Field) _Column() string { return "b" }
 
 type Person_C_Field struct {
 	_set   bool
@@ -731,8 +725,6 @@ func (f Person_C_Field) value() any {
 	return f._value
 }
 
-func (Person_C_Field) _Column() string { return "c" }
-
 type Person_D_Field struct {
 	_set   bool
 	_null  bool
@@ -749,8 +741,6 @@ func (f Person_D_Field) value() any {
 	}
 	return f._value
 }
-
-func (Person_D_Field) _Column() string { return "d" }
 
 type Person_E_Field struct {
 	_set   bool
@@ -781,8 +771,6 @@ func (f Person_E_Field) value() any {
 	}
 	return f._value
 }
-
-func (Person_E_Field) _Column() string { return "e" }
 
 func toUTC(t time.Time) time.Time {
 	return t.UTC()

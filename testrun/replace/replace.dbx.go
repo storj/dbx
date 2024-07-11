@@ -632,8 +632,6 @@ func (f Kv_Key_Field) value() any {
 	return f._value
 }
 
-func (Kv_Key_Field) _Column() string { return "key" }
-
 type Kv_Val_Field struct {
 	_set   bool
 	_null  bool
@@ -650,8 +648,6 @@ func (f Kv_Val_Field) value() any {
 	}
 	return f._value
 }
-
-func (Kv_Val_Field) _Column() string { return "val" }
 
 func toUTC(t time.Time) time.Time {
 	return t.UTC()

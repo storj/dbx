@@ -709,8 +709,6 @@ func (f User_Pk_Field) value() any {
 	return f._value
 }
 
-func (User_Pk_Field) _Column() string { return "pk" }
-
 type AssociatedAccount struct {
 	Pk     int64
 	UserPk int64
@@ -738,8 +736,6 @@ func (f AssociatedAccount_Pk_Field) value() any {
 	return f._value
 }
 
-func (AssociatedAccount_Pk_Field) _Column() string { return "pk" }
-
 type AssociatedAccount_UserPk_Field struct {
 	_set   bool
 	_null  bool
@@ -756,8 +752,6 @@ func (f AssociatedAccount_UserPk_Field) value() any {
 	}
 	return f._value
 }
-
-func (AssociatedAccount_UserPk_Field) _Column() string { return "user_pk" }
 
 type Session struct {
 	Id     int64
@@ -786,8 +780,6 @@ func (f Session_Id_Field) value() any {
 	return f._value
 }
 
-func (Session_Id_Field) _Column() string { return "id" }
-
 type Session_UserPk_Field struct {
 	_set   bool
 	_null  bool
@@ -804,8 +796,6 @@ func (f Session_UserPk_Field) value() any {
 	}
 	return f._value
 }
-
-func (Session_UserPk_Field) _Column() string { return "user_pk" }
 
 func toUTC(t time.Time) time.Time {
 	return t.UTC()

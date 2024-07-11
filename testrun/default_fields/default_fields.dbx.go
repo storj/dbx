@@ -812,8 +812,6 @@ func (f Bar_Pk_Field) value() any {
 	return f._value
 }
 
-func (Bar_Pk_Field) _Column() string { return "pk" }
-
 type Bar_A_Field struct {
 	_set   bool
 	_null  bool
@@ -830,8 +828,6 @@ func (f Bar_A_Field) value() any {
 	}
 	return f._value
 }
-
-func (Bar_A_Field) _Column() string { return "a" }
 
 type Bar_B_Field struct {
 	_set   bool
@@ -850,8 +846,6 @@ func (f Bar_B_Field) value() any {
 	return f._value
 }
 
-func (Bar_B_Field) _Column() string { return "b" }
-
 type Bar_C_Field struct {
 	_set   bool
 	_null  bool
@@ -868,8 +862,6 @@ func (f Bar_C_Field) value() any {
 	}
 	return f._value
 }
-
-func (Bar_C_Field) _Column() string { return "c" }
 
 type Baz struct {
 	Pk int64
@@ -906,8 +898,6 @@ func (f Baz_Pk_Field) value() any {
 	return f._value
 }
 
-func (Baz_Pk_Field) _Column() string { return "pk" }
-
 type Baz_A_Field struct {
 	_set   bool
 	_null  bool
@@ -924,8 +914,6 @@ func (f Baz_A_Field) value() any {
 	}
 	return f._value
 }
-
-func (Baz_A_Field) _Column() string { return "a" }
 
 type Baz_B_Field struct {
 	_set   bool
@@ -944,8 +932,6 @@ func (f Baz_B_Field) value() any {
 	return f._value
 }
 
-func (Baz_B_Field) _Column() string { return "b" }
-
 type Baz_C_Field struct {
 	_set   bool
 	_null  bool
@@ -962,8 +948,6 @@ func (f Baz_C_Field) value() any {
 	}
 	return f._value
 }
-
-func (Baz_C_Field) _Column() string { return "c" }
 
 type Foo struct {
 	Pk int64
@@ -998,8 +982,6 @@ func (f Foo_Pk_Field) value() any {
 	return f._value
 }
 
-func (Foo_Pk_Field) _Column() string { return "pk" }
-
 type Foo_A_Field struct {
 	_set   bool
 	_null  bool
@@ -1016,8 +998,6 @@ func (f Foo_A_Field) value() any {
 	}
 	return f._value
 }
-
-func (Foo_A_Field) _Column() string { return "a" }
 
 type Foo_B_Field struct {
 	_set   bool
@@ -1036,8 +1016,6 @@ func (f Foo_B_Field) value() any {
 	return f._value
 }
 
-func (Foo_B_Field) _Column() string { return "b" }
-
 type Foo_C_Field struct {
 	_set   bool
 	_null  bool
@@ -1054,8 +1032,6 @@ func (f Foo_C_Field) value() any {
 	}
 	return f._value
 }
-
-func (Foo_C_Field) _Column() string { return "c" }
 
 type Minimal struct {
 	Pk int64
@@ -1082,8 +1058,6 @@ func (f Minimal_Pk_Field) value() any {
 	}
 	return f._value
 }
-
-func (Minimal_Pk_Field) _Column() string { return "pk" }
 
 type Special struct {
 	Pk int64
@@ -1118,8 +1092,6 @@ func (f Special_Pk_Field) value() any {
 	return f._value
 }
 
-func (Special_Pk_Field) _Column() string { return "pk" }
-
 type Special_A_Field struct {
 	_set   bool
 	_null  bool
@@ -1137,8 +1109,6 @@ func (f Special_A_Field) value() any {
 	return f._value
 }
 
-func (Special_A_Field) _Column() string { return "a" }
-
 type Special_B_Field struct {
 	_set   bool
 	_null  bool
@@ -1155,8 +1125,6 @@ func (f Special_B_Field) value() any {
 	}
 	return f._value
 }
-
-func (Special_B_Field) _Column() string { return "b" }
 
 func toUTC(t time.Time) time.Time {
 	return t.UTC()

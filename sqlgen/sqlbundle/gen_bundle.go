@@ -72,7 +72,7 @@ func loadCopyright() string {
 }
 
 func loadBundle() string {
-	source, err := exec.Command("bundle",
+	source, err := exec.Command("go", "run", "golang.org/x/tools/cmd/bundle@latest",
 		"-dst", "storj.io/dbx/sqlgen/sqlbundle",
 		"-prefix", prefix,
 		"storj.io/dbx/sqlgen").Output()
