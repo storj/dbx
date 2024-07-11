@@ -1428,7 +1428,7 @@ func (obj *sqlite3Impl) Create_Foo(ctx context.Context,
 	var __placeholders = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("?")}
 	var __clause = &__sqlbundle_Hole{SQL: __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("("), __columns, __sqlbundle_Literal(") VALUES ("), __placeholders, __sqlbundle_Literal(")")}}}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO foos "), __clause}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO foos "), __clause, __sqlbundle_Literal(" RETURNING foos.pk, foos.a, foos.b, foos.c")}}
 
 	var __values []any
 	__values = append(__values, __b_val)
@@ -1453,15 +1453,12 @@ func (obj *sqlite3Impl) Create_Foo(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	foo = &Foo{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastFoo(ctx, __pk)
+	return foo, nil
 
 }
 
@@ -1477,7 +1474,7 @@ func (obj *sqlite3Impl) Create_Bar(ctx context.Context,
 	var __placeholders = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("?, ?")}
 	var __clause = &__sqlbundle_Hole{SQL: __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("("), __columns, __sqlbundle_Literal(") VALUES ("), __placeholders, __sqlbundle_Literal(")")}}}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bars "), __clause}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bars "), __clause, __sqlbundle_Literal(" RETURNING bars.pk, bars.a, bars.b, bars.c")}}
 
 	var __values []any
 	__values = append(__values, __a_val, __b_val)
@@ -1502,15 +1499,12 @@ func (obj *sqlite3Impl) Create_Bar(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	bar = &Bar{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&bar.Pk, &bar.A, &bar.B, &bar.C)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastBar(ctx, __pk)
+	return bar, nil
 
 }
 
@@ -1522,7 +1516,7 @@ func (obj *sqlite3Impl) Create_Baz(ctx context.Context,
 	var __placeholders = &__sqlbundle_Hole{}
 	var __clause = &__sqlbundle_Hole{SQL: __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("("), __columns, __sqlbundle_Literal(") VALUES ("), __placeholders, __sqlbundle_Literal(")")}}}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO bazs "), __clause, __sqlbundle_Literal(" RETURNING bazs.pk, bazs.a, bazs.b, bazs.c")}}
 
 	var __values []any
 
@@ -1558,37 +1552,31 @@ func (obj *sqlite3Impl) Create_Baz(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	baz = &Baz{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&baz.Pk, &baz.A, &baz.B, &baz.C)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastBaz(ctx, __pk)
+	return baz, nil
 
 }
 
 func (obj *sqlite3Impl) Create_Minimal(ctx context.Context) (
 	minimal *Minimal, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals DEFAULT VALUES")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO minimals DEFAULT VALUES RETURNING minimals.pk")
 
 	var __values []any
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	minimal = &Minimal{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&minimal.Pk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastMinimal(ctx, __pk)
+	return minimal, nil
 
 }
 
@@ -1652,78 +1640,6 @@ func (obj *sqlite3Impl) Get_Baz_By_Pk(ctx context.Context,
 		return (*Baz)(nil), obj.makeErr(err)
 	}
 	return baz, nil
-
-}
-
-func (obj *sqlite3Impl) getLastFoo(ctx context.Context,
-	pk int64) (
-	foo *Foo, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
-	if err != nil {
-		return (*Foo)(nil), obj.makeErr(err)
-	}
-	return foo, nil
-
-}
-
-func (obj *sqlite3Impl) getLastBar(ctx context.Context,
-	pk int64) (
-	bar *Bar, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT bars.pk, bars.a, bars.b, bars.c FROM bars WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	bar = &Bar{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&bar.Pk, &bar.A, &bar.B, &bar.C)
-	if err != nil {
-		return (*Bar)(nil), obj.makeErr(err)
-	}
-	return bar, nil
-
-}
-
-func (obj *sqlite3Impl) getLastBaz(ctx context.Context,
-	pk int64) (
-	baz *Baz, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT bazs.pk, bazs.a, bazs.b, bazs.c FROM bazs WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	baz = &Baz{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&baz.Pk, &baz.A, &baz.B, &baz.C)
-	if err != nil {
-		return (*Baz)(nil), obj.makeErr(err)
-	}
-	return baz, nil
-
-}
-
-func (obj *sqlite3Impl) getLastMinimal(ctx context.Context,
-	pk int64) (
-	minimal *Minimal, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT minimals.pk FROM minimals WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	minimal = &Minimal{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&minimal.Pk)
-	if err != nil {
-		return (*Minimal)(nil), obj.makeErr(err)
-	}
-	return minimal, nil
 
 }
 

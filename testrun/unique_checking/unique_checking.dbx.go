@@ -1150,22 +1150,19 @@ type A_B_C_Row struct {
 func (obj *sqlite3Impl) Create_A(ctx context.Context) (
 	a *A, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a DEFAULT VALUES")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO a DEFAULT VALUES RETURNING a.id")
 
 	var __values []any
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	a = &A{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastA(ctx, __pk)
+	return a, nil
 
 }
 
@@ -1174,7 +1171,7 @@ func (obj *sqlite3Impl) Create_B(ctx context.Context,
 	b *B, err error) {
 	__a_id_val := b_a_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO b ( a_id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO b ( a_id ) VALUES ( ? ) RETURNING b.id, b.a_id")
 
 	var __values []any
 	__values = append(__values, __a_id_val)
@@ -1182,15 +1179,12 @@ func (obj *sqlite3Impl) Create_B(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	b = &B{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Id, &b.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastB(ctx, __pk)
+	return b, nil
 
 }
 
@@ -1203,7 +1197,7 @@ func (obj *sqlite3Impl) Create_C(ctx context.Context,
 	__lon_val := c_lon.value()
 	__b_id_val := c_b_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO c ( lat, lon, b_id ) VALUES ( ?, ?, ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO c ( lat, lon, b_id ) VALUES ( ?, ?, ? ) RETURNING c.id, c.lat, c.lon, c.b_id")
 
 	var __values []any
 	__values = append(__values, __lat_val, __lon_val, __b_id_val)
@@ -1211,15 +1205,12 @@ func (obj *sqlite3Impl) Create_C(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	c = &C{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Id, &c.Lat, &c.Lon, &c.BId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastC(ctx, __pk)
+	return c, nil
 
 }
 
@@ -1257,60 +1248,6 @@ func (obj *sqlite3Impl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C
 		return nil, obj.makeErr(err)
 	}
 	return rows, nil
-
-}
-
-func (obj *sqlite3Impl) getLastA(ctx context.Context,
-	pk int64) (
-	a *A, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT a.id FROM a WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&a.Id)
-	if err != nil {
-		return (*A)(nil), obj.makeErr(err)
-	}
-	return a, nil
-
-}
-
-func (obj *sqlite3Impl) getLastB(ctx context.Context,
-	pk int64) (
-	b *B, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT b.id, b.a_id FROM b WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	b = &B{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&b.Id, &b.AId)
-	if err != nil {
-		return (*B)(nil), obj.makeErr(err)
-	}
-	return b, nil
-
-}
-
-func (obj *sqlite3Impl) getLastC(ctx context.Context,
-	pk int64) (
-	c *C, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT c.id, c.lat, c.lon, c.b_id FROM c WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	c = &C{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&c.Id, &c.Lat, &c.Lon, &c.BId)
-	if err != nil {
-		return (*C)(nil), obj.makeErr(err)
-	}
-	return c, nil
 
 }
 

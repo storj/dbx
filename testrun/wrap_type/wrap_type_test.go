@@ -15,10 +15,6 @@ import (
 
 func TestWrapType(t *testing.T) {
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-		if testrun.IsSqlite[*DB](db.DB) {
-			t.Skip("sqlite has a bug with updating fields")
-		}
-
 		Logger = func(format string, args ...any) { t.Logf(format, args...) }
 		defer func() { Logger = nil }()
 

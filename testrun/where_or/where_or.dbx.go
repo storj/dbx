@@ -997,7 +997,7 @@ func (obj *sqlite3Impl) Create_Foo(ctx context.Context,
 	__b_val := foo_b.value()
 	__c_val := foo_c.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO foos ( a, b, c ) VALUES ( ?, ?, ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO foos ( a, b, c ) VALUES ( ?, ?, ? ) RETURNING foos.pk, foos.a, foos.b, foos.c")
 
 	var __values []any
 	__values = append(__values, __a_val, __b_val, __c_val)
@@ -1005,15 +1005,12 @@ func (obj *sqlite3Impl) Create_Foo(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	foo = &Foo{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastFoo(ctx, __pk)
+	return foo, nil
 
 }
 
@@ -1049,24 +1046,6 @@ func (obj *sqlite3Impl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
 		return nil, obj.makeErr(err)
 	}
 	return rows, nil
-
-}
-
-func (obj *sqlite3Impl) getLastFoo(ctx context.Context,
-	pk int64) (
-	foo *Foo, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT foos.pk, foos.a, foos.b, foos.c FROM foos WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
-	if err != nil {
-		return (*Foo)(nil), obj.makeErr(err)
-	}
-	return foo, nil
 
 }
 

@@ -1017,24 +1017,6 @@ func (obj *sqlite3Impl) Get_Kv_By_Key(ctx context.Context,
 
 }
 
-func (obj *sqlite3Impl) getLastKv(ctx context.Context,
-	pk int64) (
-	kv *Kv, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT kvs.key, kvs.val FROM kvs WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	kv = &Kv{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&kv.Key, &kv.Val)
-	if err != nil {
-		return (*Kv)(nil), obj.makeErr(err)
-	}
-	return kv, nil
-
-}
-
 func (impl sqlite3Impl) isConstraintError(err error) (constraint string, ok bool) {
 	if e, ok := err.(sqlite3.Error); ok {
 		if e.Code == sqlite3.ErrConstraint {

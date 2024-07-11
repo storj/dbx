@@ -1077,7 +1077,7 @@ func (obj *sqlite3Impl) Create_Person(ctx context.Context,
 	__u64_null_val := optional.U64Null.value()
 	__u64_null_up_val := optional.U64NullUp.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, u64, u64_up, u64_null, u64_null_up ) VALUES ( ?, ?, ?, ?, ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, u64, u64_up, u64_null, u64_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")
 
 	var __values []any
 	__values = append(__values, __name_val, __u64_val, __u64_up_val, __u64_null_val, __u64_null_up_val)
@@ -1085,15 +1085,12 @@ func (obj *sqlite3Impl) Create_Person(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	person = &Person{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastPerson(ctx, __pk)
+	return person, nil
 
 }
 
@@ -1188,7 +1185,7 @@ func (obj *sqlite3Impl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U6
 	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
 	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")}}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
 	var __values []any
@@ -1225,17 +1222,7 @@ func (obj *sqlite3Impl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U6
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	_, err = obj.driver.ExecContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	var __embed_stmt_get = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE people.pk = ? AND people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
-
-	var __stmt_get = __sqlbundle_Render(obj.dialect, __embed_stmt_get)
-	obj.logStmt("(IMPLIED) "+__stmt_get, __args...)
-
-	err = obj.driver.QueryRowContext(ctx, __stmt_get, __args...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1282,24 +1269,6 @@ func (obj *sqlite3Impl) Delete_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp
 	}
 
 	return count, nil
-
-}
-
-func (obj *sqlite3Impl) getLastPerson(ctx context.Context,
-	pk int64) (
-	person *Person, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
-	if err != nil {
-		return (*Person)(nil), obj.makeErr(err)
-	}
-	return person, nil
 
 }
 

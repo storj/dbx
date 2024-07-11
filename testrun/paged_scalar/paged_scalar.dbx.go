@@ -1742,7 +1742,7 @@ func (obj *sqlite3Impl) Create_DataBlob(ctx context.Context,
 	data_blob *DataBlob, err error) {
 	__id_val := data_blob_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_blobs ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_blobs ( id ) VALUES ( ? ) RETURNING data_blobs.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -1750,15 +1750,12 @@ func (obj *sqlite3Impl) Create_DataBlob(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_blob = &DataBlob{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_blob.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataBlob(ctx, __pk)
+	return data_blob, nil
 
 }
 
@@ -1767,7 +1764,7 @@ func (obj *sqlite3Impl) Create_DataDate(ctx context.Context,
 	data_date *DataDate, err error) {
 	__id_val := data_date_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_dates ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_dates ( id ) VALUES ( ? ) RETURNING data_dates.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -1775,15 +1772,12 @@ func (obj *sqlite3Impl) Create_DataDate(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_date = &DataDate{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_date.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataDate(ctx, __pk)
+	return data_date, nil
 
 }
 
@@ -1792,7 +1786,7 @@ func (obj *sqlite3Impl) Create_DataFloat(ctx context.Context,
 	data_float *DataFloat, err error) {
 	__id_val := data_float_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_floats ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_floats ( id ) VALUES ( ? ) RETURNING data_floats.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -1800,15 +1794,12 @@ func (obj *sqlite3Impl) Create_DataFloat(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_float = &DataFloat{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_float.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataFloat(ctx, __pk)
+	return data_float, nil
 
 }
 
@@ -1817,7 +1808,7 @@ func (obj *sqlite3Impl) Create_DataFloat64(ctx context.Context,
 	data_float64 *DataFloat64, err error) {
 	__id_val := data_float64_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_float64s ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_float64s ( id ) VALUES ( ? ) RETURNING data_float64s.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -1825,15 +1816,12 @@ func (obj *sqlite3Impl) Create_DataFloat64(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_float64 = &DataFloat64{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_float64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataFloat64(ctx, __pk)
+	return data_float64, nil
 
 }
 
@@ -1842,7 +1830,7 @@ func (obj *sqlite3Impl) Create_DataInt(ctx context.Context,
 	data_int *DataInt, err error) {
 	__id_val := data_int_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_ints ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_ints ( id ) VALUES ( ? ) RETURNING data_ints.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -1850,15 +1838,12 @@ func (obj *sqlite3Impl) Create_DataInt(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_int = &DataInt{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_int.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataInt(ctx, __pk)
+	return data_int, nil
 
 }
 
@@ -1867,7 +1852,7 @@ func (obj *sqlite3Impl) Create_DataInt64(ctx context.Context,
 	data_int64 *DataInt64, err error) {
 	__id_val := data_int64_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_int64s ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_int64s ( id ) VALUES ( ? ) RETURNING data_int64s.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -1875,15 +1860,12 @@ func (obj *sqlite3Impl) Create_DataInt64(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_int64 = &DataInt64{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_int64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataInt64(ctx, __pk)
+	return data_int64, nil
 
 }
 
@@ -1892,7 +1874,7 @@ func (obj *sqlite3Impl) Create_DataJson(ctx context.Context,
 	data_json *DataJson, err error) {
 	__id_val := data_json_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_jsons ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_jsons ( id ) VALUES ( ? ) RETURNING data_jsons.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -1900,59 +1882,50 @@ func (obj *sqlite3Impl) Create_DataJson(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_json = &DataJson{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_json.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataJson(ctx, __pk)
+	return data_json, nil
 
 }
 
 func (obj *sqlite3Impl) Create_DataSerial(ctx context.Context) (
 	data_serial *DataSerial, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials DEFAULT VALUES")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serials DEFAULT VALUES RETURNING data_serials.id")
 
 	var __values []any
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_serial = &DataSerial{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_serial.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataSerial(ctx, __pk)
+	return data_serial, nil
 
 }
 
 func (obj *sqlite3Impl) Create_DataSerial64(ctx context.Context) (
 	data_serial64 *DataSerial64, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s DEFAULT VALUES")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_serial64s DEFAULT VALUES RETURNING data_serial64s.id")
 
 	var __values []any
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_serial64 = &DataSerial64{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_serial64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataSerial64(ctx, __pk)
+	return data_serial64, nil
 
 }
 
@@ -1961,7 +1934,7 @@ func (obj *sqlite3Impl) Create_DataText(ctx context.Context,
 	data_text *DataText, err error) {
 	__id_val := data_text_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_texts ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_texts ( id ) VALUES ( ? ) RETURNING data_texts.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -1969,15 +1942,12 @@ func (obj *sqlite3Impl) Create_DataText(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_text = &DataText{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_text.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataText(ctx, __pk)
+	return data_text, nil
 
 }
 
@@ -1986,7 +1956,7 @@ func (obj *sqlite3Impl) Create_DataTimestamp(ctx context.Context,
 	data_timestamp *DataTimestamp, err error) {
 	__id_val := data_timestamp_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_timestamps ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_timestamps ( id ) VALUES ( ? ) RETURNING data_timestamps.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -1994,15 +1964,12 @@ func (obj *sqlite3Impl) Create_DataTimestamp(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_timestamp = &DataTimestamp{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_timestamp.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataTimestamp(ctx, __pk)
+	return data_timestamp, nil
 
 }
 
@@ -2011,7 +1978,7 @@ func (obj *sqlite3Impl) Create_DataUint(ctx context.Context,
 	data_uint *DataUint, err error) {
 	__id_val := data_uint_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uints ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uints ( id ) VALUES ( ? ) RETURNING data_uints.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -2019,15 +1986,12 @@ func (obj *sqlite3Impl) Create_DataUint(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_uint = &DataUint{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_uint.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataUint(ctx, __pk)
+	return data_uint, nil
 
 }
 
@@ -2036,7 +2000,7 @@ func (obj *sqlite3Impl) Create_DataUint64(ctx context.Context,
 	data_uint64 *DataUint64, err error) {
 	__id_val := data_uint64_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uint64s ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_uint64s ( id ) VALUES ( ? ) RETURNING data_uint64s.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -2044,15 +2008,12 @@ func (obj *sqlite3Impl) Create_DataUint64(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_uint64 = &DataUint64{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_uint64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataUint64(ctx, __pk)
+	return data_uint64, nil
 
 }
 
@@ -2061,7 +2022,7 @@ func (obj *sqlite3Impl) Create_DataUtimestamp(ctx context.Context,
 	data_utimestamp *DataUtimestamp, err error) {
 	__id_val := data_utimestamp_id.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_utimestamps ( id ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_utimestamps ( id ) VALUES ( ? ) RETURNING data_utimestamps.id")
 
 	var __values []any
 	__values = append(__values, __id_val)
@@ -2069,15 +2030,12 @@ func (obj *sqlite3Impl) Create_DataUtimestamp(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	data_utimestamp = &DataUtimestamp{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_utimestamp.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastDataUtimestamp(ctx, __pk)
+	return data_utimestamp, nil
 
 }
 
@@ -2722,258 +2680,6 @@ func (obj *sqlite3Impl) Paged_DataUtimestamp(ctx context.Context,
 	}
 
 	return rows, next, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataBlob(ctx context.Context,
-	pk int64) (
-	data_blob *DataBlob, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_blobs.id FROM data_blobs WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_blob = &DataBlob{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_blob.Id)
-	if err != nil {
-		return (*DataBlob)(nil), obj.makeErr(err)
-	}
-	return data_blob, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataDate(ctx context.Context,
-	pk int64) (
-	data_date *DataDate, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_dates.id FROM data_dates WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_date = &DataDate{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_date.Id)
-	if err != nil {
-		return (*DataDate)(nil), obj.makeErr(err)
-	}
-	return data_date, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataFloat(ctx context.Context,
-	pk int64) (
-	data_float *DataFloat, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_floats.id FROM data_floats WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_float = &DataFloat{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_float.Id)
-	if err != nil {
-		return (*DataFloat)(nil), obj.makeErr(err)
-	}
-	return data_float, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataFloat64(ctx context.Context,
-	pk int64) (
-	data_float64 *DataFloat64, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_float64s.id FROM data_float64s WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_float64 = &DataFloat64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_float64.Id)
-	if err != nil {
-		return (*DataFloat64)(nil), obj.makeErr(err)
-	}
-	return data_float64, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataInt(ctx context.Context,
-	pk int64) (
-	data_int *DataInt, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_ints.id FROM data_ints WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_int = &DataInt{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_int.Id)
-	if err != nil {
-		return (*DataInt)(nil), obj.makeErr(err)
-	}
-	return data_int, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataInt64(ctx context.Context,
-	pk int64) (
-	data_int64 *DataInt64, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_int64s.id FROM data_int64s WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_int64 = &DataInt64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_int64.Id)
-	if err != nil {
-		return (*DataInt64)(nil), obj.makeErr(err)
-	}
-	return data_int64, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataJson(ctx context.Context,
-	pk int64) (
-	data_json *DataJson, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_jsons.id FROM data_jsons WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_json = &DataJson{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_json.Id)
-	if err != nil {
-		return (*DataJson)(nil), obj.makeErr(err)
-	}
-	return data_json, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataSerial(ctx context.Context,
-	pk int64) (
-	data_serial *DataSerial, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_serials.id FROM data_serials WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_serial = &DataSerial{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_serial.Id)
-	if err != nil {
-		return (*DataSerial)(nil), obj.makeErr(err)
-	}
-	return data_serial, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataSerial64(ctx context.Context,
-	pk int64) (
-	data_serial64 *DataSerial64, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_serial64s.id FROM data_serial64s WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_serial64 = &DataSerial64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_serial64.Id)
-	if err != nil {
-		return (*DataSerial64)(nil), obj.makeErr(err)
-	}
-	return data_serial64, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataText(ctx context.Context,
-	pk int64) (
-	data_text *DataText, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_texts.id FROM data_texts WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_text = &DataText{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_text.Id)
-	if err != nil {
-		return (*DataText)(nil), obj.makeErr(err)
-	}
-	return data_text, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataTimestamp(ctx context.Context,
-	pk int64) (
-	data_timestamp *DataTimestamp, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_timestamps.id FROM data_timestamps WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_timestamp = &DataTimestamp{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_timestamp.Id)
-	if err != nil {
-		return (*DataTimestamp)(nil), obj.makeErr(err)
-	}
-	return data_timestamp, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataUint(ctx context.Context,
-	pk int64) (
-	data_uint *DataUint, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_uints.id FROM data_uints WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_uint = &DataUint{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_uint.Id)
-	if err != nil {
-		return (*DataUint)(nil), obj.makeErr(err)
-	}
-	return data_uint, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataUint64(ctx context.Context,
-	pk int64) (
-	data_uint64 *DataUint64, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_uint64s.id FROM data_uint64s WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_uint64 = &DataUint64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_uint64.Id)
-	if err != nil {
-		return (*DataUint64)(nil), obj.makeErr(err)
-	}
-	return data_uint64, nil
-
-}
-
-func (obj *sqlite3Impl) getLastDataUtimestamp(ctx context.Context,
-	pk int64) (
-	data_utimestamp *DataUtimestamp, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT data_utimestamps.id FROM data_utimestamps WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	data_utimestamp = &DataUtimestamp{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&data_utimestamp.Id)
-	if err != nil {
-		return (*DataUtimestamp)(nil), obj.makeErr(err)
-	}
-	return data_utimestamp, nil
 
 }
 

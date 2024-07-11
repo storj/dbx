@@ -27,7 +27,7 @@ func (s *sqlite3) Name() string {
 func (s *sqlite3) Features() Features {
 	return Features{
 		DefaultValues: true,
-		Returning:     false,
+		Returning:     true,
 		NoLimitToken:  "-1",
 		ReplaceStyle:  ReplaceStyle_Replace,
 	}

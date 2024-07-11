@@ -1164,24 +1164,6 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 
 }
 
-func (obj *sqlite3Impl) getLastConsumedSerial(ctx context.Context,
-	pk int64) (
-	consumed_serial *ConsumedSerial, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT consumed_serials.expires_at, consumed_serials.storage_node_id, consumed_serials.project_id, consumed_serials.bucket_name, consumed_serials.action, consumed_serials.serial_number, consumed_serials.settled FROM consumed_serials WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	consumed_serial = &ConsumedSerial{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&consumed_serial.ExpiresAt, &consumed_serial.StorageNodeId, &consumed_serial.ProjectId, &consumed_serial.BucketName, &consumed_serial.Action, &consumed_serial.SerialNumber, &consumed_serial.Settled)
-	if err != nil {
-		return (*ConsumedSerial)(nil), obj.makeErr(err)
-	}
-	return consumed_serial, nil
-
-}
-
 func (impl sqlite3Impl) isConstraintError(err error) (constraint string, ok bool) {
 	if e, ok := err.(sqlite3.Error); ok {
 		if e.Code == sqlite3.ErrConstraint {

@@ -1097,22 +1097,19 @@ type Id_Row struct {
 func (obj *sqlite3Impl) Create_User(ctx context.Context) (
 	user *User, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users DEFAULT VALUES")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO users DEFAULT VALUES RETURNING users.pk")
 
 	var __values []any
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	user = &User{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&user.Pk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastUser(ctx, __pk)
+	return user, nil
 
 }
 
@@ -1121,7 +1118,7 @@ func (obj *sqlite3Impl) Create_AssociatedAccount(ctx context.Context,
 	associated_account *AssociatedAccount, err error) {
 	__user_pk_val := associated_account_user_pk.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO associated_accounts ( user_pk ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO associated_accounts ( user_pk ) VALUES ( ? ) RETURNING associated_accounts.pk, associated_accounts.user_pk")
 
 	var __values []any
 	__values = append(__values, __user_pk_val)
@@ -1129,15 +1126,12 @@ func (obj *sqlite3Impl) Create_AssociatedAccount(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	associated_account = &AssociatedAccount{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&associated_account.Pk, &associated_account.UserPk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastAssociatedAccount(ctx, __pk)
+	return associated_account, nil
 
 }
 
@@ -1146,7 +1140,7 @@ func (obj *sqlite3Impl) Create_Session(ctx context.Context,
 	session *Session, err error) {
 	__user_pk_val := session_user_pk.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO sessions ( user_pk ) VALUES ( ? )")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO sessions ( user_pk ) VALUES ( ? ) RETURNING sessions.id, sessions.user_pk")
 
 	var __values []any
 	__values = append(__values, __user_pk_val)
@@ -1154,15 +1148,12 @@ func (obj *sqlite3Impl) Create_Session(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
+	session = &Session{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&session.Id, &session.UserPk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLastSession(ctx, __pk)
+	return session, nil
 
 }
 
@@ -1196,60 +1187,6 @@ func (obj *sqlite3Impl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Conte
 		return nil, obj.makeErr(err)
 	}
 	return rows, nil
-
-}
-
-func (obj *sqlite3Impl) getLastUser(ctx context.Context,
-	pk int64) (
-	user *User, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT users.pk FROM users WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	user = &User{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&user.Pk)
-	if err != nil {
-		return (*User)(nil), obj.makeErr(err)
-	}
-	return user, nil
-
-}
-
-func (obj *sqlite3Impl) getLastAssociatedAccount(ctx context.Context,
-	pk int64) (
-	associated_account *AssociatedAccount, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT associated_accounts.pk, associated_accounts.user_pk FROM associated_accounts WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	associated_account = &AssociatedAccount{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&associated_account.Pk, &associated_account.UserPk)
-	if err != nil {
-		return (*AssociatedAccount)(nil), obj.makeErr(err)
-	}
-	return associated_account, nil
-
-}
-
-func (obj *sqlite3Impl) getLastSession(ctx context.Context,
-	pk int64) (
-	session *Session, err error) {
-
-	var __embed_stmt = __sqlbundle_Literal("SELECT sessions.id, sessions.user_pk FROM sessions WHERE _rowid_ = ?")
-
-	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
-	obj.logStmt(__stmt, pk)
-
-	session = &Session{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, pk).Scan(&session.Id, &session.UserPk)
-	if err != nil {
-		return (*Session)(nil), obj.makeErr(err)
-	}
-	return session, nil
 
 }
 
