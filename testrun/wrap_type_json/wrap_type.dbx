@@ -13,25 +13,10 @@ create person (  )
 
 read one ( select person, where person.pk = ? )
 
-read one (
-	select person
-	where person.value = ?
-	where person.value_up = ?
-	where person.value_null = ?
-	where person.value_null_up = ?
-)
-
-update person ( 
+update person (
 	where person.pk = ?
-	where person.value = ?
-	where person.value_up = ?
-	where person.value_null = ?
-	where person.value_null_up = ?
 )
 
-delete person ( 
-	where person.value = ?
-	where person.value_up = ?
-	where person.value_null = ?
-	where person.value_null_up = ?
+delete person (
+	where person.pk = ?
 )

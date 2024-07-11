@@ -44,6 +44,7 @@ func funcMap(dialect string) template.FuncMap {
 		funcs["initnew"] = spanner_initnewFn
 		funcs["embedvalues"] = spanner_embedvaluesFn
 		funcs["setupdatablefields"] = spanner_setupdatablefieldsFn
+		funcs["addrof"] = spanner_addrofFn
 	}
 
 	return funcs
@@ -268,14 +269,6 @@ func embedvaluesFn(args []ConditionArg, name string) string {
 	return out.String()
 }
 
-func spanner_initnewFn(intf any) (string, error) {
-	vs, err := forVars(intf, spanner_Var_InitNew)
-	if err != nil {
-		return "", err
-	}
-	return strings.Join(vs, "\n"), nil
-}
-
 func spanner_embedvaluesFn(args []ConditionArg, name string) string {
 	var out bytes.Buffer
 	var run []string
@@ -332,6 +325,14 @@ func spanner_setupdatablefieldsFn(modelFields []*ModelField) string {
 	return out.String()
 }
 
+func spanner_initnewFn(intf any) (string, error) {
+	vs, err := forVars(intf, spanner_Var_InitNew)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(vs, "\n"), nil
+}
+
 func spanner_Var_InitNew(v *Var) string {
 	if wrap := spannerWrapFunc(v.Underlying); wrap != "" {
 		return fmt.Sprintf("%s := %v(%s)", v.Name, wrap, v.InitVal)
@@ -340,8 +341,27 @@ func spanner_Var_InitNew(v *Var) string {
 	}
 }
 
+func spanner_addrofFn(intf any) (string, error) {
+	vs, err := forVars(intf, spanner_Var_AddrOf)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(vs, ", "), nil
+}
+
+func spanner_Var_AddrOf(v *Var) string {
+	if v.Underlying.Type == consts.JsonField {
+		wrap := spannerWrapFunc(v.Underlying)
+		return fmt.Sprintf("%v(&%s)", wrap, v.Name)
+	} else {
+		return fmt.Sprintf("&%s", v.Name)
+	}
+}
+
 func spannerWrapFunc(v UnderlyingType) string {
 	switch v.Type {
+	case consts.JsonField:
+		return "spannerConvertJSON"
 	case consts.Uint64Field:
 		return "spannerConvertArgument"
 	default:

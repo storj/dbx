@@ -16,9 +16,10 @@ import (
 	"time"
 	"unicode"
 
-	_ "cloud.google.com/go/spanner"
+	"cloud.google.com/go/spanner"
 	"crypto/rand"
 	sqldriver "database/sql/driver"
+	"encoding/base64"
 	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -5300,7 +5301,7 @@ func (obj *spannerImpl) Create_DataInt64(ctx context.Context,
 func (obj *spannerImpl) Create_DataJson(ctx context.Context,
 	data_json_id DataJson_Id_Field) (
 	data_json *DataJson, err error) {
-	__id_val := data_json_id.value()
+	__id_val := spannerConvertJSON(data_json_id.value())
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO data_jsons ( id ) VALUES ( ? ) THEN RETURN data_jsons.id")
 
@@ -5325,7 +5326,7 @@ func (obj *spannerImpl) Create_DataJson(ctx context.Context,
 			}
 		}()
 	}
-	err = d.QueryRowContext(ctx, __stmt, __values...).Scan(&data_json.Id)
+	err = d.QueryRowContext(ctx, __stmt, __values...).Scan(spannerConvertJSON(&data_json.Id))
 	if !obj.txn {
 		if err == nil {
 			err = obj.makeErr(tx.Commit())
@@ -5947,7 +5948,7 @@ func (obj *spannerImpl) Paged_DataJson(ctx context.Context,
 
 	for __rows.Next() {
 		data_json := &DataJson{}
-		err = __rows.Scan(&data_json.Id, &__continuation._value_id)
+		err = __rows.Scan(spannerConvertJSON(&data_json.Id), &__continuation._value_id)
 		if err != nil {
 			return nil, nil, obj.makeErr(err)
 		}
@@ -6661,6 +6662,48 @@ func spannerConvertArgument(v any) any {
 	default:
 		return v
 	}
+}
+
+func spannerConvertJSON(v any) any {
+	if v == nil {
+		return spanner.NullJSON{Value: nil, Valid: true}
+	}
+	if v, ok := v.([]byte); ok {
+		return spanner.NullJSON{Value: v, Valid: true}
+	}
+	if v, ok := v.(*[]byte); ok {
+		return &spannerJSON{data: v}
+	}
+	return v
+}
+
+type spannerJSON struct {
+	data *[]byte
+}
+
+func (s *spannerJSON) Scan(input any) error {
+	if input == nil {
+		*s.data = nil
+		return nil
+	}
+	if v, ok := input.(spanner.NullJSON); ok {
+		if !v.Valid || v.Value == nil {
+			*s.data = nil
+			return nil
+		}
+
+		if str, ok := v.Value.(string); ok {
+			bytesVal, err := base64.StdEncoding.DecodeString(str)
+			if err != nil {
+				return fmt.Errorf("expected base64 from spanner: %w", err)
+			}
+			*s.data = bytesVal
+			return nil
+		}
+
+		return fmt.Errorf("unable to decode spanner.NullJSON with type %T", v.Value)
+	}
+	return fmt.Errorf("unable to decode %T", input)
 }
 
 type spannerUint64 struct {
