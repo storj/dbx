@@ -289,10 +289,10 @@ func (obj *sqlite3DB) Schema() []string {
 		`CREATE TABLE people (
 	pk INTEGER NOT NULL,
 	name TEXT NOT NULL,
-	u64 INTEGER NOT NULL,
-	u64_up INTEGER NOT NULL,
-	u64_null INTEGER,
-	u64_null_up INTEGER,
+	value INTEGER NOT NULL,
+	value_up INTEGER NOT NULL,
+	value_null INTEGER,
+	value_null_up INTEGER,
 	PRIMARY KEY ( pk )
 )`,
 	}
@@ -373,10 +373,10 @@ func (obj *pgxDB) Schema() []string {
 		`CREATE TABLE people (
 	pk bigserial NOT NULL,
 	name text NOT NULL,
-	u64 bigint NOT NULL,
-	u64_up bigint NOT NULL,
-	u64_null bigint,
-	u64_null_up bigint,
+	value bigint NOT NULL,
+	value_up bigint NOT NULL,
+	value_null bigint,
+	value_null_up bigint,
 	PRIMARY KEY ( pk )
 )`,
 	}
@@ -457,10 +457,10 @@ func (obj *pgxcockroachDB) Schema() []string {
 		`CREATE TABLE people (
 	pk bigserial NOT NULL,
 	name text NOT NULL,
-	u64 bigint NOT NULL,
-	u64_up bigint NOT NULL,
-	u64_null bigint,
-	u64_null_up bigint,
+	value bigint NOT NULL,
+	value_up bigint NOT NULL,
+	value_null bigint,
+	value_null_up bigint,
 	PRIMARY KEY ( pk )
 )`,
 	}
@@ -543,10 +543,10 @@ func (obj *spannerDB) Schema() []string {
 		`CREATE TABLE people (
 	pk INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE people_pk)),
 	name STRING(MAX) NOT NULL,
-	u64 INT64 NOT NULL,
-	u64_up INT64 NOT NULL,
-	u64_null INT64,
-	u64_null_up INT64
+	value INT64 NOT NULL,
+	value_up INT64 NOT NULL,
+	value_null INT64,
+	value_null_up INT64
 ) PRIMARY KEY ( pk )`,
 	}
 }
@@ -624,24 +624,24 @@ nextval:
 }
 
 type Person struct {
-	Pk        int64
-	Name      string
-	U64       uint64
-	U64Up     uint64
-	U64Null   *uint64
-	U64NullUp *uint64
+	Pk          int64
+	Name        string
+	Value       uint64
+	ValueUp     uint64
+	ValueNull   *uint64
+	ValueNullUp *uint64
 }
 
 func (Person) _Table() string { return "people" }
 
 type Person_Create_Fields struct {
-	U64Null   Person_U64Null_Field
-	U64NullUp Person_U64NullUp_Field
+	ValueNull   Person_ValueNull_Field
+	ValueNullUp Person_ValueNullUp_Field
 }
 
 type Person_Update_Fields struct {
-	U64Up     Person_U64Up_Field
-	U64NullUp Person_U64NullUp_Field
+	ValueUp     Person_ValueUp_Field
+	ValueNullUp Person_ValueNullUp_Field
 }
 
 type Person_Pk_Field struct {
@@ -678,94 +678,94 @@ func (f Person_Name_Field) value() any {
 	return f._value
 }
 
-type Person_U64_Field struct {
+type Person_Value_Field struct {
 	_set   bool
 	_null  bool
 	_value uint64
 }
 
-func Person_U64(v uint64) Person_U64_Field {
-	return Person_U64_Field{_set: true, _value: v}
+func Person_Value(v uint64) Person_Value_Field {
+	return Person_Value_Field{_set: true, _value: v}
 }
 
-func (f Person_U64_Field) value() any {
+func (f Person_Value_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
 	return f._value
 }
 
-type Person_U64Up_Field struct {
+type Person_ValueUp_Field struct {
 	_set   bool
 	_null  bool
 	_value uint64
 }
 
-func Person_U64Up(v uint64) Person_U64Up_Field {
-	return Person_U64Up_Field{_set: true, _value: v}
+func Person_ValueUp(v uint64) Person_ValueUp_Field {
+	return Person_ValueUp_Field{_set: true, _value: v}
 }
 
-func (f Person_U64Up_Field) value() any {
+func (f Person_ValueUp_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
 	return f._value
 }
 
-type Person_U64Null_Field struct {
+type Person_ValueNull_Field struct {
 	_set   bool
 	_null  bool
 	_value *uint64
 }
 
-func Person_U64Null(v uint64) Person_U64Null_Field {
-	return Person_U64Null_Field{_set: true, _value: &v}
+func Person_ValueNull(v uint64) Person_ValueNull_Field {
+	return Person_ValueNull_Field{_set: true, _value: &v}
 }
 
-func Person_U64Null_Raw(v *uint64) Person_U64Null_Field {
+func Person_ValueNull_Raw(v *uint64) Person_ValueNull_Field {
 	if v == nil {
-		return Person_U64Null_Null()
+		return Person_ValueNull_Null()
 	}
-	return Person_U64Null(*v)
+	return Person_ValueNull(*v)
 }
 
-func Person_U64Null_Null() Person_U64Null_Field {
-	return Person_U64Null_Field{_set: true, _null: true}
+func Person_ValueNull_Null() Person_ValueNull_Field {
+	return Person_ValueNull_Field{_set: true, _null: true}
 }
 
-func (f Person_U64Null_Field) isnull() bool { return !f._set || f._null || f._value == nil }
+func (f Person_ValueNull_Field) isnull() bool { return !f._set || f._null || f._value == nil }
 
-func (f Person_U64Null_Field) value() any {
+func (f Person_ValueNull_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
 	return f._value
 }
 
-type Person_U64NullUp_Field struct {
+type Person_ValueNullUp_Field struct {
 	_set   bool
 	_null  bool
 	_value *uint64
 }
 
-func Person_U64NullUp(v uint64) Person_U64NullUp_Field {
-	return Person_U64NullUp_Field{_set: true, _value: &v}
+func Person_ValueNullUp(v uint64) Person_ValueNullUp_Field {
+	return Person_ValueNullUp_Field{_set: true, _value: &v}
 }
 
-func Person_U64NullUp_Raw(v *uint64) Person_U64NullUp_Field {
+func Person_ValueNullUp_Raw(v *uint64) Person_ValueNullUp_Field {
 	if v == nil {
-		return Person_U64NullUp_Null()
+		return Person_ValueNullUp_Null()
 	}
-	return Person_U64NullUp(*v)
+	return Person_ValueNullUp(*v)
 }
 
-func Person_U64NullUp_Null() Person_U64NullUp_Field {
-	return Person_U64NullUp_Field{_set: true, _null: true}
+func Person_ValueNullUp_Null() Person_ValueNullUp_Field {
+	return Person_ValueNullUp_Field{_set: true, _null: true}
 }
 
-func (f Person_U64NullUp_Field) isnull() bool { return !f._set || f._null || f._value == nil }
+func (f Person_ValueNullUp_Field) isnull() bool { return !f._set || f._null || f._value == nil }
 
-func (f Person_U64NullUp_Field) value() any {
+func (f Person_ValueNullUp_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1067,26 +1067,26 @@ func (h *__sqlbundle_Hole) Render() string {
 
 func (obj *sqlite3Impl) Create_Person(ctx context.Context,
 	person_name Person_Name_Field,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
 	optional Person_Create_Fields) (
 	person *Person, err error) {
 	__name_val := person_name.value()
-	__u64_val := person_u64.value()
-	__u64_up_val := person_u64_up.value()
-	__u64_null_val := optional.U64Null.value()
-	__u64_null_up_val := optional.U64NullUp.value()
+	__value_val := person_value.value()
+	__value_up_val := person_value_up.value()
+	__value_null_val := optional.ValueNull.value()
+	__value_null_up_val := optional.ValueNullUp.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, u64, u64_up, u64_null, u64_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, value, value_up, value_null, value_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")
 
 	var __values []any
-	__values = append(__values, __name_val, __u64_val, __u64_up_val, __u64_null_val, __u64_null_up_val)
+	__values = append(__values, __name_val, __value_val, __value_up_val, __value_null_val, __value_null_up_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1098,7 +1098,7 @@ func (obj *sqlite3Impl) Get_Person_By_Pk(ctx context.Context,
 	person_pk Person_Pk_Field) (
 	person *Person, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE people.pk = ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.pk = ?")
 
 	var __values []any
 	__values = append(__values, person_pk.value())
@@ -1107,7 +1107,7 @@ func (obj *sqlite3Impl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1115,27 +1115,27 @@ func (obj *sqlite3Impl) Get_Person_By_Pk(ctx context.Context,
 
 }
 
-func (obj *sqlite3Impl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field) (
+func (obj *sqlite3Impl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field) (
 	person *Person, err error) {
 
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" LIMIT 2")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" LIMIT 2")}}
 
 	var __values []any
-	__values = append(__values, person_u64.value(), person_u64_up.value())
-	if !person_u64_null.isnull() {
+	__values = append(__values, person_value.value(), person_value_up.value())
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, person_u64_null.value())
+		__values = append(__values, person_value_null.value())
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, person_u64_null_up.value())
+		__values = append(__values, person_value_null_up.value())
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1155,13 +1155,13 @@ func (obj *sqlite3Impl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ct
 	}
 
 	person = &Person{}
-	err = __rows.Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = __rows.Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
 
 	if __rows.Next() {
-		return nil, tooManyRows("Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp")
+		return nil, tooManyRows("Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp")
 	}
 
 	if err := __rows.Err(); err != nil {
@@ -1172,47 +1172,47 @@ func (obj *sqlite3Impl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ct
 
 }
 
-func (obj *sqlite3Impl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
+func (obj *sqlite3Impl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
 	person_pk Person_Pk_Field,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field,
 	update Person_Update_Fields) (
 	person *Person, err error) {
 
 	var __sets = &__sqlbundle_Hole{}
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")}}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
 	var __values []any
 	var __args []any
 
-	if update.U64Up._set {
-		__values = append(__values, update.U64Up.value())
-		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("u64_up = ?"))
+	if update.ValueUp._set {
+		__values = append(__values, update.ValueUp.value())
+		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_up = ?"))
 	}
 
-	if update.U64NullUp._set {
-		__values = append(__values, update.U64NullUp.value())
-		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("u64_null_up = ?"))
+	if update.ValueNullUp._set {
+		__values = append(__values, update.ValueNullUp.value())
+		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_null_up = ?"))
 	}
 
 	if len(__sets_sql.SQLs) == 0 {
 		return nil, emptyUpdate()
 	}
 
-	__args = append(__args, person_pk.value(), person_u64.value(), person_u64_up.value())
-	if !person_u64_null.isnull() {
+	__args = append(__args, person_pk.value(), person_value.value(), person_value_up.value())
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__args = append(__args, person_u64_null.value())
+		__args = append(__args, person_value_null.value())
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__args = append(__args, person_u64_null_up.value())
+		__args = append(__args, person_value_null_up.value())
 	}
 
 	__values = append(__values, __args...)
@@ -1222,7 +1222,7 @@ func (obj *sqlite3Impl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U6
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1232,27 +1232,27 @@ func (obj *sqlite3Impl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U6
 	return person, nil
 }
 
-func (obj *sqlite3Impl) Delete_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field) (
+func (obj *sqlite3Impl) Delete_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field) (
 	count int64, err error) {
 
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("DELETE FROM people WHERE people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("DELETE FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
 
 	var __values []any
-	__values = append(__values, person_u64.value(), person_u64_up.value())
-	if !person_u64_null.isnull() {
+	__values = append(__values, person_value.value(), person_value_up.value())
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, person_u64_null.value())
+		__values = append(__values, person_value_null.value())
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, person_u64_null_up.value())
+		__values = append(__values, person_value_null_up.value())
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1306,26 +1306,26 @@ func (obj *sqlite3Impl) deleteAll(ctx context.Context) (count int64, err error) 
 
 func (obj *pgxImpl) Create_Person(ctx context.Context,
 	person_name Person_Name_Field,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
 	optional Person_Create_Fields) (
 	person *Person, err error) {
 	__name_val := person_name.value()
-	__u64_val := person_u64.value()
-	__u64_up_val := person_u64_up.value()
-	__u64_null_val := optional.U64Null.value()
-	__u64_null_up_val := optional.U64NullUp.value()
+	__value_val := person_value.value()
+	__value_up_val := person_value_up.value()
+	__value_null_val := optional.ValueNull.value()
+	__value_null_up_val := optional.ValueNullUp.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, u64, u64_up, u64_null, u64_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, value, value_up, value_null, value_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")
 
 	var __values []any
-	__values = append(__values, __name_val, __u64_val, __u64_up_val, __u64_null_val, __u64_null_up_val)
+	__values = append(__values, __name_val, __value_val, __value_up_val, __value_null_val, __value_null_up_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1337,7 +1337,7 @@ func (obj *pgxImpl) Get_Person_By_Pk(ctx context.Context,
 	person_pk Person_Pk_Field) (
 	person *Person, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE people.pk = ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.pk = ?")
 
 	var __values []any
 	__values = append(__values, person_pk.value())
@@ -1346,7 +1346,7 @@ func (obj *pgxImpl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1354,27 +1354,27 @@ func (obj *pgxImpl) Get_Person_By_Pk(ctx context.Context,
 
 }
 
-func (obj *pgxImpl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field) (
+func (obj *pgxImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field) (
 	person *Person, err error) {
 
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" LIMIT 2")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" LIMIT 2")}}
 
 	var __values []any
-	__values = append(__values, person_u64.value(), person_u64_up.value())
-	if !person_u64_null.isnull() {
+	__values = append(__values, person_value.value(), person_value_up.value())
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, person_u64_null.value())
+		__values = append(__values, person_value_null.value())
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, person_u64_null_up.value())
+		__values = append(__values, person_value_null_up.value())
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1394,13 +1394,13 @@ func (obj *pgxImpl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx co
 	}
 
 	person = &Person{}
-	err = __rows.Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = __rows.Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
 
 	if __rows.Next() {
-		return nil, tooManyRows("Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp")
+		return nil, tooManyRows("Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp")
 	}
 
 	if err := __rows.Err(); err != nil {
@@ -1411,47 +1411,47 @@ func (obj *pgxImpl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx co
 
 }
 
-func (obj *pgxImpl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
+func (obj *pgxImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
 	person_pk Person_Pk_Field,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field,
 	update Person_Update_Fields) (
 	person *Person, err error) {
 
 	var __sets = &__sqlbundle_Hole{}
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")}}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
 	var __values []any
 	var __args []any
 
-	if update.U64Up._set {
-		__values = append(__values, update.U64Up.value())
-		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("u64_up = ?"))
+	if update.ValueUp._set {
+		__values = append(__values, update.ValueUp.value())
+		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_up = ?"))
 	}
 
-	if update.U64NullUp._set {
-		__values = append(__values, update.U64NullUp.value())
-		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("u64_null_up = ?"))
+	if update.ValueNullUp._set {
+		__values = append(__values, update.ValueNullUp.value())
+		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_null_up = ?"))
 	}
 
 	if len(__sets_sql.SQLs) == 0 {
 		return nil, emptyUpdate()
 	}
 
-	__args = append(__args, person_pk.value(), person_u64.value(), person_u64_up.value())
-	if !person_u64_null.isnull() {
+	__args = append(__args, person_pk.value(), person_value.value(), person_value_up.value())
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__args = append(__args, person_u64_null.value())
+		__args = append(__args, person_value_null.value())
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__args = append(__args, person_u64_null_up.value())
+		__args = append(__args, person_value_null_up.value())
 	}
 
 	__values = append(__values, __args...)
@@ -1461,7 +1461,7 @@ func (obj *pgxImpl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U64Nul
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1471,27 +1471,27 @@ func (obj *pgxImpl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U64Nul
 	return person, nil
 }
 
-func (obj *pgxImpl) Delete_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field) (
+func (obj *pgxImpl) Delete_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field) (
 	count int64, err error) {
 
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("DELETE FROM people WHERE people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("DELETE FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
 
 	var __values []any
-	__values = append(__values, person_u64.value(), person_u64_up.value())
-	if !person_u64_null.isnull() {
+	__values = append(__values, person_value.value(), person_value_up.value())
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, person_u64_null.value())
+		__values = append(__values, person_value_null.value())
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, person_u64_null_up.value())
+		__values = append(__values, person_value_null_up.value())
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1540,26 +1540,26 @@ func (obj *pgxImpl) deleteAll(ctx context.Context) (count int64, err error) {
 
 func (obj *pgxcockroachImpl) Create_Person(ctx context.Context,
 	person_name Person_Name_Field,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
 	optional Person_Create_Fields) (
 	person *Person, err error) {
 	__name_val := person_name.value()
-	__u64_val := person_u64.value()
-	__u64_up_val := person_u64_up.value()
-	__u64_null_val := optional.U64Null.value()
-	__u64_null_up_val := optional.U64NullUp.value()
+	__value_val := person_value.value()
+	__value_up_val := person_value_up.value()
+	__value_null_val := optional.ValueNull.value()
+	__value_null_up_val := optional.ValueNullUp.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, u64, u64_up, u64_null, u64_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, value, value_up, value_null, value_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")
 
 	var __values []any
-	__values = append(__values, __name_val, __u64_val, __u64_up_val, __u64_null_val, __u64_null_up_val)
+	__values = append(__values, __name_val, __value_val, __value_up_val, __value_null_val, __value_null_up_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1571,7 +1571,7 @@ func (obj *pgxcockroachImpl) Get_Person_By_Pk(ctx context.Context,
 	person_pk Person_Pk_Field) (
 	person *Person, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE people.pk = ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.pk = ?")
 
 	var __values []any
 	__values = append(__values, person_pk.value())
@@ -1580,7 +1580,7 @@ func (obj *pgxcockroachImpl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1588,27 +1588,27 @@ func (obj *pgxcockroachImpl) Get_Person_By_Pk(ctx context.Context,
 
 }
 
-func (obj *pgxcockroachImpl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field) (
+func (obj *pgxcockroachImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field) (
 	person *Person, err error) {
 
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" LIMIT 2")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" LIMIT 2")}}
 
 	var __values []any
-	__values = append(__values, person_u64.value(), person_u64_up.value())
-	if !person_u64_null.isnull() {
+	__values = append(__values, person_value.value(), person_value_up.value())
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, person_u64_null.value())
+		__values = append(__values, person_value_null.value())
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, person_u64_null_up.value())
+		__values = append(__values, person_value_null_up.value())
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1628,13 +1628,13 @@ func (obj *pgxcockroachImpl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64Null
 	}
 
 	person = &Person{}
-	err = __rows.Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = __rows.Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
 
 	if __rows.Next() {
-		return nil, tooManyRows("Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp")
+		return nil, tooManyRows("Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp")
 	}
 
 	if err := __rows.Err(); err != nil {
@@ -1645,47 +1645,47 @@ func (obj *pgxcockroachImpl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64Null
 
 }
 
-func (obj *pgxcockroachImpl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
+func (obj *pgxcockroachImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
 	person_pk Person_Pk_Field,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field,
 	update Person_Update_Fields) (
 	person *Person, err error) {
 
 	var __sets = &__sqlbundle_Hole{}
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")}}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
 	var __values []any
 	var __args []any
 
-	if update.U64Up._set {
-		__values = append(__values, update.U64Up.value())
-		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("u64_up = ?"))
+	if update.ValueUp._set {
+		__values = append(__values, update.ValueUp.value())
+		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_up = ?"))
 	}
 
-	if update.U64NullUp._set {
-		__values = append(__values, update.U64NullUp.value())
-		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("u64_null_up = ?"))
+	if update.ValueNullUp._set {
+		__values = append(__values, update.ValueNullUp.value())
+		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_null_up = ?"))
 	}
 
 	if len(__sets_sql.SQLs) == 0 {
 		return nil, emptyUpdate()
 	}
 
-	__args = append(__args, person_pk.value(), person_u64.value(), person_u64_up.value())
-	if !person_u64_null.isnull() {
+	__args = append(__args, person_pk.value(), person_value.value(), person_value_up.value())
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__args = append(__args, person_u64_null.value())
+		__args = append(__args, person_value_null.value())
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__args = append(__args, person_u64_null_up.value())
+		__args = append(__args, person_value_null_up.value())
 	}
 
 	__values = append(__values, __args...)
@@ -1695,7 +1695,7 @@ func (obj *pgxcockroachImpl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_A
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1705,27 +1705,27 @@ func (obj *pgxcockroachImpl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_A
 	return person, nil
 }
 
-func (obj *pgxcockroachImpl) Delete_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field) (
+func (obj *pgxcockroachImpl) Delete_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field) (
 	count int64, err error) {
 
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("DELETE FROM people WHERE people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("DELETE FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
 
 	var __values []any
-	__values = append(__values, person_u64.value(), person_u64_up.value())
-	if !person_u64_null.isnull() {
+	__values = append(__values, person_value.value(), person_value_up.value())
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, person_u64_null.value())
+		__values = append(__values, person_value_null.value())
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, person_u64_null_up.value())
+		__values = append(__values, person_value_null_up.value())
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1774,20 +1774,20 @@ func (obj *pgxcockroachImpl) deleteAll(ctx context.Context) (count int64, err er
 
 func (obj *spannerImpl) Create_Person(ctx context.Context,
 	person_name Person_Name_Field,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
 	optional Person_Create_Fields) (
 	person *Person, err error) {
 	__name_val := person_name.value()
-	__u64_val := spannerConvertArgument(person_u64.value())
-	__u64_up_val := spannerConvertArgument(person_u64_up.value())
-	__u64_null_val := spannerConvertArgument(optional.U64Null.value())
-	__u64_null_up_val := spannerConvertArgument(optional.U64NullUp.value())
+	__value_val := spannerConvertArgument(person_value.value())
+	__value_up_val := spannerConvertArgument(person_value_up.value())
+	__value_null_val := spannerConvertArgument(optional.ValueNull.value())
+	__value_null_up_val := spannerConvertArgument(optional.ValueNullUp.value())
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, u64, u64_up, u64_null, u64_null_up ) VALUES ( ?, ?, ?, ?, ? ) THEN RETURN people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, value, value_up, value_null, value_null_up ) VALUES ( ?, ?, ?, ?, ? ) THEN RETURN people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")
 
 	var __values []any
-	__values = append(__values, __name_val, __u64_val, __u64_up_val, __u64_null_val, __u64_null_up_val)
+	__values = append(__values, __name_val, __value_val, __value_up_val, __value_null_val, __value_null_up_val)
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1807,7 +1807,7 @@ func (obj *spannerImpl) Create_Person(ctx context.Context,
 			}
 		}()
 	}
-	err = d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if !obj.txn {
 		if err == nil {
 			err = obj.makeErr(tx.Commit())
@@ -1824,7 +1824,7 @@ func (obj *spannerImpl) Get_Person_By_Pk(ctx context.Context,
 	person_pk Person_Pk_Field) (
 	person *Person, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE people.pk = ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.pk = ?")
 
 	var __values []any
 	__values = append(__values, person_pk.value())
@@ -1833,7 +1833,7 @@ func (obj *spannerImpl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1841,27 +1841,27 @@ func (obj *spannerImpl) Get_Person_By_Pk(ctx context.Context,
 
 }
 
-func (obj *spannerImpl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field) (
+func (obj *spannerImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field) (
 	person *Person, err error) {
 
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up FROM people WHERE people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" LIMIT 2")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" LIMIT 2")}}
 
 	var __values []any
-	__values = append(__values, spannerConvertArgument(person_u64.value()), spannerConvertArgument(person_u64_up.value()))
-	if !person_u64_null.isnull() {
+	__values = append(__values, spannerConvertArgument(person_value.value()), spannerConvertArgument(person_value_up.value()))
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, spannerConvertArgument(person_u64_null.value()))
+		__values = append(__values, spannerConvertArgument(person_value_null.value()))
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, spannerConvertArgument(person_u64_null_up.value()))
+		__values = append(__values, spannerConvertArgument(person_value_null_up.value()))
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1881,13 +1881,13 @@ func (obj *spannerImpl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ct
 	}
 
 	person = &Person{}
-	err = __rows.Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = __rows.Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
 
 	if __rows.Next() {
-		return nil, tooManyRows("Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp")
+		return nil, tooManyRows("Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp")
 	}
 
 	if err := __rows.Err(); err != nil {
@@ -1898,46 +1898,46 @@ func (obj *spannerImpl) Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ct
 
 }
 
-func (obj *spannerImpl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
+func (obj *spannerImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
 	person_pk Person_Pk_Field,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field,
 	update Person_Update_Fields) (
 	person *Person, err error) {
 
 	var __sets = &__sqlbundle_Hole{}
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" THEN RETURN people.pk, people.name, people.u64, people.u64_up, people.u64_null, people.u64_null_up")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? AND people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" THEN RETURN people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")}}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
 	var __values []any
 	var __args []any
 
-	if update.U64Up._set {
-		__values = append(__values, spannerConvertArgument(update.U64Up.value()))
-		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("u64_up = ?"))
+	if update.ValueUp._set {
+		__values = append(__values, spannerConvertArgument(update.ValueUp.value()))
+		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_up = ?"))
 	}
-	if update.U64NullUp._set {
-		__values = append(__values, spannerConvertArgument(update.U64NullUp.value()))
-		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("u64_null_up = ?"))
+	if update.ValueNullUp._set {
+		__values = append(__values, spannerConvertArgument(update.ValueNullUp.value()))
+		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_null_up = ?"))
 	}
 
 	if len(__sets_sql.SQLs) == 0 {
 		return nil, emptyUpdate()
 	}
 
-	__args = append(__args, person_pk.value(), spannerConvertArgument(person_u64.value()), spannerConvertArgument(person_u64_up.value()))
-	if !person_u64_null.isnull() {
+	__args = append(__args, person_pk.value(), spannerConvertArgument(person_value.value()), spannerConvertArgument(person_value_up.value()))
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__args = append(__args, spannerConvertArgument(person_u64_null.value()))
+		__args = append(__args, spannerConvertArgument(person_value_null.value()))
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__args = append(__args, spannerConvertArgument(person_u64_null_up.value()))
+		__args = append(__args, spannerConvertArgument(person_value_null_up.value()))
 	}
 
 	__values = append(__values, __args...)
@@ -1961,7 +1961,7 @@ func (obj *spannerImpl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U6
 			}
 		}()
 	}
-	err = d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.U64, &person.U64Up, &person.U64Null, &person.U64NullUp)
+	err = d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if !obj.txn {
 		if err == nil {
 			err = obj.makeErr(tx.Commit())
@@ -1976,27 +1976,27 @@ func (obj *spannerImpl) Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U6
 	return person, nil
 }
 
-func (obj *spannerImpl) Delete_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-	person_u64 Person_U64_Field,
-	person_u64_up Person_U64Up_Field,
-	person_u64_null Person_U64Null_Field,
-	person_u64_null_up Person_U64NullUp_Field) (
+func (obj *spannerImpl) Delete_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+	person_value Person_Value_Field,
+	person_value_up Person_ValueUp_Field,
+	person_value_null Person_ValueNull_Field,
+	person_value_null_up Person_ValueNullUp_Field) (
 	count int64, err error) {
 
-	var __cond_0 = &__sqlbundle_Condition{Left: "people.u64_null", Equal: true, Right: "?", Null: true}
-	var __cond_1 = &__sqlbundle_Condition{Left: "people.u64_null_up", Equal: true, Right: "?", Null: true}
+	var __cond_0 = &__sqlbundle_Condition{Left: "people.value_null", Equal: true, Right: "?", Null: true}
+	var __cond_1 = &__sqlbundle_Condition{Left: "people.value_null_up", Equal: true, Right: "?", Null: true}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("DELETE FROM people WHERE people.u64 = ? AND people.u64_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("DELETE FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
 
 	var __values []any
-	__values = append(__values, spannerConvertArgument(person_u64.value()), spannerConvertArgument(person_u64_up.value()))
-	if !person_u64_null.isnull() {
+	__values = append(__values, spannerConvertArgument(person_value.value()), spannerConvertArgument(person_value_up.value()))
+	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, spannerConvertArgument(person_u64_null.value()))
+		__values = append(__values, spannerConvertArgument(person_value_null.value()))
 	}
-	if !person_u64_null_up.isnull() {
+	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, spannerConvertArgument(person_u64_null_up.value()))
+		__values = append(__values, spannerConvertArgument(person_value_null_up.value()))
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2041,35 +2041,35 @@ func (obj *spannerImpl) deleteAll(ctx context.Context) (count int64, err error) 
 type Methods interface {
 	Create_Person(ctx context.Context,
 		person_name Person_Name_Field,
-		person_u64 Person_U64_Field,
-		person_u64_up Person_U64Up_Field,
+		person_value Person_Value_Field,
+		person_value_up Person_ValueUp_Field,
 		optional Person_Create_Fields) (
 		person *Person, err error)
 
-	Delete_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-		person_u64 Person_U64_Field,
-		person_u64_up Person_U64Up_Field,
-		person_u64_null Person_U64Null_Field,
-		person_u64_null_up Person_U64NullUp_Field) (
+	Delete_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+		person_value Person_Value_Field,
+		person_value_up Person_ValueUp_Field,
+		person_value_null Person_ValueNull_Field,
+		person_value_null_up Person_ValueNullUp_Field) (
 		count int64, err error)
 
 	Get_Person_By_Pk(ctx context.Context,
 		person_pk Person_Pk_Field) (
 		person *Person, err error)
 
-	Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
-		person_u64 Person_U64_Field,
-		person_u64_up Person_U64Up_Field,
-		person_u64_null Person_U64Null_Field,
-		person_u64_null_up Person_U64NullUp_Field) (
+	Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
+		person_value Person_Value_Field,
+		person_value_up Person_ValueUp_Field,
+		person_value_null Person_ValueNull_Field,
+		person_value_null_up Person_ValueNullUp_Field) (
 		person *Person, err error)
 
-	Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx context.Context,
+	Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx context.Context,
 		person_pk Person_Pk_Field,
-		person_u64 Person_U64_Field,
-		person_u64_up Person_U64Up_Field,
-		person_u64_null Person_U64Null_Field,
-		person_u64_null_up Person_U64NullUp_Field,
+		person_value Person_Value_Field,
+		person_value_up Person_ValueUp_Field,
+		person_value_null Person_ValueNull_Field,
+		person_value_null_up Person_ValueNullUp_Field,
 		update Person_Update_Fields) (
 		person *Person, err error)
 }

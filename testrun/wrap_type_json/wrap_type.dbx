@@ -1,0 +1,37 @@
+model person (
+	key pk
+	field pk serial64
+	field name text
+
+	field value          json
+	field value_up       json (updatable)
+	field value_null     json (nullable)
+	field value_null_up  json (nullable, updatable)
+)
+
+create person (  )
+
+read one ( select person, where person.pk = ? )
+
+read one (
+	select person
+	where person.value = ?
+	where person.value_up = ?
+	where person.value_null = ?
+	where person.value_null_up = ?
+)
+
+update person ( 
+	where person.pk = ?
+	where person.value = ?
+	where person.value_up = ?
+	where person.value_null = ?
+	where person.value_null_up = ?
+)
+
+delete person ( 
+	where person.value = ?
+	where person.value_up = ?
+	where person.value_null = ?
+	where person.value_null_up = ?
+)

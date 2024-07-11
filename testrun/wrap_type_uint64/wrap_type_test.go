@@ -13,11 +13,8 @@ import (
 	"storj.io/dbx/testrun"
 )
 
-func TestWrapType(t *testing.T) {
+func Test(t *testing.T) {
 	testrun.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-		Logger = func(format string, args ...any) { t.Logf(format, args...) }
-		defer func() { Logger = nil }()
-
 		ctx := context.Background()
 
 		testrun.RecreateSchema(t, db)
@@ -25,11 +22,11 @@ func TestWrapType(t *testing.T) {
 		// Create Person
 		person, err := db.Create_Person(ctx,
 			Person_Name("P1"),
-			Person_U64(100),
-			Person_U64Up(101),
+			Person_Value(100),
+			Person_ValueUp(101),
 			Person_Create_Fields{
-				U64Null:   Person_U64Null(102),
-				U64NullUp: Person_U64NullUp(103),
+				ValueNull:   Person_ValueNull(102),
+				ValueNullUp: Person_ValueNullUp(103),
 			})
 		require.NoError(t, err)
 
@@ -39,11 +36,11 @@ func TestWrapType(t *testing.T) {
 		require.EqualValues(t, person, row)
 
 		// Read Person
-		row, err = db.Get_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx,
-			Person_U64(100),
-			Person_U64Up(101),
-			Person_U64Null(102),
-			Person_U64NullUp(103),
+		row, err = db.Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx,
+			Person_Value(100),
+			Person_ValueUp(101),
+			Person_ValueNull(102),
+			Person_ValueNullUp(103),
 		)
 		require.NoError(t, err)
 		require.EqualValues(t, person, row)
@@ -53,44 +50,44 @@ func TestWrapType(t *testing.T) {
 		require.EqualValues(t, person, row)
 
 		// Update Person
-		row, err = db.Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx,
+		row, err = db.Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx,
 			Person_Pk(person.Pk),
-			Person_U64(100),
-			Person_U64Up(101),
-			Person_U64Null(102),
-			Person_U64NullUp(103),
+			Person_Value(100),
+			Person_ValueUp(101),
+			Person_ValueNull(102),
+			Person_ValueNullUp(103),
 			Person_Update_Fields{
-				U64Up:     Person_U64Up(111),
-				U64NullUp: Person_U64NullUp(113),
+				ValueUp:     Person_ValueUp(111),
+				ValueNullUp: Person_ValueNullUp(113),
 			},
 		)
-		person.U64Up = 111
+		person.ValueUp = 111
 		tmp := uint64(113)
-		person.U64NullUp = &tmp
+		person.ValueNullUp = &tmp
 		require.NoError(t, err)
 		require.EqualValues(t, person, row)
 
 		// Update Person with nil
-		row, err = db.Update_Person_By_Pk_And_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx,
+		row, err = db.Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx,
 			Person_Pk(person.Pk),
-			Person_U64(100),
-			Person_U64Up(111),
-			Person_U64Null(102),
-			Person_U64NullUp(113),
+			Person_Value(100),
+			Person_ValueUp(111),
+			Person_ValueNull(102),
+			Person_ValueNullUp(113),
 			Person_Update_Fields{
-				U64NullUp: Person_U64NullUp_Null(),
+				ValueNullUp: Person_ValueNullUp_Null(),
 			},
 		)
-		person.U64NullUp = nil
+		person.ValueNullUp = nil
 		require.NoError(t, err)
 		require.EqualValues(t, person, row)
 
 		// Delete Person
-		deleted, err := db.Delete_Person_By_U64_And_U64Up_And_U64Null_And_U64NullUp(ctx,
-			Person_U64(100),
-			Person_U64Up(111),
-			Person_U64Null(102),
-			Person_U64NullUp_Null(),
+		deleted, err := db.Delete_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp(ctx,
+			Person_Value(100),
+			Person_ValueUp(111),
+			Person_ValueNull(102),
+			Person_ValueNullUp_Null(),
 		)
 		require.NoError(t, err)
 		require.Equal(t, int64(1), deleted)
@@ -100,41 +97,41 @@ func TestWrapType(t *testing.T) {
 
 		_, err = db.Create_Person(ctx,
 			Person_Name("P2"),
-			Person_U64(maxint64Bound),
-			Person_U64Up(101),
+			Person_Value(maxint64Bound),
+			Person_ValueUp(101),
 			Person_Create_Fields{
-				U64Null:   Person_U64Null(102),
-				U64NullUp: Person_U64NullUp(103),
+				ValueNull:   Person_ValueNull(102),
+				ValueNullUp: Person_ValueNullUp(103),
 			})
 		require.Error(t, err)
 
 		_, err = db.Create_Person(ctx,
 			Person_Name("P2"),
-			Person_U64(100),
-			Person_U64Up(maxint64Bound),
+			Person_Value(100),
+			Person_ValueUp(maxint64Bound),
 			Person_Create_Fields{
-				U64Null:   Person_U64Null(102),
-				U64NullUp: Person_U64NullUp(103),
+				ValueNull:   Person_ValueNull(102),
+				ValueNullUp: Person_ValueNullUp(103),
 			})
 		require.Error(t, err)
 
 		_, err = db.Create_Person(ctx,
 			Person_Name("P2"),
-			Person_U64(100),
-			Person_U64Up(101),
+			Person_Value(100),
+			Person_ValueUp(101),
 			Person_Create_Fields{
-				U64Null:   Person_U64Null(maxint64Bound),
-				U64NullUp: Person_U64NullUp(103),
+				ValueNull:   Person_ValueNull(maxint64Bound),
+				ValueNullUp: Person_ValueNullUp(103),
 			})
 		require.Error(t, err)
 
 		_, err = db.Create_Person(ctx,
 			Person_Name("P2"),
-			Person_U64(100),
-			Person_U64Up(101),
+			Person_Value(100),
+			Person_ValueUp(101),
 			Person_Create_Fields{
-				U64Null:   Person_U64Null(102),
-				U64NullUp: Person_U64NullUp(maxint64Bound),
+				ValueNull:   Person_ValueNull(102),
+				ValueNullUp: Person_ValueNullUp(maxint64Bound),
 			})
 		require.Error(t, err)
 	})

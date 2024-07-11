@@ -3,9 +3,9 @@
 CREATE TABLE people (
 	pk INTEGER NOT NULL,
 	name TEXT NOT NULL,
-	u64 INTEGER NOT NULL,
-	u64_up INTEGER NOT NULL,
-	u64_null INTEGER,
-	u64_null_up INTEGER,
+	value INTEGER NOT NULL,
+	value_up INTEGER NOT NULL,
+	value_null INTEGER,
+	value_null_up INTEGER,
 	PRIMARY KEY ( pk )
 )
