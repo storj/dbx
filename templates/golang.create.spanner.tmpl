@@ -57,7 +57,6 @@
 	}
 	return nil
 	{{ else -}}
-	{{ if .SupportsReturning }}
 	{{ init .Return }}
 	d := obj.driver
 	var tx *sql.Tx
@@ -83,16 +82,5 @@
 		return nil, obj.makeErr(err)
 	}
 	return {{ arg .Return }}, nil
-	{{ else -}}
-	__res, err := obj.driver.ExecContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	__pk, err := __res.LastInsertId()
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return obj.getLast{{ .Return.Type }}(ctx, __pk)
-	{{ end -}}
 	{{ end -}}
 {{ end -}}

@@ -25,7 +25,7 @@ func (s *spanner) Name() string {
 
 func (s *spanner) Features() Features {
 	return Features{
-		Returning:           true,
+		DefaultValues:       false,
 		PositionalArguments: true,
 		NoLimitToken:        "ALL",
 		ReplaceStyle:        ReplaceStyle_Upsert_Spanner,

@@ -47,7 +47,7 @@ func InsertFromIRCreate(ir_cre *ir.Create, dialect Dialect) *Insert {
 	if ir_cre.Replace {
 		ins.ReplaceStyle = &features.ReplaceStyle
 	}
-	if features.Returning && !ir_cre.NoReturn {
+	if !ir_cre.NoReturn {
 		ins.Returning = ir_cre.Model.SelectRefs()
 	}
 	for _, field := range ir_cre.InsertableStaticFields() {

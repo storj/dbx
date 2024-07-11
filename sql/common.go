@@ -17,9 +17,6 @@ type Features struct {
 	// Supports DEFAULT VALUES in INSERT statement
 	DefaultValues bool
 
-	// Supports the RETURNING syntax on INSERT/UPDATE
-	Returning bool
-
 	// Supports positional argument placeholders
 	PositionalArguments bool
 

@@ -13,22 +13,20 @@ import (
 )
 
 type RawCreate struct {
-	Info              sqlembedgo.Info
-	Replace           bool
-	Suffix            string
-	Return            *Var
-	Arg               *Var
-	Fields            []*Var
-	SupportsReturning bool
+	Info    sqlembedgo.Info
+	Replace bool
+	Suffix  string
+	Return  *Var
+	Arg     *Var
+	Fields  []*Var
 }
 
 func RawCreateFromIR(ir_cre *ir.Create, dialect sql.Dialect) *RawCreate {
 	insert_sql := sql.InsertSQL(ir_cre, dialect)
 	ins := &RawCreate{
-		Info:              sqlembedgo.Embed("__", insert_sql),
-		Replace:           ir_cre.Replace,
-		Suffix:            convertSuffix(ir_cre.Suffix),
-		SupportsReturning: dialect.Features().Returning,
+		Info:    sqlembedgo.Embed("__", insert_sql),
+		Replace: ir_cre.Replace,
+		Suffix:  convertSuffix(ir_cre.Suffix),
 	}
 	if !ir_cre.NoReturn {
 		ins.Return = VarFromModel(ir_cre.Model)
@@ -65,7 +63,6 @@ type Create struct {
 	Args                  []*Var
 	RequiredArgs          []*Var
 	StaticFields          []*Var
-	SupportsReturning     bool
 	SupportsDefaultValues bool
 	NeedsNow              bool
 }
@@ -77,7 +74,6 @@ func CreateFromIR(ir_cre *ir.Create, dialect sql.Dialect) *Create {
 		Replace:               ir_cre.Replace,
 		Suffix:                convertSuffix(ir_cre.Suffix),
 		Struct:                ModelStructFromIR(ir_cre.Model),
-		SupportsReturning:     dialect.Features().Returning,
 		SupportsDefaultValues: dialect.Features().DefaultValues,
 	}
 	if !ir_cre.NoReturn {

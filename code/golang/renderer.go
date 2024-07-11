@@ -20,7 +20,6 @@ import (
 	"storj.io/dbx/sql"
 	"storj.io/dbx/sqlgen"
 	"storj.io/dbx/sqlgen/sqlbundle"
-	"storj.io/dbx/sqlgen/sqlembedgo"
 	"storj.io/dbx/tmplutil"
 )
 
@@ -114,9 +113,7 @@ func (r *Renderer) RenderCode(root *ir.Root, dialects []sql.Dialect) (rendered [
 	}
 
 	for _, dialect := range dialects {
-		var gets []*ir.Model
 		for _, cre := range root.Creates {
-			gets = append(gets, cre.Model)
 			if err := r.renderCreate(&buf, cre, dialect); err != nil {
 				return nil, err
 			}
@@ -127,7 +124,6 @@ func (r *Renderer) RenderCode(root *ir.Root, dialects []sql.Dialect) (rendered [
 			}
 		}
 		for _, upd := range root.Updates {
-			gets = append(gets, upd.Model)
 			if err := r.renderUpdate(&buf, upd, dialect); err != nil {
 				return nil, err
 			}
@@ -135,22 +131,6 @@ func (r *Renderer) RenderCode(root *ir.Root, dialects []sql.Dialect) (rendered [
 		for _, del := range root.Deletes {
 			if err := r.renderDelete(&buf, del, dialect); err != nil {
 				return nil, err
-			}
-		}
-
-		if len(gets) > 0 && !dialect.Features().Returning {
-			// dialect does not support returning columns on insert and updates
-			// so we need to generate a function to support getting by last
-			// insert id.
-			done := map[*ir.Model]bool{}
-			for _, model := range gets {
-				if done[model] {
-					continue
-				}
-				done[model] = true
-				if err := r.renderGetLast(&buf, model, dialect); err != nil {
-					return nil, err
-				}
 			}
 		}
 
@@ -407,25 +387,6 @@ func (r *Renderer) renderStruct(w io.Writer, s *Struct) (err error) {
 func isExported(signature string) bool {
 	r, _ := utf8.DecodeRuneInString(signature)
 	return unicode.IsUpper(r)
-}
-
-type getLast struct {
-	Info   sqlembedgo.Info
-	Return *Var
-}
-
-func (r *Renderer) renderGetLast(w io.Writer, model *ir.Model, dialect sql.Dialect) error {
-	get_last_sql := sql.GetLastSQL(model, dialect)
-	get_last := getLast{
-		Info:   sqlembedgo.Embed("__", get_last_sql),
-		Return: VarFromModel(model),
-	}
-
-	tpl, err := r.LoadTemplate("get-last", dialect.Name())
-	if err != nil {
-		return err
-	}
-	return r.renderFunc(tpl, w, get_last, dialect)
 }
 
 type footerData struct {

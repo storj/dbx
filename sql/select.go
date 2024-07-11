@@ -23,16 +23,6 @@ func SelectSQL(ir_read *ir.Read, dialect Dialect) sqlgen.SQL {
 	return SQLFromSelect(SelectFromIRRead(ir_read, dialect))
 }
 
-func GetLastSQL(ir_model *ir.Model, dialect Dialect) sqlgen.SQL {
-	return SQLFromSelect(&Select{
-		Fields: ir_model.SelectRefs(),
-		From:   ir_model.Table,
-		Where: []sqlgen.SQL{
-			J(" ", L(dialect.RowId()), L("="), L("?")),
-		},
-	})
-}
-
 type Select struct {
 	From    string
 	Fields  []string

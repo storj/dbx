@@ -25,7 +25,7 @@ type Update struct {
 
 func UpdateFromIRUpdate(ir_upd *ir.Update, dialect Dialect) *Update {
 	var returning []string
-	if dialect.Features().Returning && !ir_upd.NoReturn {
+	if !ir_upd.NoReturn {
 		returning = ir_upd.Model.SelectRefs()
 	}
 
