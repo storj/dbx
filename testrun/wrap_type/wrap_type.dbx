@@ -1,11 +1,12 @@
 model person (
 	key pk
 	field pk serial64
-	field a  text
-	field b  uint64   (updatable) 
-	field c  uint64   (nullable, updatable)
-	field d  uint64
-	field e  uint64   (nullable)
+	field name text
+
+	field u64          uint64
+	field u64_up       uint64 (updatable)
+	field u64_null     uint64 (nullable)
+	field u64_null_up  uint64 (nullable, updatable)
 )
 
 create person (  )
@@ -14,18 +15,23 @@ read one ( select person, where person.pk = ? )
 
 read one (
 	select person
-	where person.d = ?
-	where person.e = ?
+	where person.u64 = ?
+	where person.u64_up = ?
+	where person.u64_null = ?
+	where person.u64_null_up = ?
 )
 
 update person ( 
-	where person.pk = ? 
-	where person.d = ?
-	where person.e = ?
+	where person.pk = ?
+	where person.u64 = ?
+	where person.u64_up = ?
+	where person.u64_null = ?
+	where person.u64_null_up = ?
 )
 
 delete person ( 
-	where person.pk = ? 
-	where person.d = ?
-	where person.e = ?
+	where person.u64 = ?
+	where person.u64_up = ?
+	where person.u64_null = ?
+	where person.u64_null_up = ?
 )

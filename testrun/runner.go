@@ -21,6 +21,7 @@ import (
 	instance "cloud.google.com/go/spanner/admin/instance/apiv1"
 	instancepb "cloud.google.com/go/spanner/admin/instance/apiv1/instancepb"
 	spannerdriver "github.com/googleapis/go-sql-spanner"
+	"github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
@@ -212,6 +213,12 @@ type WithDriver interface {
 // IsSpanner returns true of the db is a spanner db.
 func IsSpanner[DB WithDriver](db *sql.DB) bool {
 	_, ok := db.Driver().(*spannerdriver.Driver)
+	return ok
+}
+
+// IsSqlite returns true of the db is a sqlite db.
+func IsSqlite[DB WithDriver](db *sql.DB) bool {
+	_, ok := db.Driver().(*sqlite3.SQLiteDriver)
 	return ok
 }
 

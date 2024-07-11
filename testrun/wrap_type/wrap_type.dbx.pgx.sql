@@ -2,10 +2,10 @@
 -- DO NOT EDIT
 CREATE TABLE people (
 	pk bigserial NOT NULL,
-	a text NOT NULL,
-	b bigint NOT NULL,
-	c bigint,
-	d bigint NOT NULL,
-	e bigint,
+	name text NOT NULL,
+	u64 bigint NOT NULL,
+	u64_up bigint NOT NULL,
+	u64_null bigint,
+	u64_null_up bigint,
 	PRIMARY KEY ( pk )
 )
