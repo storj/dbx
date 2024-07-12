@@ -61,7 +61,7 @@ func (s *spanner) ColumnType(field *ir.Field) string {
 	case consts.BlobField:
 		return "BYTES"
 	case consts.DateField:
-		return "TIMESTAMP"
+		return "DATE"
 	default:
 		panic(fmt.Sprintf("unhandled field type %s", field.Type))
 	}

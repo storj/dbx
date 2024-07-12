@@ -4,7 +4,7 @@ CREATE TABLE data_blobs (
 	id BYTES(MAX) NOT NULL
 ) PRIMARY KEY ( id ) ;
 CREATE TABLE data_dates (
-	id TIMESTAMP NOT NULL
+	id DATE NOT NULL
 ) PRIMARY KEY ( id ) ;
 CREATE TABLE data_floats (
 	id FLOAT32 NOT NULL
