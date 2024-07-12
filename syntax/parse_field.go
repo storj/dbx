@@ -39,8 +39,7 @@ func parseField(node *tupleNode) (*ast.Field, error) {
 		err := attributes_list.consumeAnyTuples(tupleCases{
 			"column": func(node *tupleNode) error {
 				if field.Column != nil {
-					return previouslyDefined(node.getPos(), "field", "column",
-						field.Column.Pos)
+					return previouslyDefined(node.getPos(), "field", "column", field.Column.Pos)
 				}
 
 				name_token, err := node.consumeToken(Ident)
@@ -61,8 +60,7 @@ func parseField(node *tupleNode) (*ast.Field, error) {
 				&field.AutoInsert),
 			"length": func(node *tupleNode) error {
 				if field.Length != nil {
-					return previouslyDefined(node.getPos(), "field", "length",
-						field.Length.Pos)
+					return previouslyDefined(node.getPos(), "field", "length", field.Length.Pos)
 				}
 
 				length_token, err := node.consumeToken(Int)
@@ -81,8 +79,7 @@ func parseField(node *tupleNode) (*ast.Field, error) {
 			},
 			"default": func(node *tupleNode) error {
 				if field.Default != nil {
-					return previouslyDefined(node.getPos(), "field", "default",
-						field.Default.Pos)
+					return previouslyDefined(node.getPos(), "field", "default", field.Default.Pos)
 				}
 
 				value, err := node.consumeToken()

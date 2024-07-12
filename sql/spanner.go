@@ -59,6 +59,9 @@ func (s *spanner) ColumnType(field *ir.Field) string {
 	case consts.TimestampField, consts.TimestampUTCField:
 		return "TIMESTAMP"
 	case consts.BlobField:
+		if field.Length > 0 {
+			return fmt.Sprintf("BYTES(%d)", field.Length)
+		}
 		return "BYTES"
 	case consts.DateField:
 		return "DATE"
