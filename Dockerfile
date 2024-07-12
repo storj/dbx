@@ -10,11 +10,11 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
 ### integration-test
 
 FROM debian:bookworm as integration-test
-RUN apt-get update && apt-get install -y postgresql wget procps gcc
-RUN wget https://go.dev/dl/go1.22.2.linux-amd64.tar.gz && \
+RUN apt-get update && apt-get install -y postgresql wget procps gcc gcc-multilib
+RUN wget https://go.dev/dl/go1.22.5.linux-amd64.tar.gz && \
     rm -rf /usr/local/go && \
-    tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz && \
-    rm go1.22.2.linux-amd64.tar.gz
+    tar -C /usr/local -xzf go1.22.5.linux-amd64.tar.gz && \
+    rm go1.22.5.linux-amd64.tar.gz
 ENV PATH=$PATH:/usr/local/go/bin:/root/go/bin
 RUN echo 'local   all             all                                     trust' > /etc/postgresql/15/main/pg_hba.conf && \
     echo 'host    all             all             127.0.0.1/8             trust' >> /etc/postgresql/15/main/pg_hba.conf && \
@@ -43,6 +43,9 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
 RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
     --mount=type=cache,target=/go/pkg/mod,id=gopkg \
     go generate ./...
+RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
+    --mount=type=cache,target=/go/pkg/mod,id=gopkg \
+    CGO_ENABLED=1 GOOS=linux GOARCH=386 go vet ./...
 RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
     --mount=type=cache,target=/go/pkg/mod,id=gopkg \
     ./scripts/test-environment.sh go test ./...

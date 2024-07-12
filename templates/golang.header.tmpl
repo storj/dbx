@@ -301,7 +301,7 @@ func (obj *{{ $dbtype }}) wrapTx(tx *sql.Tx) txMethods {
 		{{ $impltype }}: &{{ $impltype }}{
 			db:      obj.db,
 			driver:  tx,
-			txn: 	 true,
+			txn:     true,
 		},
 	}
 }

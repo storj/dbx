@@ -2217,7 +2217,7 @@ type spannerUint64 struct {
 
 func (s spannerUint64) Value() (sqldriver.Value, error) {
 	if s.val > math.MaxInt64 {
-		return nil, fmt.Errorf("value %d is larger than max supported INT64 column value %d", s.val, math.MaxInt64)
+		return nil, fmt.Errorf("value %v is larger than max supported INT64 column value", s.val)
 	}
 	return int64(s.val), nil
 }
@@ -2231,7 +2231,7 @@ func (s spannerPointerUint64) Value() (sqldriver.Value, error) {
 		return nil, nil
 	}
 	if *s.val > math.MaxInt64 {
-		return nil, fmt.Errorf("value %d is larger than max supported INT64 column value %d", *s.val, math.MaxInt64)
+		return nil, fmt.Errorf("value %v is larger than max supported INT64 column value", *s.val)
 	}
 	return int64(*s.val), nil
 }
