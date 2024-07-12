@@ -12,6 +12,7 @@ import (
 	mathrand "math/rand"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +22,7 @@ import (
 	instance "cloud.google.com/go/spanner/admin/instance/apiv1"
 	instancepb "cloud.google.com/go/spanner/admin/instance/apiv1/instancepb"
 	spannerdriver "github.com/googleapis/go-sql-spanner"
+	"github.com/jackc/pgx/v5"
 	"github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/api/option"
@@ -28,15 +30,30 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func RunDBTest[T io.Closer](t *testing.T, open func(driver, source string) (db T, err error), callback func(t *testing.T, db T)) {
+func randomText(n int) string {
+	letters := "abcdefghijiklmnopqrstuvwxyz"
+	data := make([]byte, n)
+	for i := range data {
+		data[i] = letters[mathrand.Intn(len(letters))]
+	}
+	return string(data)
+}
+
+type TestDB interface {
+	io.Closer
+
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+}
+
+func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, err error), callback func(t *testing.T, db T)) {
 	t.Run("sqlite3", func(t *testing.T) {
-		sqliteDb, err := open("sqlite3", ":memory:")
+		db, err := open("sqlite3", ":memory:")
 		require.NoError(t, err)
 		defer func() {
-			err := sqliteDb.Close()
+			err := db.Close()
 			require.NoError(t, err)
 		}()
-		callback(t, sqliteDb)
+		callback(t, db)
 	})
 
 	dsn := os.Getenv("STORJ_TEST_POSTGRES")
@@ -45,11 +62,18 @@ func RunDBTest[T io.Closer](t *testing.T, open func(driver, source string) (db T
 			if dsn == "" {
 				t.Skip("Skipping pgx tests because environment variable STORJ_TEST_POSTGRES is not set")
 			}
-			pqDb, err := open("pgx", dsn)
-			require.NoError(t, err)
-			defer func() { require.NoError(t, pqDb.Close()) }()
 
-			callback(t, pqDb)
+			schemaName := pgxSchemaName(t)
+			dsn = pgxConnStrWithSchema(dsn, schemaName)
+
+			db, err := open("pgx", dsn)
+			require.NoError(t, err)
+			defer func() { require.NoError(t, db.Close()) }()
+
+			require.NoError(t, pgxCreateSchema(context.Background(), db, schemaName))
+			defer func() { require.NoError(t, pgxDropSchema(context.Background(), db, schemaName)) }()
+
+			callback(t, db)
 		})
 	}
 
@@ -63,11 +87,18 @@ func RunDBTest[T io.Closer](t *testing.T, open func(driver, source string) (db T
 			if strings.HasPrefix(dsn, "cockroach://") {
 				dsn = "postgres://" + strings.TrimPrefix(dsn, "cockroach://")
 			}
-			pqDb, err := open("pgxcockroach", dsn)
-			require.NoError(t, err)
-			defer func() { require.NoError(t, pqDb.Close()) }()
 
-			callback(t, pqDb)
+			schemaName := pgxSchemaName(t)
+			dsn = pgxConnStrWithSchema(dsn, schemaName)
+
+			db, err := open("pgxcockroach", dsn)
+			require.NoError(t, err)
+			defer func() { require.NoError(t, db.Close()) }()
+
+			require.NoError(t, pgxCreateSchema(context.Background(), db, schemaName))
+			defer func() { require.NoError(t, pgxDropSchema(context.Background(), db, schemaName)) }()
+
+			callback(t, db)
 		})
 	}
 
@@ -299,4 +330,55 @@ func spannerEmulatorOptions(hostport string) []option.ClientOption {
 		option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
 		option.WithoutAuthentication(),
 	}
+}
+
+func pgxSchemaName(t *testing.T) string {
+	const randLen = 8
+	const maxLen = 64 - randLen
+	testname := strings.TrimPrefix(t.Name(), "Test")
+	if len(testname) > maxLen {
+		testname = testname[:maxLen]
+	}
+
+	nameCleaner := regexp.MustCompile(`[^\w]`)
+	testname = nameCleaner.ReplaceAllString(testname, "_")
+
+	return testname + "-" + randomText(randLen)
+}
+
+// pgxConnStrWithSchema adds schema to a connection string.
+func pgxConnStrWithSchema(connstr, schema string) string {
+	if strings.Contains(connstr, "?") {
+		connstr += "&options="
+	} else {
+		connstr += "?options="
+	}
+	return connstr + url.QueryEscape("--search_path="+pgxQuoteIdentifier(schema))
+}
+
+// pgxQuoteIdentifier quotes an identifier for use in an interpolated SQL string.
+func pgxQuoteIdentifier(ident string) string {
+	return pgx.Identifier{ident}.Sanitize()
+}
+
+// pgxCreateSchema creates a schema if it doesn't exist.
+func pgxCreateSchema(ctx context.Context, db TestDB, schema string) (err error) {
+	for try := 0; try < 5; try++ {
+		_, err = db.ExecContext(ctx, `CREATE SCHEMA IF NOT EXISTS `+pgxQuoteIdentifier(schema)+`;`)
+
+		// Postgres `CREATE SCHEMA IF NOT EXISTS` may return "duplicate key value violates unique constraint".
+		// In that case, we will retry rather than doing anything more complicated.
+		//
+		// See more in: https://stackoverflow.com/a/29908840/192220
+
+		continue
+	}
+
+	return err
+}
+
+// pgxDropSchema drops the named schema.
+func pgxDropSchema(ctx context.Context, db TestDB, schema string) error {
+	_, err := db.ExecContext(ctx, `DROP SCHEMA `+pgxQuoteIdentifier(schema)+` CASCADE;`)
+	return err
 }
