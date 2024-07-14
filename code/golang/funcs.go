@@ -362,8 +362,6 @@ func spannerWrapFunc(v UnderlyingType) string {
 	switch v.Type {
 	case consts.JsonField:
 		return "spannerConvertJSON"
-	case consts.Uint64Field:
-		return "spannerConvertArgument"
 	default:
 		return ""
 	}

@@ -18,13 +18,11 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"crypto/rand"
-	sqldriver "database/sql/driver"
 	"encoding/base64"
 	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/mattn/go-sqlite3"
-	"math"
 )
 
 // Prevent conditional imports from causing build failures.
@@ -1915,17 +1913,6 @@ func openspanner(source string) (*sql.DB, error) {
 	return sql.Open("spanner", strings.TrimPrefix(source, "spanner://"))
 }
 
-func spannerConvertArgument(v any) any {
-	switch v := v.(type) {
-	case uint64:
-		return spannerUint64{val: v}
-	case *uint64:
-		return spannerPointerUint64{val: v}
-	default:
-		return v
-	}
-}
-
 func spannerConvertJSON(v any) any {
 	if v == nil {
 		return spanner.NullJSON{Value: nil, Valid: true}
@@ -1966,29 +1953,4 @@ func (s *spannerJSON) Scan(input any) error {
 		return fmt.Errorf("unable to decode spanner.NullJSON with type %T", v.Value)
 	}
 	return fmt.Errorf("unable to decode %T", input)
-}
-
-type spannerUint64 struct {
-	val uint64
-}
-
-func (s spannerUint64) Value() (sqldriver.Value, error) {
-	if s.val > math.MaxInt64 {
-		return nil, fmt.Errorf("value %v is larger than max supported INT64 column value", s.val)
-	}
-	return int64(s.val), nil
-}
-
-type spannerPointerUint64 struct {
-	val *uint64
-}
-
-func (s spannerPointerUint64) Value() (sqldriver.Value, error) {
-	if s.val == nil {
-		return nil, nil
-	}
-	if *s.val > math.MaxInt64 {
-		return nil, fmt.Errorf("value %v is larger than max supported INT64 column value", *s.val)
-	}
-	return int64(*s.val), nil
 }

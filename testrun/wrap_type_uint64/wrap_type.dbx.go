@@ -18,13 +18,11 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"crypto/rand"
-	sqldriver "database/sql/driver"
 	"encoding/base64"
 	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/mattn/go-sqlite3"
-	"math"
 )
 
 // Prevent conditional imports from causing build failures.
@@ -1780,10 +1778,10 @@ func (obj *spannerImpl) Create_Person(ctx context.Context,
 	optional Person_Create_Fields) (
 	person *Person, err error) {
 	__name_val := person_name.value()
-	__value_val := spannerConvertArgument(person_value.value())
-	__value_up_val := spannerConvertArgument(person_value_up.value())
-	__value_null_val := spannerConvertArgument(optional.ValueNull.value())
-	__value_null_up_val := spannerConvertArgument(optional.ValueNullUp.value())
+	__value_val := person_value.value()
+	__value_up_val := person_value_up.value()
+	__value_null_val := optional.ValueNull.value()
+	__value_null_up_val := optional.ValueNullUp.value()
 
 	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, value, value_up, value_null, value_null_up ) VALUES ( ?, ?, ?, ?, ? ) THEN RETURN people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")
 
@@ -1855,14 +1853,14 @@ func (obj *spannerImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueN
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1, __sqlbundle_Literal(" LIMIT 2")}}
 
 	var __values []any
-	__values = append(__values, spannerConvertArgument(person_value.value()), spannerConvertArgument(person_value_up.value()))
+	__values = append(__values, person_value.value(), person_value_up.value())
 	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, spannerConvertArgument(person_value_null.value()))
+		__values = append(__values, person_value_null.value())
 	}
 	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, spannerConvertArgument(person_value_null_up.value()))
+		__values = append(__values, person_value_null_up.value())
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -1919,11 +1917,11 @@ func (obj *spannerImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_
 	var __args []any
 
 	if update.ValueUp._set {
-		__values = append(__values, spannerConvertArgument(update.ValueUp.value()))
+		__values = append(__values, update.ValueUp.value())
 		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_up = ?"))
 	}
 	if update.ValueNullUp._set {
-		__values = append(__values, spannerConvertArgument(update.ValueNullUp.value()))
+		__values = append(__values, update.ValueNullUp.value())
 		__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal("value_null_up = ?"))
 	}
 
@@ -1931,14 +1929,14 @@ func (obj *spannerImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_
 		return nil, emptyUpdate()
 	}
 
-	__args = append(__args, person_pk.value(), spannerConvertArgument(person_value.value()), spannerConvertArgument(person_value_up.value()))
+	__args = append(__args, person_pk.value(), person_value.value(), person_value_up.value())
 	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__args = append(__args, spannerConvertArgument(person_value_null.value()))
+		__args = append(__args, person_value_null.value())
 	}
 	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__args = append(__args, spannerConvertArgument(person_value_null_up.value()))
+		__args = append(__args, person_value_null_up.value())
 	}
 
 	__values = append(__values, __args...)
@@ -1990,14 +1988,14 @@ func (obj *spannerImpl) Delete_Person_By_Value_And_ValueUp_And_ValueNull_And_Val
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("DELETE FROM people WHERE people.value = ? AND people.value_up = ? AND "), __cond_0, __sqlbundle_Literal(" AND "), __cond_1}}
 
 	var __values []any
-	__values = append(__values, spannerConvertArgument(person_value.value()), spannerConvertArgument(person_value_up.value()))
+	__values = append(__values, person_value.value(), person_value_up.value())
 	if !person_value_null.isnull() {
 		__cond_0.Null = false
-		__values = append(__values, spannerConvertArgument(person_value_null.value()))
+		__values = append(__values, person_value_null.value())
 	}
 	if !person_value_null_up.isnull() {
 		__cond_1.Null = false
-		__values = append(__values, spannerConvertArgument(person_value_null_up.value()))
+		__values = append(__values, person_value_null_up.value())
 	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
@@ -2158,17 +2156,6 @@ func openspanner(source string) (*sql.DB, error) {
 	return sql.Open("spanner", strings.TrimPrefix(source, "spanner://"))
 }
 
-func spannerConvertArgument(v any) any {
-	switch v := v.(type) {
-	case uint64:
-		return spannerUint64{val: v}
-	case *uint64:
-		return spannerPointerUint64{val: v}
-	default:
-		return v
-	}
-}
-
 func spannerConvertJSON(v any) any {
 	if v == nil {
 		return spanner.NullJSON{Value: nil, Valid: true}
@@ -2209,29 +2196,4 @@ func (s *spannerJSON) Scan(input any) error {
 		return fmt.Errorf("unable to decode spanner.NullJSON with type %T", v.Value)
 	}
 	return fmt.Errorf("unable to decode %T", input)
-}
-
-type spannerUint64 struct {
-	val uint64
-}
-
-func (s spannerUint64) Value() (sqldriver.Value, error) {
-	if s.val > math.MaxInt64 {
-		return nil, fmt.Errorf("value %v is larger than max supported INT64 column value", s.val)
-	}
-	return int64(s.val), nil
-}
-
-type spannerPointerUint64 struct {
-	val *uint64
-}
-
-func (s spannerPointerUint64) Value() (sqldriver.Value, error) {
-	if s.val == nil {
-		return nil, nil
-	}
-	if *s.val > math.MaxInt64 {
-		return nil, fmt.Errorf("value %v is larger than max supported INT64 column value", *s.val)
-	}
-	return int64(*s.val), nil
 }
