@@ -1801,7 +1801,7 @@ func (obj *spannerImpl) Create_Person(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -1955,7 +1955,7 @@ func (obj *spannerImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()

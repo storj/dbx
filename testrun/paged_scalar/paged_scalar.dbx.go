@@ -5073,7 +5073,7 @@ func (obj *spannerImpl) Create_DataBlob(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5114,7 +5114,7 @@ func (obj *spannerImpl) Create_DataDate(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5155,7 +5155,7 @@ func (obj *spannerImpl) Create_DataFloat(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5196,7 +5196,7 @@ func (obj *spannerImpl) Create_DataFloat64(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5237,7 +5237,7 @@ func (obj *spannerImpl) Create_DataInt(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5278,7 +5278,7 @@ func (obj *spannerImpl) Create_DataInt64(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5319,7 +5319,7 @@ func (obj *spannerImpl) Create_DataJson(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5357,7 +5357,7 @@ func (obj *spannerImpl) Create_DataSerial(ctx context.Context) (
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5395,7 +5395,7 @@ func (obj *spannerImpl) Create_DataSerial64(ctx context.Context) (
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5436,7 +5436,7 @@ func (obj *spannerImpl) Create_DataText(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5477,7 +5477,7 @@ func (obj *spannerImpl) Create_DataTimestamp(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5518,7 +5518,7 @@ func (obj *spannerImpl) Create_DataUint(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5559,7 +5559,7 @@ func (obj *spannerImpl) Create_DataUint64(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
@@ -5600,7 +5600,7 @@ func (obj *spannerImpl) Create_DataUtimestamp(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()

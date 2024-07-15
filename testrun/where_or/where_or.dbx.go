@@ -1283,7 +1283,7 @@ func (obj *spannerImpl) Create_Foo(ctx context.Context,
 		}
 		d = tx
 		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(sql.ErrTxDone, txErr) {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
 				err = obj.makeErr(errors.Join(err, txErr))
 			}
 		}()
