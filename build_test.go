@@ -28,8 +28,24 @@ var buildConfig = &packages.Config{
 func TestBuild(t *testing.T) {
 	tw := testutil.Wrap(t)
 	tw.Parallel()
-	data_dir := filepath.Join("testdata", "build")
 
+	data_dir := filepath.Join("testdata", "good")
+	names, err := filepath.Glob(filepath.Join(data_dir, "*.dbx"))
+	tw.AssertNoError(err)
+
+	for _, name := range names {
+		name := name
+		tw.Runp(filepath.Base(name), func(tw *testutil.T) {
+			testBuildFile(tw, name)
+		})
+	}
+}
+
+func TestBuildBad(t *testing.T) {
+	tw := testutil.Wrap(t)
+	tw.Parallel()
+
+	data_dir := filepath.Join("testdata", "bad")
 	names, err := filepath.Glob(filepath.Join(data_dir, "*.dbx"))
 	tw.AssertNoError(err)
 
