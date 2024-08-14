@@ -238,11 +238,11 @@ func embedplaceholdersFn(info sqlembedgo.Info) string {
 	var out bytes.Buffer
 
 	for _, hole := range info.Holes {
-		fmt.Fprintf(&out, "var %s = %s\n", hole.Name, hole.Expression)
+		_, _ = fmt.Fprintf(&out, "var %s = %s\n", hole.Name, hole.Expression)
 	}
 
 	for _, cond := range info.Conditions {
-		fmt.Fprintf(&out, "var %s = %s\n", cond.Name, cond.Expression)
+		_, _ = fmt.Fprintf(&out, "var %s = %s\n", cond.Name, cond.Expression)
 	}
 
 	return out.String()
@@ -259,19 +259,19 @@ func embedvaluesFn(args []ConditionArg, name string) string {
 	for _, arg := range args {
 		if arg.IsCondition {
 			if len(run) > 0 {
-				fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+				_, _ = fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
 				run = run[:0]
 			}
-			fmt.Fprintf(&out, "if !%s.isnull() {\n", arg.Var.Name)
-			fmt.Fprintf(&out, "\t__cond_%d.Null = false\n", arg.Condition)
-			fmt.Fprintf(&out, "\t%s = append(%s, %s.value())\n", name, name, arg.Var.Name)
-			fmt.Fprintf(&out, "}\n")
+			_, _ = fmt.Fprintf(&out, "if !%s.isnull() {\n", arg.Var.Name)
+			_, _ = fmt.Fprintf(&out, "\t__cond_%d.Null = false\n", arg.Condition)
+			_, _ = fmt.Fprintf(&out, "\t%s = append(%s, %s.value())\n", name, name, arg.Var.Name)
+			_, _ = fmt.Fprintf(&out, "}\n")
 		} else {
 			run = append(run, fmt.Sprintf("%s.value()", arg.Var.Name))
 		}
 	}
 	if len(run) > 0 {
-		fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+		_, _ = fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
 	}
 
 	return out.String()
@@ -284,20 +284,20 @@ func spanner_embedvaluesFn(args []ConditionArg, name string) string {
 	for _, arg := range args {
 		if arg.IsCondition {
 			if len(run) > 0 {
-				fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+				_, _ = fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
 				run = run[:0]
 			}
 
-			fmt.Fprintf(&out, "if !%s.isnull() {\n", arg.Var.Name)
-			fmt.Fprintf(&out, "\t__cond_%d.Null = false\n", arg.Condition)
+			_, _ = fmt.Fprintf(&out, "if !%s.isnull() {\n", arg.Var.Name)
+			_, _ = fmt.Fprintf(&out, "\t__cond_%d.Null = false\n", arg.Condition)
 
 			if wrap := spannerWrapFunc(arg.Var.Underlying); wrap != "" {
-				fmt.Fprintf(&out, "\t%s = append(%s, %v(%s.value()))\n", name, name, wrap, arg.Var.Name)
+				_, _ = fmt.Fprintf(&out, "\t%s = append(%s, %v(%s.value()))\n", name, name, wrap, arg.Var.Name)
 			} else {
-				fmt.Fprintf(&out, "\t%s = append(%s, %s.value())\n", name, name, arg.Var.Name)
+				_, _ = fmt.Fprintf(&out, "\t%s = append(%s, %s.value())\n", name, name, arg.Var.Name)
 			}
 
-			fmt.Fprintf(&out, "}\n")
+			_, _ = fmt.Fprintf(&out, "}\n")
 		} else {
 			if wrap := spannerWrapFunc(arg.Var.Underlying); wrap != "" {
 				run = append(run, fmt.Sprintf("%v(%s.value())", wrap, arg.Var.Name))
@@ -307,7 +307,7 @@ func spanner_embedvaluesFn(args []ConditionArg, name string) string {
 		}
 	}
 	if len(run) > 0 {
-		fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+		_, _ = fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
 	}
 
 	return out.String()
@@ -321,14 +321,14 @@ func spanner_setupdatablefieldsFn(modelFields []*ModelField) string {
 			continue
 		}
 
-		fmt.Fprintf(&out, "if update.%s._set {\n", field.Name)
+		_, _ = fmt.Fprintf(&out, "if update.%s._set {\n", field.Name)
 		if wrap := spannerWrapFunc(field.Underlying); wrap != "" {
-			fmt.Fprintf(&out, "\t__values = append(__values, %v(update.%s.value()))\n", wrap, field.Name)
+			_, _ = fmt.Fprintf(&out, "\t__values = append(__values, %v(update.%s.value()))\n", wrap, field.Name)
 		} else {
-			fmt.Fprintf(&out, "\t__values = append(__values, update.%s.value())\n", field.Name)
+			_, _ = fmt.Fprintf(&out, "\t__values = append(__values, update.%s.value())\n", field.Name)
 		}
-		fmt.Fprintf(&out, "\t__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal(\"%s = ?\"))\n", field.Column)
-		fmt.Fprintf(&out, "}\n")
+		_, _ = fmt.Fprintf(&out, "\t__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal(\"%s = ?\"))\n", field.Column)
+		_, _ = fmt.Fprintf(&out, "}\n")
 	}
 	return out.String()
 }

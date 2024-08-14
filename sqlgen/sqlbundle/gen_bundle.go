@@ -77,7 +77,7 @@ func loadBundle() string {
 		"-prefix", prefix,
 		"storj.io/dbx/sqlgen").Output()
 	if err != nil {
-		fmt.Fprintln(os.Stdout, `ensure "golang.org/x/tools/cmd/bundle" is installed`)
+		_, _ = fmt.Fprintln(os.Stdout, `ensure "golang.org/x/tools/cmd/bundle" is installed`)
 		panic(err)
 	}
 

@@ -48,11 +48,11 @@ func main() {
 		if err != nil {
 			// if the error came from errutil, don't bother with the dbx prefix
 			err_string := strings.TrimPrefix(errors.GetMessage(err), "dbx: ")
-			fmt.Fprintln(os.Stderr, err_string)
+			_, _ = fmt.Fprintln(os.Stderr, err_string)
 			if context := errutil.GetContext(global.loadedData, err); context != "" {
-				fmt.Fprintln(os.Stderr)
-				fmt.Fprintln(os.Stderr, "context:")
-				fmt.Fprintln(os.Stderr, context)
+				_, _ = fmt.Fprintln(os.Stderr)
+				_, _ = fmt.Fprintln(os.Stderr, "context:")
+				_, _ = fmt.Fprintln(os.Stderr, context)
 			}
 			cli.Exit(1)
 		}

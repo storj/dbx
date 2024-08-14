@@ -33,7 +33,7 @@ func linedSource(source []byte) string {
 	scanner = bufio.NewScanner(bytes.NewReader(source))
 	for i := 1; scanner.Scan(); i++ {
 		line := scanner.Text()
-		fmt.Fprintf(buf, format, i, line)
+		_, _ = fmt.Fprintf(buf, format, i, line)
 	}
 
 	return buf.String()

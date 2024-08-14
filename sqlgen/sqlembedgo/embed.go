@@ -95,7 +95,7 @@ func quoteLiterals(prefix string, sql sqlgen.Literals) string {
 	const format = "%[1]sLiterals{Join:%[2]q,SQLs:[]%[1]sSQL{"
 
 	var expr bytes.Buffer
-	fmt.Fprintf(&expr, format, sqlbundle.Prefix, sql.Join)
+	_, _ = fmt.Fprintf(&expr, format, sqlbundle.Prefix, sql.Join)
 
 	first := true
 	for _, sql := range sql.SQLs {
@@ -103,7 +103,7 @@ func quoteLiterals(prefix string, sql sqlgen.Literals) string {
 			expr.WriteString(",")
 		}
 		first = false
-		fmt.Fprint(&expr, quote(prefix, sql, false))
+		_, _ = fmt.Fprint(&expr, quote(prefix, sql, false))
 	}
 	expr.WriteString("}}")
 

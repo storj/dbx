@@ -15,7 +15,7 @@ import (
 func main() {
 	dbxs, err := filepath.Glob("good/*.dbx")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -37,8 +37,8 @@ func main() {
 			outdir,
 		).CombinedOutput()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, string(out))
-			fmt.Fprintln(os.Stderr, err)
+			_, _ = fmt.Fprintln(os.Stderr, string(out))
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			exitcode = 1
 		}
 
@@ -51,8 +51,8 @@ func main() {
 			outdir,
 		).CombinedOutput()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, string(out))
-			fmt.Fprintln(os.Stderr, err)
+			_, _ = fmt.Fprintln(os.Stderr, string(out))
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			exitcode = 1
 		}
 	}
