@@ -1,1 +1,1 @@
-testdata/generated/*/*.dbx.go always-conflict merge=theirs
+testsuite/generated/*/*.dbx.go always-conflict merge=theirs
