@@ -10,15 +10,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"storj.io/dbx/testutil"
 	. "storj.io/dbx/testdata/generated/wrap_type_uint64"
+	"storj.io/dbx/testutil"
 )
 
 func TestWrapTypeUint64(t *testing.T) {
 	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 		ctx := context.Background()
 
-		testrun.RecreateSchema(t, db)
+		testutil.RecreateSchema(t, db)
 
 		// Create Person
 		person, err := db.Create_Person(ctx,

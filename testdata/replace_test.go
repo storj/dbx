@@ -9,14 +9,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"storj.io/dbx/testutil"
 	. "storj.io/dbx/testdata/generated/replace"
+	"storj.io/dbx/testutil"
 )
 
 func TestReplace(t *testing.T) {
 	ctx := context.Background()
 	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-		testrun.RecreateSchema(t, db)
+		testutil.RecreateSchema(t, db)
 
 		err := db.ReplaceNoReturn_Kv(ctx, Kv_Key("key"), Kv_Val("val0"))
 		require.NoError(t, err)

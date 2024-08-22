@@ -207,7 +207,7 @@ func (s *spanner) DropSchema(schema *Schema) (res []sqlgen.SQL) {
 
 	for _, index := range schema.Indexes {
 		stmt := Build(L("DROP INDEX IF EXISTS"))
-		stmt.Add(Lf(index.Name))
+		stmt.Add(L(index.Name))
 		stmts = append(stmts, sqlcompile.Compile(stmt.SQL()))
 	}
 	for _, table := range tables {

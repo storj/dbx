@@ -13,7 +13,7 @@ linters:
     - errorlint               # finds misuses of errors
     - exportloopref           # check for exported loop vars
     - gocritic                # checks for style, performance issues, and common programming errors
-    - goerr113                # check error expressions
+    - err113                  # check error expressions
     - gofmt                   # sanity check formatting
     - goprintffuncname        # checks that printf-like functions are named with `f` at the end [fast: true, auto-fix: false]
     - govet                   # check standard vet rules
@@ -39,18 +39,18 @@ linters:
     #TODO#- whitespace        # checks for leading/trailing newlines
   disable:
     - godot            # dots for everything
+    - nolintlint       # checks that nolint directives are correct
+    - staticcheck      # we already use staticcheck separately
     - asciicheck       # non-ascii is allowed
     - containedctx     # gives false positives, however might be good to re-evaluate
     - contextcheck     # doesn't look like it's useful
     - cyclop           # this complexity is not a good metric
-    - deadcode         # deprecated and part of staticcheck
     - decorder         # not that useful
     - depguard         # unused
     - dupl             # slow
     - errchkjson       # false positives, checks for non-encodable json types
     - errname          # we have different approach
     - exhaustive       # doesn't handle default case
-    - exhaustivestruct # false positivies
     - forbidigo        # not useful
     - funlen           # no limit on func length
     - gci              # we have custom import checking
@@ -66,8 +66,6 @@ linters:
     - gosec            # needs tweaking
     - gosimple         # part of staticcheck
     - grouper          # we have a custom implementation
-    - ifshort          # usefulness, depends on the context
-    - interfacer       # not that useful
     - ireturn          # not that useful for us
     - lll              # don't need this check
     - maintidx         # code complexity based on halsted V and cyclomatic, both shown to be ineffective
@@ -77,21 +75,20 @@ linters:
     - promlinter       # not relevant
     - rowserrcheck     # checks if sql.Rows.Err is checked correctly - Disabled  because it reports false positive with defer statements after Query call
     - sqlclosecheck    # we have tagsql, which checks this better
-    - staticcheck      # we use the separate staticcheck binary already
     - stylecheck       # has false positives
     - tagliatelle      # not our style
     - testpackage      # sometimes it's useful to have tests on private funcs
     - thelper          # too many false positives
     - tparallel        # false positivies
     - unused           # part of staticcheck
-    - varcheck         # deprecated and part of staticcheck
     - varnamelen       # unenecssary
     - wrapcheck        # too much noise and false positives
     - wsl              # too much noise
   fast: false
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
 
@@ -173,7 +170,7 @@ issues:
 
   exclude-rules:
     - linters:
-        - goerr113
+        - err113
       text: "do not define dynamic errors"
     - linters: # uninteresting, it would be nice to be consistent, but we don't want to block the build for it
         - revive

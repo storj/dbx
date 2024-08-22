@@ -9,14 +9,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"storj.io/dbx/testutil"
 	. "storj.io/dbx/testdata/generated/joins"
+	"storj.io/dbx/testutil"
 )
 
 func TestJoins(t *testing.T) {
 	ctx := context.Background()
 	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-		testrun.RecreateSchema(t, db)
+		testutil.RecreateSchema(t, db)
 
 		user, err := db.Create_User(ctx)
 		require.NoError(t, err)

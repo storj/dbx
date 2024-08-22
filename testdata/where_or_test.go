@@ -1,7 +1,7 @@
 // Copyright (C) 2024 Storj Labs, Inc.
 // See LICENSE for copying information.
 
-package where_or
+package main_test
 
 import (
 	"context"
@@ -9,14 +9,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"storj.io/dbx/testutil"
 	. "storj.io/dbx/testdata/generated/where_or"
+	"storj.io/dbx/testutil"
 )
 
 func TestWhereOr(t *testing.T) {
 	ctx := context.Background()
 	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-		testrun.RecreateSchema(t, db)
+		testutil.RecreateSchema(t, db)
 
 		foo, err := db.Create_Foo(ctx, Foo_A(1), Foo_B("b"), Foo_C("c"))
 		require.NoError(t, err)

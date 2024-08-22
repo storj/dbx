@@ -75,9 +75,6 @@ COPY . .
 
 RUN check-copyright
 
-# this requries generated code, which is not ready for linting
-RUN rm -rf testrun
-
 RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
     --mount=type=cache,target=/go/pkg/mod,id=gopkg \
     staticcheck ./...

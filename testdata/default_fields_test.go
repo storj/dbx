@@ -17,7 +17,7 @@ func TestDefaultFields(t *testing.T) {
 	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
 		ctx := context.Background()
 
-		testrun.RecreateSchema(t, db)
+		testutil.RecreateSchema(t, db)
 
 		{
 			foo, err := db.Create_Foo(ctx, Foo_Create_Fields{})

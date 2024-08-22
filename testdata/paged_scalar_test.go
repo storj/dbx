@@ -13,8 +13,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"storj.io/dbx/testutil"
 	. "storj.io/dbx/testdata/generated/paged_scalar"
+	"storj.io/dbx/testutil"
 )
 
 type Desc struct {
@@ -43,11 +43,11 @@ var descs = []Desc{
 
 func TestPagedScalar(t *testing.T) {
 	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-		if testrun.IsSpanner[*DB](db.DB) {
+		if testutil.IsSpanner[*DB](db.DB) {
 			t.Skip("TODO(spanner): column data_jsons.id has type JSON, but is part of the primary key")
 		}
 
-		testrun.RecreateSchema(t, db)
+		testutil.RecreateSchema(t, db)
 
 		for _, desc := range descs {
 			t.Run(strings.ToLower(desc.Name), func(t *testing.T) {
