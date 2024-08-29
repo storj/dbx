@@ -19,6 +19,7 @@ import (
 	"cloud.google.com/go/spanner"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -1950,7 +1951,15 @@ func (s *spannerJSON) Scan(input any) error {
 			return nil
 		}
 
-		return fmt.Errorf("unable to decode spanner.NullJSON with type %T", v.Value)
+		// "{}" gets returned back as a map[string]interface{} for some reason, so capture any other odd value
+		// that comes back and try and marshal it via json.
+		bytesVal, err := json.Marshal(v.Value)
+		if err != nil {
+			return fmt.Errorf("failed to marshal spanner.NullJSON value with type %T to json bytes: %w", v.Value, err)
+		}
+		*s.data = bytesVal
+
+		return nil
 	}
 	return fmt.Errorf("unable to decode %T", input)
 }

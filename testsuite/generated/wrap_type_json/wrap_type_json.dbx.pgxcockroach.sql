@@ -7,5 +7,6 @@ CREATE TABLE people (
 	value_up jsonb NOT NULL,
 	value_null jsonb,
 	value_null_up jsonb,
+	value_default jsonb NOT NULL DEFAULT '{}',
 	PRIMARY KEY ( pk )
 )

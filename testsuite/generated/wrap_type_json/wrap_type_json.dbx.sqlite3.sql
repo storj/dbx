@@ -7,5 +7,6 @@ CREATE TABLE people (
 	value_up TEXT NOT NULL,
 	value_null TEXT,
 	value_null_up TEXT,
+	value_default TEXT NOT NULL DEFAULT '{}',
 	PRIMARY KEY ( pk )
 )

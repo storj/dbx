@@ -7,5 +7,6 @@ CREATE TABLE people (
 	value JSON NOT NULL,
 	value_up JSON NOT NULL,
 	value_null JSON,
-	value_null_up JSON
+	value_null_up JSON,
+	value_default JSON NOT NULL DEFAULT (JSON "{}")
 ) PRIMARY KEY ( pk )

@@ -33,6 +33,8 @@ func TestWrapTypeJson(t *testing.T) {
 		require.Equal(t, []byte("101"), person.ValueUp)
 		require.Equal(t, []byte("102"), person.ValueNull)
 		require.Equal(t, []byte("103"), person.ValueNullUp)
+		// check the default value specified for a field is set and scanned properly
+		require.Equal(t, []byte("{}"), person.ValueDefault)
 
 		// Read Person
 		row, err := db.Get_Person_By_Pk(ctx, Person_Pk(person.Pk))

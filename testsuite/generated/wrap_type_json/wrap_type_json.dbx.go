@@ -19,6 +19,7 @@ import (
 	"cloud.google.com/go/spanner"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	_ "github.com/googleapis/go-sql-spanner"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -292,6 +293,7 @@ func (obj *sqlite3DB) Schema() []string {
 	value_up TEXT NOT NULL,
 	value_null TEXT,
 	value_null_up TEXT,
+	value_default TEXT NOT NULL DEFAULT '{}',
 	PRIMARY KEY ( pk )
 )`,
 	}
@@ -376,6 +378,7 @@ func (obj *pgxDB) Schema() []string {
 	value_up jsonb NOT NULL,
 	value_null jsonb,
 	value_null_up jsonb,
+	value_default jsonb NOT NULL DEFAULT '{}',
 	PRIMARY KEY ( pk )
 )`,
 	}
@@ -460,6 +463,7 @@ func (obj *pgxcockroachDB) Schema() []string {
 	value_up jsonb NOT NULL,
 	value_null jsonb,
 	value_null_up jsonb,
+	value_default jsonb NOT NULL DEFAULT '{}',
 	PRIMARY KEY ( pk )
 )`,
 	}
@@ -545,7 +549,8 @@ func (obj *spannerDB) Schema() []string {
 	value JSON NOT NULL,
 	value_up JSON NOT NULL,
 	value_null JSON,
-	value_null_up JSON
+	value_null_up JSON,
+	value_default JSON NOT NULL DEFAULT (JSON "{}")
 ) PRIMARY KEY ( pk )`,
 	}
 }
@@ -623,19 +628,21 @@ nextval:
 }
 
 type Person struct {
-	Pk          int64
-	Name        string
-	Value       []byte
-	ValueUp     []byte
-	ValueNull   []byte
-	ValueNullUp []byte
+	Pk           int64
+	Name         string
+	Value        []byte
+	ValueUp      []byte
+	ValueNull    []byte
+	ValueNullUp  []byte
+	ValueDefault []byte
 }
 
 func (Person) _Table() string { return "people" }
 
 type Person_Create_Fields struct {
-	ValueNull   Person_ValueNull_Field
-	ValueNullUp Person_ValueNullUp_Field
+	ValueNull    Person_ValueNull_Field
+	ValueNullUp  Person_ValueNullUp_Field
+	ValueDefault Person_ValueDefault_Field
 }
 
 type Person_Update_Fields struct {
@@ -765,6 +772,23 @@ func Person_ValueNullUp_Null() Person_ValueNullUp_Field {
 func (f Person_ValueNullUp_Field) isnull() bool { return !f._set || f._null || f._value == nil }
 
 func (f Person_ValueNullUp_Field) value() any {
+	if !f._set || f._null {
+		return nil
+	}
+	return f._value
+}
+
+type Person_ValueDefault_Field struct {
+	_set   bool
+	_null  bool
+	_value []byte
+}
+
+func Person_ValueDefault(v []byte) Person_ValueDefault_Field {
+	return Person_ValueDefault_Field{_set: true, _value: v}
+}
+
+func (f Person_ValueDefault_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1076,16 +1100,37 @@ func (obj *sqlite3Impl) Create_Person(ctx context.Context,
 	__value_null_val := optional.ValueNull.value()
 	__value_null_up_val := optional.ValueNullUp.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, value, value_up, value_null, value_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")
+	var __columns = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("name, value, value_up, value_null, value_null_up")}
+	var __placeholders = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("?, ?, ?, ?, ?")}
+	var __clause = &__sqlbundle_Hole{SQL: __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("("), __columns, __sqlbundle_Literal(") VALUES ("), __placeholders, __sqlbundle_Literal(")")}}}
+
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO people "), __clause, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default")}}
 
 	var __values []any
 	__values = append(__values, __name_val, __value_val, __value_up_val, __value_null_val, __value_null_up_val)
 
+	__optional_columns := __sqlbundle_Literals{Join: ", "}
+	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
+
+	if optional.ValueDefault._set {
+		__values = append(__values, optional.ValueDefault.value())
+		__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("value_default"))
+		__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal("?"))
+	}
+
+	if len(__optional_columns.SQLs) == 0 {
+		if __columns.SQL == nil {
+			__clause.SQL = __sqlbundle_Literal("DEFAULT VALUES")
+		}
+	} else {
+		__columns.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__columns.SQL, __optional_columns}}
+		__placeholders.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__placeholders.SQL, __optional_placeholders}}
+	}
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1097,7 +1142,7 @@ func (obj *sqlite3Impl) Get_Person_By_Pk(ctx context.Context,
 	person_pk Person_Pk_Field) (
 	person *Person, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.pk = ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default FROM people WHERE people.pk = ?")
 
 	var __values []any
 	__values = append(__values, person_pk.value())
@@ -1106,7 +1151,7 @@ func (obj *sqlite3Impl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1121,7 +1166,7 @@ func (obj *sqlite3Impl) Update_Person_By_Pk(ctx context.Context,
 
 	var __sets = &__sqlbundle_Hole{}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default")}}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
 	var __values []any
@@ -1150,7 +1195,7 @@ func (obj *sqlite3Impl) Update_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1230,16 +1275,37 @@ func (obj *pgxImpl) Create_Person(ctx context.Context,
 	__value_null_val := optional.ValueNull.value()
 	__value_null_up_val := optional.ValueNullUp.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, value, value_up, value_null, value_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")
+	var __columns = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("name, value, value_up, value_null, value_null_up")}
+	var __placeholders = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("?, ?, ?, ?, ?")}
+	var __clause = &__sqlbundle_Hole{SQL: __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("("), __columns, __sqlbundle_Literal(") VALUES ("), __placeholders, __sqlbundle_Literal(")")}}}
+
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO people "), __clause, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default")}}
 
 	var __values []any
 	__values = append(__values, __name_val, __value_val, __value_up_val, __value_null_val, __value_null_up_val)
 
+	__optional_columns := __sqlbundle_Literals{Join: ", "}
+	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
+
+	if optional.ValueDefault._set {
+		__values = append(__values, optional.ValueDefault.value())
+		__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("value_default"))
+		__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal("?"))
+	}
+
+	if len(__optional_columns.SQLs) == 0 {
+		if __columns.SQL == nil {
+			__clause.SQL = __sqlbundle_Literal("DEFAULT VALUES")
+		}
+	} else {
+		__columns.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__columns.SQL, __optional_columns}}
+		__placeholders.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__placeholders.SQL, __optional_placeholders}}
+	}
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1251,7 +1317,7 @@ func (obj *pgxImpl) Get_Person_By_Pk(ctx context.Context,
 	person_pk Person_Pk_Field) (
 	person *Person, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.pk = ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default FROM people WHERE people.pk = ?")
 
 	var __values []any
 	__values = append(__values, person_pk.value())
@@ -1260,7 +1326,7 @@ func (obj *pgxImpl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1275,7 +1341,7 @@ func (obj *pgxImpl) Update_Person_By_Pk(ctx context.Context,
 
 	var __sets = &__sqlbundle_Hole{}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default")}}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
 	var __values []any
@@ -1304,7 +1370,7 @@ func (obj *pgxImpl) Update_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1379,16 +1445,37 @@ func (obj *pgxcockroachImpl) Create_Person(ctx context.Context,
 	__value_null_val := optional.ValueNull.value()
 	__value_null_up_val := optional.ValueNullUp.value()
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, value, value_up, value_null, value_null_up ) VALUES ( ?, ?, ?, ?, ? ) RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")
+	var __columns = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("name, value, value_up, value_null, value_null_up")}
+	var __placeholders = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("?, ?, ?, ?, ?")}
+	var __clause = &__sqlbundle_Hole{SQL: __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("("), __columns, __sqlbundle_Literal(") VALUES ("), __placeholders, __sqlbundle_Literal(")")}}}
+
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO people "), __clause, __sqlbundle_Literal(" RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default")}}
 
 	var __values []any
 	__values = append(__values, __name_val, __value_val, __value_up_val, __value_null_val, __value_null_up_val)
 
+	__optional_columns := __sqlbundle_Literals{Join: ", "}
+	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
+
+	if optional.ValueDefault._set {
+		__values = append(__values, optional.ValueDefault.value())
+		__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("value_default"))
+		__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal("?"))
+	}
+
+	if len(__optional_columns.SQLs) == 0 {
+		if __columns.SQL == nil {
+			__clause.SQL = __sqlbundle_Literal("DEFAULT VALUES")
+		}
+	} else {
+		__columns.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__columns.SQL, __optional_columns}}
+		__placeholders.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__placeholders.SQL, __optional_placeholders}}
+	}
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1400,7 +1487,7 @@ func (obj *pgxcockroachImpl) Get_Person_By_Pk(ctx context.Context,
 	person_pk Person_Pk_Field) (
 	person *Person, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.pk = ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default FROM people WHERE people.pk = ?")
 
 	var __values []any
 	__values = append(__values, person_pk.value())
@@ -1409,7 +1496,7 @@ func (obj *pgxcockroachImpl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1424,7 +1511,7 @@ func (obj *pgxcockroachImpl) Update_Person_By_Pk(ctx context.Context,
 
 	var __sets = &__sqlbundle_Hole{}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? RETURNING people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default")}}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
 	var __values []any
@@ -1453,7 +1540,7 @@ func (obj *pgxcockroachImpl) Update_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -1528,10 +1615,35 @@ func (obj *spannerImpl) Create_Person(ctx context.Context,
 	__value_null_val := spannerConvertJSON(optional.ValueNull.value())
 	__value_null_up_val := spannerConvertJSON(optional.ValueNullUp.value())
 
-	var __embed_stmt = __sqlbundle_Literal("INSERT INTO people ( name, value, value_up, value_null, value_null_up ) VALUES ( ?, ?, ?, ?, ? ) THEN RETURN people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")
+	var __columns = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("name, value, value_up, value_null, value_null_up")}
+	var __placeholders = &__sqlbundle_Hole{SQL: __sqlbundle_Literal("?, ?, ?, ?, ?")}
+	var __clause = &__sqlbundle_Hole{SQL: __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("("), __columns, __sqlbundle_Literal(") VALUES ("), __placeholders, __sqlbundle_Literal(")")}}}
+
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("INSERT INTO people "), __clause, __sqlbundle_Literal(" THEN RETURN people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default")}}
 
 	var __values []any
 	__values = append(__values, __name_val, __value_val, __value_up_val, __value_null_val, __value_null_up_val)
+
+	__optional_columns := __sqlbundle_Literals{Join: ", "}
+	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
+
+	if optional.ValueDefault._set {
+		__values = append(__values, optional.ValueDefault.value())
+		__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("value_default"))
+		__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal("?"))
+	}
+
+	if len(__optional_columns.SQLs) == 0 && __columns.SQL == nil {
+
+		__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("value_default"))
+		__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal("DEFAULT"))
+
+	}
+
+	if len(__optional_columns.SQLs) > 0 {
+		__columns.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__columns.SQL, __optional_columns}}
+		__placeholders.SQL = __sqlbundle_Literals{Join: ", ", SQLs: []__sqlbundle_SQL{__placeholders.SQL, __optional_placeholders}}
+	}
 
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
@@ -1551,7 +1663,7 @@ func (obj *spannerImpl) Create_Person(ctx context.Context,
 			}
 		}()
 	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp))
+	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
 	if !obj.txn {
 		if err == nil {
 			err = obj.makeErr(tx.Commit())
@@ -1568,7 +1680,7 @@ func (obj *spannerImpl) Get_Person_By_Pk(ctx context.Context,
 	person_pk Person_Pk_Field) (
 	person *Person, err error) {
 
-	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up FROM people WHERE people.pk = ?")
+	var __embed_stmt = __sqlbundle_Literal("SELECT people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default FROM people WHERE people.pk = ?")
 
 	var __values []any
 	__values = append(__values, person_pk.value())
@@ -1577,7 +1689,7 @@ func (obj *spannerImpl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp))
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1592,7 +1704,7 @@ func (obj *spannerImpl) Update_Person_By_Pk(ctx context.Context,
 
 	var __sets = &__sqlbundle_Hole{}
 
-	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? THEN RETURN people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up")}}
+	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE people SET "), __sets, __sqlbundle_Literal(" WHERE people.pk = ? THEN RETURN people.pk, people.name, people.value, people.value_up, people.value_null, people.value_null_up, people.value_default")}}
 
 	__sets_sql := __sqlbundle_Literals{Join: ", "}
 	var __values []any
@@ -1634,7 +1746,7 @@ func (obj *spannerImpl) Update_Person_By_Pk(ctx context.Context,
 			}
 		}()
 	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp))
+	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
 	if !obj.txn {
 		if err == nil {
 			err = obj.makeErr(tx.Commit())
@@ -1839,7 +1951,15 @@ func (s *spannerJSON) Scan(input any) error {
 			return nil
 		}
 
-		return fmt.Errorf("unable to decode spanner.NullJSON with type %T", v.Value)
+		// "{}" gets returned back as a map[string]interface{} for some reason, so capture any other odd value
+		// that comes back and try and marshal it via json.
+		bytesVal, err := json.Marshal(v.Value)
+		if err != nil {
+			return fmt.Errorf("failed to marshal spanner.NullJSON value with type %T to json bytes: %w", v.Value, err)
+		}
+		*s.data = bytesVal
+
+		return nil
 	}
 	return fmt.Errorf("unable to decode %T", input)
 }
