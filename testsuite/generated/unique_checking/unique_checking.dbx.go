@@ -24,6 +24,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/mattn/go-sqlite3"
+	"google.golang.org/grpc/codes"
 )
 
 // Prevent conditional imports from causing build failures.
@@ -2059,7 +2060,8 @@ func (obj *spannerImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C
 }
 
 func (impl spannerImpl) isConstraintError(err error) (constraint string, ok bool) {
-	return "", false
+	errcode := spanner.ErrCode(err)
+	return "", errcode == codes.AlreadyExists || errcode == codes.OutOfRange || errcode == codes.FailedPrecondition
 }
 
 func (obj *spannerImpl) deleteAll(ctx context.Context) (count int64, err error) {

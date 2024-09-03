@@ -3,11 +3,13 @@
 	"encoding/json"
 	"cloud.google.com/go/spanner"
 	_ "github.com/googleapis/go-sql-spanner"
+	"google.golang.org/grpc/codes"
 {{ end -}}
 
 {{- define "is-constraint-error" }}{{/* gotype: storj.io/dbx/code/golang.deleteWorld */}}
 func (impl {{ .Receiver }}) isConstraintError(err error) (constraint string, ok bool) {
-	return "", false
+	errcode := spanner.ErrCode(err)
+	return "", errcode == codes.AlreadyExists || errcode == codes.OutOfRange || errcode == codes.FailedPrecondition
 }
 {{ end -}}
 

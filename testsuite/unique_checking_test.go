@@ -5,6 +5,7 @@ package main_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -55,9 +56,16 @@ func TestUniqueChecking(t *testing.T) {
 		require.NoError(t, err)
 		// don't allow the same A
 		_, err = db.Create_D(ctx, D_A(0), D_B(1), D_C(1))
-		require.Error(t, err)
+		requireConstraintError(t, err)
+
 		// don't allow same B, C
 		_, err = db.Create_D(ctx, D_A(1), D_B(0), D_C(0))
-		require.Error(t, err)
+		requireConstraintError(t, err)
 	})
+}
+
+func requireConstraintError(t testing.TB, err error) {
+	var internal *Error
+	require.True(t, errors.As(err, &internal))
+	require.Equal(t, ErrorCode_ConstraintViolation, internal.Code)
 }

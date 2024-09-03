@@ -18,3 +18,9 @@ compatible with our `[]byte` queries, we need to wrap `[]byte` with `spanner.Nul
 
 Spanner does not support row and tuple comparisons, which means it needs to unfold the
 comparison.
+
+For constraint errors Spanner returns the following codes in these scenarios:
+
+* The unique key already exists: `codes.AlreadyExists`
+* The change fails a check constraint: `codes.OutOfRange`
+* A foreign key does not exist: `codes.FailedPrecondition`
