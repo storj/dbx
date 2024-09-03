@@ -812,9 +812,9 @@ func (obj *spannerDB) Schema() []string {
 	name STRING(MAX) NOT NULL
 ) PRIMARY KEY ( pk )`,
 
-		`CREATE UNIQUE INDEX index_as_id ON as (id)`,
+		`CREATE UNIQUE INDEX index_as_id ON as ( id )`,
 
-		`CREATE UNIQUE INDEX index_as_name ON as (name)`,
+		`CREATE UNIQUE INDEX index_as_name ON as ( name )`,
 
 		`CREATE SEQUENCE bs_pk OPTIONS (sequence_kind='bit_reversed_positive')`,
 
@@ -824,7 +824,7 @@ func (obj *spannerDB) Schema() []string {
 	data STRING(MAX) NOT NULL
 ) PRIMARY KEY ( pk )`,
 
-		`CREATE UNIQUE INDEX index_bs_id ON bs (id)`,
+		`CREATE UNIQUE INDEX index_bs_id ON bs ( id )`,
 
 		`CREATE SEQUENCE foos_id OPTIONS (sequence_kind='bit_reversed_positive')`,
 
@@ -874,7 +874,7 @@ func (obj *spannerDB) Schema() []string {
 	CONSTRAINT cs_b_pk_fkey FOREIGN KEY (b_pk) REFERENCES bs (pk) ON DELETE CASCADE 
 ) PRIMARY KEY ( pk )`,
 
-		`CREATE UNIQUE INDEX index_cs_id ON cs (id)`,
+		`CREATE UNIQUE INDEX index_cs_id ON cs ( id )`,
 
 		`CREATE SEQUENCE es_pk OPTIONS (sequence_kind='bit_reversed_positive')`,
 
@@ -885,7 +885,7 @@ func (obj *spannerDB) Schema() []string {
 	CONSTRAINT es_a_id_fkey FOREIGN KEY (a_id) REFERENCES as (id) ON DELETE CASCADE 
 ) PRIMARY KEY ( pk )`,
 
-		`CREATE UNIQUE INDEX index_es_id ON es (id)`,
+		`CREATE UNIQUE INDEX index_es_id ON es ( id )`,
 
 		`CREATE SEQUENCE ds_pk OPTIONS (sequence_kind='bit_reversed_positive')`,
 
@@ -900,9 +900,9 @@ func (obj *spannerDB) Schema() []string {
 	CONSTRAINT ds_a_id_fkey FOREIGN KEY (a_id) REFERENCES as (id) ON DELETE CASCADE 
 ) PRIMARY KEY ( pk )`,
 
-		`CREATE UNIQUE INDEX index_ds_id ON ds (id)`,
+		`CREATE UNIQUE INDEX index_ds_id ON ds ( id )`,
 
-		`CREATE UNIQUE INDEX index_ds_a_id ON ds (a_id)`,
+		`CREATE UNIQUE INDEX index_ds_a_id_alias ON ds ( a_id, alias )`,
 
 		`CREATE UNIQUE INDEX as_ctime_mtime_unique_index ON as ( ctime, mtime )`,
 	}
@@ -917,7 +917,7 @@ func (obj *spannerDB) DropSchema() []string {
 
 		`DROP INDEX IF EXISTS index_ds_id`,
 
-		`DROP INDEX IF EXISTS index_ds_a_id`,
+		`DROP INDEX IF EXISTS index_ds_a_id_alias`,
 
 		`ALTER TABLE es DROP CONSTRAINT es_a_id_fkey`,
 

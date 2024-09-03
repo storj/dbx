@@ -291,6 +291,16 @@ func (obj *sqlite3DB) Schema() []string {
 	PRIMARY KEY ( id )
 )`,
 
+		`CREATE TABLE d (
+	id INTEGER NOT NULL,
+	a INTEGER NOT NULL,
+	b INTEGER NOT NULL,
+	c INTEGER NOT NULL,
+	PRIMARY KEY ( id ),
+	UNIQUE ( a ),
+	UNIQUE ( b, c )
+)`,
+
 		`CREATE TABLE b (
 	id INTEGER NOT NULL,
 	a_id INTEGER NOT NULL REFERENCES a( id ),
@@ -314,6 +324,8 @@ func (obj *sqlite3DB) DropSchema() []string {
 		`DROP TABLE IF EXISTS c`,
 
 		`DROP TABLE IF EXISTS b`,
+
+		`DROP TABLE IF EXISTS d`,
 
 		`DROP TABLE IF EXISTS a`,
 	}
@@ -389,6 +401,16 @@ func (obj *pgxDB) Schema() []string {
 	PRIMARY KEY ( id )
 )`,
 
+		`CREATE TABLE d (
+	id bigserial NOT NULL,
+	a bigint NOT NULL,
+	b bigint NOT NULL,
+	c bigint NOT NULL,
+	PRIMARY KEY ( id ),
+	UNIQUE ( a ),
+	UNIQUE ( b, c )
+)`,
+
 		`CREATE TABLE b (
 	id bigserial NOT NULL,
 	a_id bigint NOT NULL REFERENCES a( id ),
@@ -412,6 +434,8 @@ func (obj *pgxDB) DropSchema() []string {
 		`DROP TABLE IF EXISTS c`,
 
 		`DROP TABLE IF EXISTS b`,
+
+		`DROP TABLE IF EXISTS d`,
 
 		`DROP TABLE IF EXISTS a`,
 	}
@@ -487,6 +511,16 @@ func (obj *pgxcockroachDB) Schema() []string {
 	PRIMARY KEY ( id )
 )`,
 
+		`CREATE TABLE d (
+	id bigserial NOT NULL,
+	a bigint NOT NULL,
+	b bigint NOT NULL,
+	c bigint NOT NULL,
+	PRIMARY KEY ( id ),
+	UNIQUE ( a ),
+	UNIQUE ( b, c )
+)`,
+
 		`CREATE TABLE b (
 	id bigserial NOT NULL,
 	a_id bigint NOT NULL REFERENCES a( id ),
@@ -510,6 +544,8 @@ func (obj *pgxcockroachDB) DropSchema() []string {
 		`DROP TABLE IF EXISTS c`,
 
 		`DROP TABLE IF EXISTS b`,
+
+		`DROP TABLE IF EXISTS d`,
 
 		`DROP TABLE IF EXISTS a`,
 	}
@@ -586,6 +622,19 @@ func (obj *spannerDB) Schema() []string {
 	id INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE a_id))
 ) PRIMARY KEY ( id )`,
 
+		`CREATE SEQUENCE d_id OPTIONS (sequence_kind='bit_reversed_positive')`,
+
+		`CREATE TABLE d (
+	id INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE d_id)),
+	a INT64 NOT NULL,
+	b INT64 NOT NULL,
+	c INT64 NOT NULL
+) PRIMARY KEY ( id )`,
+
+		`CREATE UNIQUE INDEX index_d_a ON d ( a )`,
+
+		`CREATE UNIQUE INDEX index_d_b_c ON d ( b, c )`,
+
 		`CREATE SEQUENCE b_id OPTIONS (sequence_kind='bit_reversed_positive')`,
 
 		`CREATE TABLE b (
@@ -604,7 +653,7 @@ func (obj *spannerDB) Schema() []string {
 	CONSTRAINT c_b_id_fkey FOREIGN KEY (b_id) REFERENCES b (id)
 ) PRIMARY KEY ( id )`,
 
-		`CREATE UNIQUE INDEX index_c_b_id ON c (b_id)`,
+		`CREATE UNIQUE INDEX index_c_b_id ON c ( b_id )`,
 	}
 }
 
@@ -617,6 +666,10 @@ func (obj *spannerDB) DropSchema() []string {
 
 		`ALTER TABLE b DROP CONSTRAINT b_a_id_fkey`,
 
+		`DROP INDEX IF EXISTS index_d_a`,
+
+		`DROP INDEX IF EXISTS index_d_b_c`,
+
 		`ALTER TABLE  c ALTER id SET DEFAULT (null)`,
 
 		`DROP SEQUENCE IF EXISTS c_id`,
@@ -628,6 +681,12 @@ func (obj *spannerDB) DropSchema() []string {
 		`DROP SEQUENCE IF EXISTS b_id`,
 
 		`DROP TABLE IF EXISTS b`,
+
+		`ALTER TABLE  d ALTER id SET DEFAULT (null)`,
+
+		`DROP SEQUENCE IF EXISTS d_id`,
+
+		`DROP TABLE IF EXISTS d`,
 
 		`ALTER TABLE  a ALTER id SET DEFAULT (null)`,
 
@@ -718,6 +777,86 @@ func A_Id(v int64) A_Id_Field {
 }
 
 func (f A_Id_Field) value() any {
+	if !f._set || f._null {
+		return nil
+	}
+	return f._value
+}
+
+type D struct {
+	Id int64
+	A  int64
+	B  int64
+	C  int64
+}
+
+func (D) _Table() string { return "d" }
+
+type D_Update_Fields struct {
+}
+
+type D_Id_Field struct {
+	_set   bool
+	_null  bool
+	_value int64
+}
+
+func D_Id(v int64) D_Id_Field {
+	return D_Id_Field{_set: true, _value: v}
+}
+
+func (f D_Id_Field) value() any {
+	if !f._set || f._null {
+		return nil
+	}
+	return f._value
+}
+
+type D_A_Field struct {
+	_set   bool
+	_null  bool
+	_value int64
+}
+
+func D_A(v int64) D_A_Field {
+	return D_A_Field{_set: true, _value: v}
+}
+
+func (f D_A_Field) value() any {
+	if !f._set || f._null {
+		return nil
+	}
+	return f._value
+}
+
+type D_B_Field struct {
+	_set   bool
+	_null  bool
+	_value int64
+}
+
+func D_B(v int64) D_B_Field {
+	return D_B_Field{_set: true, _value: v}
+}
+
+func (f D_B_Field) value() any {
+	if !f._set || f._null {
+		return nil
+	}
+	return f._value
+}
+
+type D_C_Field struct {
+	_set   bool
+	_null  bool
+	_value int64
+}
+
+func D_C(v int64) D_C_Field {
+	return D_C_Field{_set: true, _value: v}
+}
+
+func (f D_C_Field) value() any {
 	if !f._set || f._null {
 		return nil
 	}
@@ -1214,6 +1353,32 @@ func (obj *sqlite3Impl) Create_C(ctx context.Context,
 
 }
 
+func (obj *sqlite3Impl) Create_D(ctx context.Context,
+	d_a D_A_Field,
+	d_b D_B_Field,
+	d_c D_C_Field) (
+	d *D, err error) {
+	__a_val := d_a.value()
+	__b_val := d_b.value()
+	__c_val := d_c.value()
+
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO d ( a, b, c ) VALUES ( ?, ?, ? ) RETURNING d.id, d.a, d.b, d.c")
+
+	var __values []any
+	__values = append(__values, __a_val, __b_val, __c_val)
+
+	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
+	obj.logStmt(__stmt, __values...)
+
+	d = &D{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Id, &d.A, &d.B, &d.C)
+	if err != nil {
+		return nil, obj.makeErr(err)
+	}
+	return d, nil
+
+}
+
 func (obj *sqlite3Impl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C_Lon_Less_And_C_Lon_Greater(ctx context.Context,
 	a_id A_Id_Field,
 	c_lat_less C_Lat_Field,
@@ -1279,6 +1444,16 @@ func (obj *sqlite3Impl) deleteAll(ctx context.Context) (count int64, err error) 
 	}
 	count += __count
 	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM b;")
+	if err != nil {
+		return 0, obj.makeErr(err)
+	}
+
+	__count, err = __res.RowsAffected()
+	if err != nil {
+		return 0, obj.makeErr(err)
+	}
+	count += __count
+	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM d;")
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -1370,6 +1545,32 @@ func (obj *pgxImpl) Create_C(ctx context.Context,
 
 }
 
+func (obj *pgxImpl) Create_D(ctx context.Context,
+	d_a D_A_Field,
+	d_b D_B_Field,
+	d_c D_C_Field) (
+	d *D, err error) {
+	__a_val := d_a.value()
+	__b_val := d_b.value()
+	__c_val := d_c.value()
+
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO d ( a, b, c ) VALUES ( ?, ?, ? ) RETURNING d.id, d.a, d.b, d.c")
+
+	var __values []any
+	__values = append(__values, __a_val, __b_val, __c_val)
+
+	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
+	obj.logStmt(__stmt, __values...)
+
+	d = &D{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Id, &d.A, &d.B, &d.C)
+	if err != nil {
+		return nil, obj.makeErr(err)
+	}
+	return d, nil
+
+}
+
 func (obj *pgxImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C_Lon_Less_And_C_Lon_Greater(ctx context.Context,
 	a_id A_Id_Field,
 	c_lat_less C_Lat_Field,
@@ -1430,6 +1631,16 @@ func (obj *pgxImpl) deleteAll(ctx context.Context) (count int64, err error) {
 	}
 	count += __count
 	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM b;")
+	if err != nil {
+		return 0, obj.makeErr(err)
+	}
+
+	__count, err = __res.RowsAffected()
+	if err != nil {
+		return 0, obj.makeErr(err)
+	}
+	count += __count
+	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM d;")
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -1521,6 +1732,32 @@ func (obj *pgxcockroachImpl) Create_C(ctx context.Context,
 
 }
 
+func (obj *pgxcockroachImpl) Create_D(ctx context.Context,
+	d_a D_A_Field,
+	d_b D_B_Field,
+	d_c D_C_Field) (
+	d *D, err error) {
+	__a_val := d_a.value()
+	__b_val := d_b.value()
+	__c_val := d_c.value()
+
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO d ( a, b, c ) VALUES ( ?, ?, ? ) RETURNING d.id, d.a, d.b, d.c")
+
+	var __values []any
+	__values = append(__values, __a_val, __b_val, __c_val)
+
+	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
+	obj.logStmt(__stmt, __values...)
+
+	d = &D{}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Id, &d.A, &d.B, &d.C)
+	if err != nil {
+		return nil, obj.makeErr(err)
+	}
+	return d, nil
+
+}
+
 func (obj *pgxcockroachImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C_Lon_Less_And_C_Lon_Greater(ctx context.Context,
 	a_id A_Id_Field,
 	c_lat_less C_Lat_Field,
@@ -1581,6 +1818,16 @@ func (obj *pgxcockroachImpl) deleteAll(ctx context.Context) (count int64, err er
 	}
 	count += __count
 	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM b;")
+	if err != nil {
+		return 0, obj.makeErr(err)
+	}
+
+	__count, err = __res.RowsAffected()
+	if err != nil {
+		return 0, obj.makeErr(err)
+	}
+	count += __count
+	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM d;")
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -1729,6 +1976,51 @@ func (obj *spannerImpl) Create_C(ctx context.Context,
 
 }
 
+func (obj *spannerImpl) Create_D(ctx context.Context,
+	d_a D_A_Field,
+	d_b D_B_Field,
+	d_c D_C_Field) (
+	d *D, err error) {
+	__a_val := d_a.value()
+	__b_val := d_b.value()
+	__c_val := d_c.value()
+
+	var __embed_stmt = __sqlbundle_Literal("INSERT INTO d ( a, b, c ) VALUES ( ?, ?, ? ) THEN RETURN d.id, d.a, d.b, d.c")
+
+	var __values []any
+	__values = append(__values, __a_val, __b_val, __c_val)
+
+	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
+	obj.logStmt(__stmt, __values...)
+
+	d = &D{}
+	__d := obj.driver
+	var tx *sql.Tx
+	if !obj.txn {
+		tx, err = obj.db.DB.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, obj.makeErr(err)
+		}
+		__d = tx
+		defer func() {
+			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
+				err = obj.makeErr(errors.Join(err, txErr))
+			}
+		}()
+	}
+	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Id, &d.A, &d.B, &d.C)
+	if !obj.txn {
+		if err == nil {
+			err = obj.makeErr(tx.Commit())
+		}
+	}
+	if err != nil {
+		return nil, obj.makeErr(err)
+	}
+	return d, nil
+
+}
+
 func (obj *spannerImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C_Lon_Less_And_C_Lon_Greater(ctx context.Context,
 	a_id A_Id_Field,
 	c_lat_less C_Lat_Field,
@@ -1793,6 +2085,16 @@ func (obj *spannerImpl) deleteAll(ctx context.Context) (count int64, err error) 
 		return 0, obj.makeErr(err)
 	}
 	count += __count
+	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM d;")
+	if err != nil {
+		return 0, obj.makeErr(err)
+	}
+
+	__count, err = __res.RowsAffected()
+	if err != nil {
+		return 0, obj.makeErr(err)
+	}
+	count += __count
 	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM a;")
 	if err != nil {
 		return 0, obj.makeErr(err)
@@ -1829,6 +2131,12 @@ type Methods interface {
 		c_lon C_Lon_Field,
 		c_b_id C_BId_Field) (
 		c *C, err error)
+
+	Create_D(ctx context.Context,
+		d_a D_A_Field,
+		d_b D_B_Field,
+		d_c D_C_Field) (
+		d *D, err error)
 }
 
 type TxMethods interface {

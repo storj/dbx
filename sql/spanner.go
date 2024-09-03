@@ -163,8 +163,11 @@ func (s *spanner) CreateSchema(schema *Schema) []sqlgen.SQL {
 
 		stmts = append(stmts, sqlcompile.Compile(stmt))
 		for _, unique := range table.Unique {
-			indexName := fmt.Sprintf("index_%s_%s", table.Name, unique[0])
-			stmts = append(stmts, Build(Lf("CREATE UNIQUE INDEX %s ON %s (%s)", indexName, table.Name, unique[0])).SQL())
+			dir := Build(L("CREATE UNIQUE INDEX"))
+			indexName := "index_" + table.Name + "_" + strings.Join(unique, "_")
+			dir.Add(L(indexName))
+			dir.Add(L("ON"), L(table.Name), L("("), J(", ", Strings(unique)...), L(")"))
+			stmts = append(stmts, dir.SQL())
 		}
 	}
 
@@ -200,7 +203,7 @@ func (s *spanner) DropSchema(schema *Schema) (res []sqlgen.SQL) {
 			}
 		}
 		for _, unique := range table.Unique {
-			indexName := fmt.Sprintf("index_%s_%s", table.Name, unique[0])
+			indexName := "index_" + table.Name + "_" + strings.Join(unique, "_")
 			stmts = append(stmts, Build(Lf("DROP INDEX IF EXISTS %s", indexName)).SQL())
 		}
 	}

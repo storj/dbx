@@ -50,5 +50,14 @@ func TestUniqueChecking(t *testing.T) {
 		require.Equal(t, rows[1].C.Id, c2.Id)
 		require.Equal(t, float32(1), rows[1].C.Lat)
 		require.Equal(t, float32(1), rows[1].C.Lon)
+
+		_, err = db.Create_D(ctx, D_A(0), D_B(0), D_C(0))
+		require.NoError(t, err)
+		// don't allow the same A
+		_, err = db.Create_D(ctx, D_A(0), D_B(1), D_C(1))
+		require.Error(t, err)
+		// don't allow same B, C
+		_, err = db.Create_D(ctx, D_A(1), D_B(0), D_C(0))
+		require.Error(t, err)
 	})
 }

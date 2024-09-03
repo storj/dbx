@@ -602,7 +602,7 @@ func (obj *spannerDB) Schema() []string {
 	name STRING(MAX) NOT NULL
 ) PRIMARY KEY ( id )`,
 
-		`CREATE UNIQUE INDEX index_bars_name ON bars (name)`,
+		`CREATE UNIQUE INDEX index_bars_name ON bars ( name )`,
 
 		`CREATE SEQUENCE bazs_id OPTIONS (sequence_kind='bit_reversed_positive')`,
 
@@ -611,7 +611,7 @@ func (obj *spannerDB) Schema() []string {
 	name STRING(MAX) NOT NULL
 ) PRIMARY KEY ( id )`,
 
-		`CREATE UNIQUE INDEX index_bazs_name ON bazs (name)`,
+		`CREATE UNIQUE INDEX index_bazs_name ON bazs ( name )`,
 
 		`CREATE SEQUENCE foos_id OPTIONS (sequence_kind='bit_reversed_positive')`,
 
@@ -624,11 +624,11 @@ func (obj *spannerDB) Schema() []string {
 	CONSTRAINT foos_baz_id_fkey FOREIGN KEY (baz_id) REFERENCES bazs (id)
 ) PRIMARY KEY ( id )`,
 
-		`CREATE UNIQUE INDEX index_foos_name ON foos (name)`,
+		`CREATE UNIQUE INDEX index_foos_name ON foos ( name )`,
 
-		`CREATE UNIQUE INDEX index_foos_bar_id ON foos (bar_id)`,
+		`CREATE UNIQUE INDEX index_foos_bar_id ON foos ( bar_id )`,
 
-		`CREATE UNIQUE INDEX index_foos_baz_id ON foos (baz_id)`,
+		`CREATE UNIQUE INDEX index_foos_baz_id ON foos ( baz_id )`,
 	}
 }
 

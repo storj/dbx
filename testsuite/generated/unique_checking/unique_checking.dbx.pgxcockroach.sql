@@ -4,6 +4,15 @@ CREATE TABLE a (
 	id bigserial NOT NULL,
 	PRIMARY KEY ( id )
 ) ;
+CREATE TABLE d (
+	id bigserial NOT NULL,
+	a bigint NOT NULL,
+	b bigint NOT NULL,
+	c bigint NOT NULL,
+	PRIMARY KEY ( id ),
+	UNIQUE ( a ),
+	UNIQUE ( b, c )
+) ;
 CREATE TABLE b (
 	id bigserial NOT NULL,
 	a_id bigint NOT NULL REFERENCES a( id ),

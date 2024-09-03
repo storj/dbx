@@ -8,15 +8,15 @@ CREATE TABLE as (
 	id STRING(MAX) NOT NULL,
 	name STRING(MAX) NOT NULL
 ) PRIMARY KEY ( pk ) ;
-CREATE UNIQUE INDEX index_as_id ON as (id) ;
-CREATE UNIQUE INDEX index_as_name ON as (name) ;
+CREATE UNIQUE INDEX index_as_id ON as ( id ) ;
+CREATE UNIQUE INDEX index_as_name ON as ( name ) ;
 CREATE SEQUENCE bs_pk OPTIONS (sequence_kind='bit_reversed_positive') ;
 CREATE TABLE bs (
 	pk INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE bs_pk)),
 	id STRING(MAX) NOT NULL,
 	data STRING(MAX) NOT NULL
 ) PRIMARY KEY ( pk ) ;
-CREATE UNIQUE INDEX index_bs_id ON bs (id) ;
+CREATE UNIQUE INDEX index_bs_id ON bs ( id ) ;
 CREATE SEQUENCE foos_id OPTIONS (sequence_kind='bit_reversed_positive') ;
 CREATE TABLE foos (
 	id INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE foos_id)),
@@ -60,7 +60,7 @@ CREATE TABLE cs (
 	b_pk INT64 NOT NULL,
 	CONSTRAINT cs_b_pk_fkey FOREIGN KEY (b_pk) REFERENCES bs (pk) ON DELETE CASCADE 
 ) PRIMARY KEY ( pk ) ;
-CREATE UNIQUE INDEX index_cs_id ON cs (id) ;
+CREATE UNIQUE INDEX index_cs_id ON cs ( id ) ;
 CREATE SEQUENCE es_pk OPTIONS (sequence_kind='bit_reversed_positive') ;
 CREATE TABLE es (
 	pk INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE es_pk)),
@@ -68,7 +68,7 @@ CREATE TABLE es (
 	a_id STRING(MAX) NOT NULL,
 	CONSTRAINT es_a_id_fkey FOREIGN KEY (a_id) REFERENCES as (id) ON DELETE CASCADE 
 ) PRIMARY KEY ( pk ) ;
-CREATE UNIQUE INDEX index_es_id ON es (id) ;
+CREATE UNIQUE INDEX index_es_id ON es ( id ) ;
 CREATE SEQUENCE ds_pk OPTIONS (sequence_kind='bit_reversed_positive') ;
 CREATE TABLE ds (
 	pk INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE ds_pk)),
@@ -80,6 +80,6 @@ CREATE TABLE ds (
 	CONSTRAINT ds_e_id_fkey FOREIGN KEY (e_id) REFERENCES es (id),
 	CONSTRAINT ds_a_id_fkey FOREIGN KEY (a_id) REFERENCES as (id) ON DELETE CASCADE 
 ) PRIMARY KEY ( pk ) ;
-CREATE UNIQUE INDEX index_ds_id ON ds (id) ;
-CREATE UNIQUE INDEX index_ds_a_id ON ds (a_id) ;
+CREATE UNIQUE INDEX index_ds_id ON ds ( id ) ;
+CREATE UNIQUE INDEX index_ds_a_id_alias ON ds ( a_id, alias ) ;
 CREATE UNIQUE INDEX as_ctime_mtime_unique_index ON as ( ctime, mtime )

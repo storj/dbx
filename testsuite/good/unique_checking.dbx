@@ -21,9 +21,23 @@ model c (
 	field  b_id b.id     restrict
 )
 
+model d (
+	table d
+	key id
+	unique a
+	unique b c
+
+	field id serial64
+	field a  int64
+	field b  int64
+	field c  int64
+)
+
 create a ()
 create b ()
 create c ()
+
+create d ()
 
 read all (
 	select a b c

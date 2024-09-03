@@ -4,6 +4,15 @@ CREATE SEQUENCE a_id OPTIONS (sequence_kind='bit_reversed_positive') ;
 CREATE TABLE a (
 	id INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE a_id))
 ) PRIMARY KEY ( id ) ;
+CREATE SEQUENCE d_id OPTIONS (sequence_kind='bit_reversed_positive') ;
+CREATE TABLE d (
+	id INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE d_id)),
+	a INT64 NOT NULL,
+	b INT64 NOT NULL,
+	c INT64 NOT NULL
+) PRIMARY KEY ( id ) ;
+CREATE UNIQUE INDEX index_d_a ON d ( a ) ;
+CREATE UNIQUE INDEX index_d_b_c ON d ( b, c ) ;
 CREATE SEQUENCE b_id OPTIONS (sequence_kind='bit_reversed_positive') ;
 CREATE TABLE b (
 	id INT64 NOT NULL DEFAULT (GET_NEXT_SEQUENCE_VALUE(SEQUENCE b_id)),
@@ -18,4 +27,4 @@ CREATE TABLE c (
 	b_id INT64 NOT NULL,
 	CONSTRAINT c_b_id_fkey FOREIGN KEY (b_id) REFERENCES b (id)
 ) PRIMARY KEY ( id ) ;
-CREATE UNIQUE INDEX index_c_b_id ON c (b_id)
+CREATE UNIQUE INDEX index_c_b_id ON c ( b_id )
