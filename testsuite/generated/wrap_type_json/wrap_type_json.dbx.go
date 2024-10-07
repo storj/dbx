@@ -34,8 +34,9 @@ var _ = fmt.Sprint
 var _ sync.Mutex
 
 var (
-	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...any)
+	WrapErr     = func(err *Error) error { return err }
+	Logger      func(format string, args ...any)
+	ShouldRetry func(driver string, err error) bool
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
@@ -101,6 +102,13 @@ func makeErr(err error) error {
 	return wrapErr(e)
 }
 
+func shouldRetry(driver string, err error) bool {
+	if ShouldRetry == nil {
+		return false
+	}
+	return ShouldRetry(driver, err)
+}
+
 func unsupportedDriver(driver string) error {
 	return wrapErr(&Error{
 		Err:    errUnsupportedDriver,
@@ -145,6 +153,8 @@ type DB struct {
 	Hooks struct {
 		Now func() time.Time
 	}
+
+	driver string
 }
 
 func Open(driver, source string) (db *DB, err error) {
@@ -176,6 +186,8 @@ func Open(driver, source string) (db *DB, err error) {
 
 	db = &DB{
 		DB: sql_db,
+
+		driver: driver,
 	}
 	db.Hooks.Now = time.Now
 
@@ -234,6 +246,16 @@ type Tx struct {
 	txMethods
 }
 
+func (tx *Tx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return tx.Tx.ExecContext(ctx, query, args...)
+}
+func (tx *Tx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return tx.Tx.QueryContext(ctx, query, args...)
+}
+func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return tx.Tx.QueryRowContext(ctx, query, args...)
+}
+
 type dialectTx struct {
 	tx *sql.Tx
 }
@@ -267,6 +289,40 @@ func (obj *sqlite3Impl) makeErr(err error) error {
 		return constraintViolation(err, constraint)
 	}
 	return makeErr(err)
+}
+
+func (obj *sqlite3Impl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type sqlite3Impl_retryingRow struct {
+	obj   *sqlite3Impl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *sqlite3Impl) queryRowContext(ctx context.Context, query string, args ...any) *sqlite3Impl_retryingRow {
+	return &sqlite3Impl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *sqlite3Impl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
 }
 
 type sqlite3DB struct {
@@ -354,6 +410,40 @@ func (obj *pgxImpl) makeErr(err error) error {
 	return makeErr(err)
 }
 
+func (obj *pgxImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type pgxImpl_retryingRow struct {
+	obj   *pgxImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *pgxImpl) queryRowContext(ctx context.Context, query string, args ...any) *pgxImpl_retryingRow {
+	return &pgxImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *pgxImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
+}
+
 type pgxDB struct {
 	db *DB
 	*pgxImpl
@@ -439,6 +529,40 @@ func (obj *pgxcockroachImpl) makeErr(err error) error {
 	return makeErr(err)
 }
 
+func (obj *pgxcockroachImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type pgxcockroachImpl_retryingRow struct {
+	obj   *pgxcockroachImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *pgxcockroachImpl) queryRowContext(ctx context.Context, query string, args ...any) *pgxcockroachImpl_retryingRow {
+	return &pgxcockroachImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *pgxcockroachImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
+}
+
 type pgxcockroachDB struct {
 	db *DB
 	*pgxcockroachImpl
@@ -522,6 +646,40 @@ func (obj *spannerImpl) makeErr(err error) error {
 		return constraintViolation(err, constraint)
 	}
 	return makeErr(err)
+}
+
+func (obj *spannerImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type spannerImpl_retryingRow struct {
+	obj   *spannerImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *spannerImpl) queryRowContext(ctx context.Context, query string, args ...any) *spannerImpl_retryingRow {
+	return &spannerImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *spannerImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
 }
 
 type spannerDB struct {
@@ -1131,7 +1289,7 @@ func (obj *sqlite3Impl) Create_Person(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1152,7 +1310,7 @@ func (obj *sqlite3Impl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1306,7 +1464,7 @@ func (obj *pgxImpl) Create_Person(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1327,7 +1485,7 @@ func (obj *pgxImpl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1476,7 +1634,7 @@ func (obj *pgxcockroachImpl) Create_Person(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1497,7 +1655,7 @@ func (obj *pgxcockroachImpl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1690,7 +1848,7 @@ func (obj *spannerImpl) Get_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
 	if err != nil {
 		return (*Person)(nil), obj.makeErr(err)
 	}
@@ -1733,25 +1891,12 @@ func (obj *spannerImpl) Update_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
+		})
+	} else {
+		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
 	}
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -1964,4 +2109,31 @@ func (s *spannerJSON) Scan(input any) error {
 		return nil
 	}
 	return fmt.Errorf("unable to decode %T", input)
+}
+
+func (obj *spannerImpl) withTx(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	for {
+		err := obj.withTxOnce(ctx, fn)
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+		}
+		return err
+	}
+}
+
+func (obj *spannerImpl) withTxOnce(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	tx, err := obj.db.BeginTx(ctx, nil)
+	if err != nil {
+		return obj.makeErr(err)
+	}
+	defer func() {
+		if err != nil {
+			err = obj.makeErr(errors.Join(err, tx.Rollback()))
+		} else {
+			err = obj.makeErr(tx.Commit())
+		}
+	}()
+	return fn(tx)
 }

@@ -34,8 +34,9 @@ var _ = fmt.Sprint
 var _ sync.Mutex
 
 var (
-	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...any)
+	WrapErr     = func(err *Error) error { return err }
+	Logger      func(format string, args ...any)
+	ShouldRetry func(driver string, err error) bool
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
@@ -101,6 +102,13 @@ func makeErr(err error) error {
 	return wrapErr(e)
 }
 
+func shouldRetry(driver string, err error) bool {
+	if ShouldRetry == nil {
+		return false
+	}
+	return ShouldRetry(driver, err)
+}
+
 func unsupportedDriver(driver string) error {
 	return wrapErr(&Error{
 		Err:    errUnsupportedDriver,
@@ -145,6 +153,8 @@ type DB struct {
 	Hooks struct {
 		Now func() time.Time
 	}
+
+	driver string
 }
 
 func Open(driver, source string) (db *DB, err error) {
@@ -176,6 +186,8 @@ func Open(driver, source string) (db *DB, err error) {
 
 	db = &DB{
 		DB: sql_db,
+
+		driver: driver,
 	}
 	db.Hooks.Now = time.Now
 
@@ -234,6 +246,16 @@ type Tx struct {
 	txMethods
 }
 
+func (tx *Tx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return tx.Tx.ExecContext(ctx, query, args...)
+}
+func (tx *Tx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return tx.Tx.QueryContext(ctx, query, args...)
+}
+func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return tx.Tx.QueryRowContext(ctx, query, args...)
+}
+
 type dialectTx struct {
 	tx *sql.Tx
 }
@@ -267,6 +289,40 @@ func (obj *sqlite3Impl) makeErr(err error) error {
 		return constraintViolation(err, constraint)
 	}
 	return makeErr(err)
+}
+
+func (obj *sqlite3Impl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type sqlite3Impl_retryingRow struct {
+	obj   *sqlite3Impl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *sqlite3Impl) queryRowContext(ctx context.Context, query string, args ...any) *sqlite3Impl_retryingRow {
+	return &sqlite3Impl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *sqlite3Impl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
 }
 
 type sqlite3DB struct {
@@ -441,6 +497,40 @@ func (obj *pgxImpl) makeErr(err error) error {
 	return makeErr(err)
 }
 
+func (obj *pgxImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type pgxImpl_retryingRow struct {
+	obj   *pgxImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *pgxImpl) queryRowContext(ctx context.Context, query string, args ...any) *pgxImpl_retryingRow {
+	return &pgxImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *pgxImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
+}
+
 type pgxDB struct {
 	db *DB
 	*pgxImpl
@@ -613,6 +703,40 @@ func (obj *pgxcockroachImpl) makeErr(err error) error {
 	return makeErr(err)
 }
 
+func (obj *pgxcockroachImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type pgxcockroachImpl_retryingRow struct {
+	obj   *pgxcockroachImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *pgxcockroachImpl) queryRowContext(ctx context.Context, query string, args ...any) *pgxcockroachImpl_retryingRow {
+	return &pgxcockroachImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *pgxcockroachImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
+}
+
 type pgxcockroachDB struct {
 	db *DB
 	*pgxcockroachImpl
@@ -783,6 +907,40 @@ func (obj *spannerImpl) makeErr(err error) error {
 		return constraintViolation(err, constraint)
 	}
 	return makeErr(err)
+}
+
+func (obj *spannerImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type spannerImpl_retryingRow struct {
+	obj   *spannerImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *spannerImpl) queryRowContext(ctx context.Context, query string, args ...any) *spannerImpl_retryingRow {
+	return &spannerImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *spannerImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
 }
 
 type spannerDB struct {
@@ -2553,7 +2711,7 @@ func (obj *sqlite3Impl) Create_E(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	e = &E{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2584,7 +2742,7 @@ func (obj *sqlite3Impl) Create_D(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2609,7 +2767,7 @@ func (obj *sqlite3Impl) RawCreate_D(ctx context.Context,
 	obj.logStmt(__stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2637,7 +2795,7 @@ func (obj *sqlite3Impl) Create_A(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2661,7 +2819,7 @@ func (obj *sqlite3Impl) Create_AB(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a_b = &AB{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a_b.BPk, &a_b.APk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a_b.BPk, &a_b.APk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2685,7 +2843,7 @@ func (obj *sqlite3Impl) Create_C(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	c = &C{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2709,7 +2867,7 @@ func (obj *sqlite3Impl) Create_B(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2769,7 +2927,7 @@ func (obj *sqlite3Impl) Create_Foo(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2815,7 +2973,7 @@ func (obj *sqlite3Impl) RawCreate_Foo(ctx context.Context,
 	obj.logStmt(__stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2940,7 +3098,7 @@ func (obj *sqlite3Impl) Has_E_By_Id_And_AId(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -2962,7 +3120,7 @@ func (obj *sqlite3Impl) Get_E_By_Id_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	e = &E{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
 	if err != nil {
 		return (*E)(nil), obj.makeErr(err)
 	}
@@ -2992,29 +3150,41 @@ func (obj *sqlite3Impl) Paged_E_By_AId(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*E, next *Paged_E_By_AId_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_E_By_AId_Continuation
-	__continuation._set = true
+			var __continuation Paged_E_By_AId_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		e := &E{}
-		err = __rows.Scan(&e.Pk, &e.Id, &e.AId, &__continuation._value_pk)
+			for __rows.Next() {
+				e := &E{}
+				err = __rows.Scan(&e.Pk, &e.Id, &e.AId, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, e)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, e)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3031,7 +3201,7 @@ func (obj *sqlite3Impl) Get_D_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -3053,7 +3223,7 @@ func (obj *sqlite3Impl) Get_D_By_Id_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -3081,7 +3251,7 @@ func (obj *sqlite3Impl) Get_D_By_Alias_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -3111,29 +3281,41 @@ func (obj *sqlite3Impl) Paged_D_By_AId(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*D, next *Paged_D_By_AId_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_D_By_AId_Continuation
-	__continuation._set = true
+			var __continuation Paged_D_By_AId_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		d := &D{}
-		err = __rows.Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId, &__continuation._value_pk)
+			for __rows.Next() {
+				d := &D{}
+				err = __rows.Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, d)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, d)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3150,7 +3332,7 @@ func (obj *sqlite3Impl) Get_A_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -3172,7 +3354,7 @@ func (obj *sqlite3Impl) Get_A_By_A_Id_And_B_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -3194,7 +3376,7 @@ func (obj *sqlite3Impl) Get_A_By_A_Name_And_B_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -3224,29 +3406,41 @@ func (obj *sqlite3Impl) Paged_A_By_B_Id(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*A, next *Paged_A_By_B_Id_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_A_By_B_Id_Continuation
-	__continuation._set = true
+			var __continuation Paged_A_By_B_Id_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		a := &A{}
-		err = __rows.Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name, &__continuation._value_pk)
+			for __rows.Next() {
+				a := &A{}
+				err = __rows.Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, a)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, a)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3263,7 +3457,7 @@ func (obj *sqlite3Impl) Get_C_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	c = &C{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
 	if err != nil {
 		return (*C)(nil), obj.makeErr(err)
 	}
@@ -3284,7 +3478,7 @@ func (obj *sqlite3Impl) Get_B_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	if err != nil {
 		return (*B)(nil), obj.makeErr(err)
 	}
@@ -3304,24 +3498,35 @@ func (obj *sqlite3Impl) All_B_By_Data(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*B, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		b := &B{}
-		err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+			for __rows.Next() {
+				b := &B{}
+				err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, b)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, b)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -3335,24 +3540,35 @@ func (obj *sqlite3Impl) All_B(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*B, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		b := &B{}
-		err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+			for __rows.Next() {
+				b := &B{}
+				err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, b)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, b)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -3366,24 +3582,35 @@ func (obj *sqlite3Impl) All_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -3397,7 +3624,7 @@ func (obj *sqlite3Impl) Count_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -3416,7 +3643,7 @@ func (obj *sqlite3Impl) Has_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -3437,24 +3664,35 @@ func (obj *sqlite3Impl) Limited_Foo(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -3478,29 +3716,41 @@ func (obj *sqlite3Impl) Paged_Foo(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*Foo, next *Paged_Foo_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_Foo_Continuation
-	__continuation._set = true
+			var __continuation Paged_Foo_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson, &__continuation._value_id)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, foo)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3516,7 +3766,7 @@ func (obj *sqlite3Impl) Count_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -3537,7 +3787,7 @@ func (obj *sqlite3Impl) Has_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -3558,7 +3808,7 @@ func (obj *sqlite3Impl) Find_Foo_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err == sql.ErrNoRows {
 		return (*Foo)(nil), nil
 	}
@@ -3582,7 +3832,7 @@ func (obj *sqlite3Impl) Get_Foo_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err != nil {
 		return (*Foo)(nil), obj.makeErr(err)
 	}
@@ -3602,26 +3852,37 @@ func (obj *sqlite3Impl) First_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -3635,24 +3896,35 @@ func (obj *sqlite3Impl) All_Foo_Bool_Foo_Int(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Bool_Int_Row, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		row := &Bool_Int_Row{}
-		err = __rows.Scan(&row.Bool, &row.Int)
+			for __rows.Next() {
+				row := &Bool_Int_Row{}
+				err = __rows.Scan(&row.Bool, &row.Int)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, row)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, row)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -3695,26 +3967,37 @@ func (obj *sqlite3Impl) First_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_NullU
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -3728,34 +4011,48 @@ func (obj *sqlite3Impl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Int_Equal_Number")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Int_Equal_Number")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -3769,34 +4066,48 @@ func (obj *sqlite3Impl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_NullInt_Is_Null")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_NullInt_Is_Null")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -3810,34 +4121,48 @@ func (obj *sqlite3Impl) Find_Foo_By_String_Equal_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -3853,34 +4178,48 @@ func (obj *sqlite3Impl) Find_Foo_By_Lower_String(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Lower_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Lower_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -3896,34 +4235,48 @@ func (obj *sqlite3Impl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Context
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -3939,34 +4292,48 @@ func (obj *sqlite3Impl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_Lower")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_Lower")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -3980,34 +4347,48 @@ func (obj *sqlite3Impl) Find_Foo_By_String_Equal_Lower_String(ctx context.Contex
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -4021,34 +4402,48 @@ func (obj *sqlite3Impl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Bool_Equal_True")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Bool_Equal_True")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -4062,34 +4457,48 @@ func (obj *sqlite3Impl) Find_Foo_By_NullBool_Equal_False(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_NullBool_Equal_False")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_NullBool_Equal_False")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -4103,34 +4512,48 @@ func (obj *sqlite3Impl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_OrderBy_Asc_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_OrderBy_Asc_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -4144,34 +4567,48 @@ func (obj *sqlite3Impl) Find_Foo_GroupBy_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_GroupBy_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_GroupBy_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -5074,7 +5511,7 @@ func (obj *pgxImpl) Create_E(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	e = &E{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -5105,7 +5542,7 @@ func (obj *pgxImpl) Create_D(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -5130,7 +5567,7 @@ func (obj *pgxImpl) RawCreate_D(ctx context.Context,
 	obj.logStmt(__stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -5158,7 +5595,7 @@ func (obj *pgxImpl) Create_A(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -5182,7 +5619,7 @@ func (obj *pgxImpl) Create_AB(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a_b = &AB{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a_b.BPk, &a_b.APk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a_b.BPk, &a_b.APk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -5206,7 +5643,7 @@ func (obj *pgxImpl) Create_C(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	c = &C{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -5230,7 +5667,7 @@ func (obj *pgxImpl) Create_B(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -5290,7 +5727,7 @@ func (obj *pgxImpl) Create_Foo(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -5336,7 +5773,7 @@ func (obj *pgxImpl) RawCreate_Foo(ctx context.Context,
 	obj.logStmt(__stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -5461,7 +5898,7 @@ func (obj *pgxImpl) Has_E_By_Id_And_AId(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -5483,7 +5920,7 @@ func (obj *pgxImpl) Get_E_By_Id_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	e = &E{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
 	if err != nil {
 		return (*E)(nil), obj.makeErr(err)
 	}
@@ -5513,29 +5950,41 @@ func (obj *pgxImpl) Paged_E_By_AId(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*E, next *Paged_E_By_AId_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_E_By_AId_Continuation
-	__continuation._set = true
+			var __continuation Paged_E_By_AId_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		e := &E{}
-		err = __rows.Scan(&e.Pk, &e.Id, &e.AId, &__continuation._value_pk)
+			for __rows.Next() {
+				e := &E{}
+				err = __rows.Scan(&e.Pk, &e.Id, &e.AId, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, e)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, e)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5552,7 +6001,7 @@ func (obj *pgxImpl) Get_D_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -5574,7 +6023,7 @@ func (obj *pgxImpl) Get_D_By_Id_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -5602,7 +6051,7 @@ func (obj *pgxImpl) Get_D_By_Alias_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -5632,29 +6081,41 @@ func (obj *pgxImpl) Paged_D_By_AId(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*D, next *Paged_D_By_AId_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_D_By_AId_Continuation
-	__continuation._set = true
+			var __continuation Paged_D_By_AId_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		d := &D{}
-		err = __rows.Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId, &__continuation._value_pk)
+			for __rows.Next() {
+				d := &D{}
+				err = __rows.Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, d)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, d)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5671,7 +6132,7 @@ func (obj *pgxImpl) Get_A_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -5693,7 +6154,7 @@ func (obj *pgxImpl) Get_A_By_A_Id_And_B_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -5715,7 +6176,7 @@ func (obj *pgxImpl) Get_A_By_A_Name_And_B_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -5745,29 +6206,41 @@ func (obj *pgxImpl) Paged_A_By_B_Id(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*A, next *Paged_A_By_B_Id_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_A_By_B_Id_Continuation
-	__continuation._set = true
+			var __continuation Paged_A_By_B_Id_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		a := &A{}
-		err = __rows.Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name, &__continuation._value_pk)
+			for __rows.Next() {
+				a := &A{}
+				err = __rows.Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, a)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, a)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5784,7 +6257,7 @@ func (obj *pgxImpl) Get_C_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	c = &C{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
 	if err != nil {
 		return (*C)(nil), obj.makeErr(err)
 	}
@@ -5805,7 +6278,7 @@ func (obj *pgxImpl) Get_B_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	if err != nil {
 		return (*B)(nil), obj.makeErr(err)
 	}
@@ -5825,24 +6298,35 @@ func (obj *pgxImpl) All_B_By_Data(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*B, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		b := &B{}
-		err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+			for __rows.Next() {
+				b := &B{}
+				err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, b)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, b)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -5856,24 +6340,35 @@ func (obj *pgxImpl) All_B(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*B, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		b := &B{}
-		err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+			for __rows.Next() {
+				b := &B{}
+				err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, b)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, b)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -5887,24 +6382,35 @@ func (obj *pgxImpl) All_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -5918,7 +6424,7 @@ func (obj *pgxImpl) Count_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -5937,7 +6443,7 @@ func (obj *pgxImpl) Has_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -5958,24 +6464,35 @@ func (obj *pgxImpl) Limited_Foo(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -5999,29 +6516,41 @@ func (obj *pgxImpl) Paged_Foo(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*Foo, next *Paged_Foo_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_Foo_Continuation
-	__continuation._set = true
+			var __continuation Paged_Foo_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson, &__continuation._value_id)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, foo)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -6037,7 +6566,7 @@ func (obj *pgxImpl) Count_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -6058,7 +6587,7 @@ func (obj *pgxImpl) Has_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -6079,7 +6608,7 @@ func (obj *pgxImpl) Find_Foo_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err == sql.ErrNoRows {
 		return (*Foo)(nil), nil
 	}
@@ -6103,7 +6632,7 @@ func (obj *pgxImpl) Get_Foo_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err != nil {
 		return (*Foo)(nil), obj.makeErr(err)
 	}
@@ -6123,26 +6652,37 @@ func (obj *pgxImpl) First_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6156,24 +6696,35 @@ func (obj *pgxImpl) All_Foo_Bool_Foo_Int(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Bool_Int_Row, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		row := &Bool_Int_Row{}
-		err = __rows.Scan(&row.Bool, &row.Int)
+			for __rows.Next() {
+				row := &Bool_Int_Row{}
+				err = __rows.Scan(&row.Bool, &row.Int)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, row)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, row)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -6216,26 +6767,37 @@ func (obj *pgxImpl) First_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_NullUint_
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6249,34 +6811,48 @@ func (obj *pgxImpl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Int_Equal_Number")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Int_Equal_Number")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6290,34 +6866,48 @@ func (obj *pgxImpl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_NullInt_Is_Null")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_NullInt_Is_Null")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6331,34 +6921,48 @@ func (obj *pgxImpl) Find_Foo_By_String_Equal_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6374,34 +6978,48 @@ func (obj *pgxImpl) Find_Foo_By_Lower_String(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Lower_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Lower_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6417,34 +7035,48 @@ func (obj *pgxImpl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6460,34 +7092,48 @@ func (obj *pgxImpl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_Lower")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_Lower")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6501,34 +7147,48 @@ func (obj *pgxImpl) Find_Foo_By_String_Equal_Lower_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6542,34 +7202,48 @@ func (obj *pgxImpl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Bool_Equal_True")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Bool_Equal_True")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6583,34 +7257,48 @@ func (obj *pgxImpl) Find_Foo_By_NullBool_Equal_False(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_NullBool_Equal_False")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_NullBool_Equal_False")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6624,34 +7312,48 @@ func (obj *pgxImpl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_OrderBy_Asc_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_OrderBy_Asc_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -6665,34 +7367,48 @@ func (obj *pgxImpl) Find_Foo_GroupBy_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_GroupBy_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_GroupBy_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -7590,7 +8306,7 @@ func (obj *pgxcockroachImpl) Create_E(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	e = &E{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -7621,7 +8337,7 @@ func (obj *pgxcockroachImpl) Create_D(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -7646,7 +8362,7 @@ func (obj *pgxcockroachImpl) RawCreate_D(ctx context.Context,
 	obj.logStmt(__stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -7674,7 +8390,7 @@ func (obj *pgxcockroachImpl) Create_A(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -7698,7 +8414,7 @@ func (obj *pgxcockroachImpl) Create_AB(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a_b = &AB{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a_b.BPk, &a_b.APk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a_b.BPk, &a_b.APk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -7722,7 +8438,7 @@ func (obj *pgxcockroachImpl) Create_C(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	c = &C{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -7746,7 +8462,7 @@ func (obj *pgxcockroachImpl) Create_B(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -7806,7 +8522,7 @@ func (obj *pgxcockroachImpl) Create_Foo(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -7852,7 +8568,7 @@ func (obj *pgxcockroachImpl) RawCreate_Foo(ctx context.Context,
 	obj.logStmt(__stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -7977,7 +8693,7 @@ func (obj *pgxcockroachImpl) Has_E_By_Id_And_AId(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -7999,7 +8715,7 @@ func (obj *pgxcockroachImpl) Get_E_By_Id_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	e = &E{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
 	if err != nil {
 		return (*E)(nil), obj.makeErr(err)
 	}
@@ -8029,29 +8745,41 @@ func (obj *pgxcockroachImpl) Paged_E_By_AId(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*E, next *Paged_E_By_AId_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_E_By_AId_Continuation
-	__continuation._set = true
+			var __continuation Paged_E_By_AId_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		e := &E{}
-		err = __rows.Scan(&e.Pk, &e.Id, &e.AId, &__continuation._value_pk)
+			for __rows.Next() {
+				e := &E{}
+				err = __rows.Scan(&e.Pk, &e.Id, &e.AId, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, e)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, e)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -8068,7 +8796,7 @@ func (obj *pgxcockroachImpl) Get_D_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -8090,7 +8818,7 @@ func (obj *pgxcockroachImpl) Get_D_By_Id_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -8118,7 +8846,7 @@ func (obj *pgxcockroachImpl) Get_D_By_Alias_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -8148,29 +8876,41 @@ func (obj *pgxcockroachImpl) Paged_D_By_AId(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*D, next *Paged_D_By_AId_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_D_By_AId_Continuation
-	__continuation._set = true
+			var __continuation Paged_D_By_AId_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		d := &D{}
-		err = __rows.Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId, &__continuation._value_pk)
+			for __rows.Next() {
+				d := &D{}
+				err = __rows.Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, d)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, d)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -8187,7 +8927,7 @@ func (obj *pgxcockroachImpl) Get_A_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -8209,7 +8949,7 @@ func (obj *pgxcockroachImpl) Get_A_By_A_Id_And_B_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -8231,7 +8971,7 @@ func (obj *pgxcockroachImpl) Get_A_By_A_Name_And_B_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -8261,29 +9001,41 @@ func (obj *pgxcockroachImpl) Paged_A_By_B_Id(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*A, next *Paged_A_By_B_Id_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_A_By_B_Id_Continuation
-	__continuation._set = true
+			var __continuation Paged_A_By_B_Id_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		a := &A{}
-		err = __rows.Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name, &__continuation._value_pk)
+			for __rows.Next() {
+				a := &A{}
+				err = __rows.Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, a)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, a)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -8300,7 +9052,7 @@ func (obj *pgxcockroachImpl) Get_C_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	c = &C{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
 	if err != nil {
 		return (*C)(nil), obj.makeErr(err)
 	}
@@ -8321,7 +9073,7 @@ func (obj *pgxcockroachImpl) Get_B_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	if err != nil {
 		return (*B)(nil), obj.makeErr(err)
 	}
@@ -8341,24 +9093,35 @@ func (obj *pgxcockroachImpl) All_B_By_Data(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*B, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		b := &B{}
-		err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+			for __rows.Next() {
+				b := &B{}
+				err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, b)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, b)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -8372,24 +9135,35 @@ func (obj *pgxcockroachImpl) All_B(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*B, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		b := &B{}
-		err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+			for __rows.Next() {
+				b := &B{}
+				err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, b)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, b)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -8403,24 +9177,35 @@ func (obj *pgxcockroachImpl) All_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -8434,7 +9219,7 @@ func (obj *pgxcockroachImpl) Count_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -8453,7 +9238,7 @@ func (obj *pgxcockroachImpl) Has_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -8474,24 +9259,35 @@ func (obj *pgxcockroachImpl) Limited_Foo(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -8515,29 +9311,41 @@ func (obj *pgxcockroachImpl) Paged_Foo(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*Foo, next *Paged_Foo_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_Foo_Continuation
-	__continuation._set = true
+			var __continuation Paged_Foo_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson, &__continuation._value_id)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, foo)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -8553,7 +9361,7 @@ func (obj *pgxcockroachImpl) Count_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -8574,7 +9382,7 @@ func (obj *pgxcockroachImpl) Has_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -8595,7 +9403,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err == sql.ErrNoRows {
 		return (*Foo)(nil), nil
 	}
@@ -8619,7 +9427,7 @@ func (obj *pgxcockroachImpl) Get_Foo_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
 	if err != nil {
 		return (*Foo)(nil), obj.makeErr(err)
 	}
@@ -8639,26 +9447,37 @@ func (obj *pgxcockroachImpl) First_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -8672,24 +9491,35 @@ func (obj *pgxcockroachImpl) All_Foo_Bool_Foo_Int(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Bool_Int_Row, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		row := &Bool_Int_Row{}
-		err = __rows.Scan(&row.Bool, &row.Int)
+			for __rows.Next() {
+				row := &Bool_Int_Row{}
+				err = __rows.Scan(&row.Bool, &row.Int)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, row)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, row)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -8732,26 +9562,37 @@ func (obj *pgxcockroachImpl) First_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -8765,34 +9606,48 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Int_Equal_Number")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Int_Equal_Number")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -8806,34 +9661,48 @@ func (obj *pgxcockroachImpl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_NullInt_Is_Null")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_NullInt_Is_Null")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -8847,34 +9716,48 @@ func (obj *pgxcockroachImpl) Find_Foo_By_String_Equal_String(ctx context.Context
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -8890,34 +9773,48 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Lower_String(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Lower_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Lower_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -8933,34 +9830,48 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Co
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -8976,34 +9887,48 @@ func (obj *pgxcockroachImpl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_Lower")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_Lower")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -9017,34 +9942,48 @@ func (obj *pgxcockroachImpl) Find_Foo_By_String_Equal_Lower_String(ctx context.C
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -9058,34 +9997,48 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Bool_Equal_True")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Bool_Equal_True")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -9099,34 +10052,48 @@ func (obj *pgxcockroachImpl) Find_Foo_By_NullBool_Equal_False(ctx context.Contex
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_NullBool_Equal_False")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_NullBool_Equal_False")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -9140,34 +10107,48 @@ func (obj *pgxcockroachImpl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_OrderBy_Asc_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_OrderBy_Asc_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -9181,34 +10162,48 @@ func (obj *pgxcockroachImpl) Find_Foo_GroupBy_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_GroupBy_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_GroupBy_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -10200,7 +11195,7 @@ func (obj *spannerImpl) RawCreate_D(ctx context.Context,
 	obj.logStmt(__stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __pk_val, __id_val, __alias_val, __date_val, __e_id_val, __a_id_val).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -10501,7 +11496,7 @@ func (obj *spannerImpl) RawCreate_Foo(ctx context.Context,
 	obj.logStmt(__stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+	err = obj.queryRowContext(ctx, __stmt, __id_val, __int_val, __int64_val, __uint_val, __uint64_val, __float_val, __float64_val, __string_val, __blob_val, __timestamp_val, __utimestamp_val, __bool_val, __date_val, __json_val, __null_int_val, __null_int64_val, __null_uint_val, __null_uint64_val, __null_float_val, __null_float64_val, __null_string_val, __null_blob_val, __null_timestamp_val, __null_utimestamp_val, __null_bool_val, __null_date_val, __null_json_val).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -10626,7 +11621,7 @@ func (obj *spannerImpl) Has_E_By_Id_And_AId(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -10648,7 +11643,7 @@ func (obj *spannerImpl) Get_E_By_Id_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	e = &E{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&e.Pk, &e.Id, &e.AId)
 	if err != nil {
 		return (*E)(nil), obj.makeErr(err)
 	}
@@ -10681,29 +11676,41 @@ func (obj *spannerImpl) Paged_E_By_AId(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*E, next *Paged_E_By_AId_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_E_By_AId_Continuation
-	__continuation._set = true
+			var __continuation Paged_E_By_AId_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		e := &E{}
-		err = __rows.Scan(&e.Pk, &e.Id, &e.AId, &__continuation._value_pk)
+			for __rows.Next() {
+				e := &E{}
+				err = __rows.Scan(&e.Pk, &e.Id, &e.AId, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, e)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, e)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -10720,7 +11727,7 @@ func (obj *spannerImpl) Get_D_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -10742,7 +11749,7 @@ func (obj *spannerImpl) Get_D_By_Id_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -10770,7 +11777,7 @@ func (obj *spannerImpl) Get_D_By_Alias_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	if err != nil {
 		return (*D)(nil), obj.makeErr(err)
 	}
@@ -10803,29 +11810,41 @@ func (obj *spannerImpl) Paged_D_By_AId(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*D, next *Paged_D_By_AId_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_D_By_AId_Continuation
-	__continuation._set = true
+			var __continuation Paged_D_By_AId_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		d := &D{}
-		err = __rows.Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId, &__continuation._value_pk)
+			for __rows.Next() {
+				d := &D{}
+				err = __rows.Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, d)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, d)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -10842,7 +11861,7 @@ func (obj *spannerImpl) Get_A_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -10864,7 +11883,7 @@ func (obj *spannerImpl) Get_A_By_A_Id_And_B_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -10886,7 +11905,7 @@ func (obj *spannerImpl) Get_A_By_A_Name_And_B_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	if err != nil {
 		return (*A)(nil), obj.makeErr(err)
 	}
@@ -10919,29 +11938,41 @@ func (obj *spannerImpl) Paged_A_By_B_Id(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*A, next *Paged_A_By_B_Id_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_A_By_B_Id_Continuation
-	__continuation._set = true
+			var __continuation Paged_A_By_B_Id_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		a := &A{}
-		err = __rows.Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name, &__continuation._value_pk)
+			for __rows.Next() {
+				a := &A{}
+				err = __rows.Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name, &__continuation._value_pk)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, a)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, a)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -10958,7 +11989,7 @@ func (obj *spannerImpl) Get_C_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	c = &C{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&c.Pk, &c.Id, &c.BPk)
 	if err != nil {
 		return (*C)(nil), obj.makeErr(err)
 	}
@@ -10979,7 +12010,7 @@ func (obj *spannerImpl) Get_B_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	if err != nil {
 		return (*B)(nil), obj.makeErr(err)
 	}
@@ -10999,24 +12030,35 @@ func (obj *spannerImpl) All_B_By_Data(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*B, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		b := &B{}
-		err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+			for __rows.Next() {
+				b := &B{}
+				err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, b)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, b)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -11030,24 +12072,35 @@ func (obj *spannerImpl) All_B(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*B, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		b := &B{}
-		err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+			for __rows.Next() {
+				b := &B{}
+				err = __rows.Scan(&b.Pk, &b.Id, &b.Data)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, b)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, b)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -11061,24 +12114,35 @@ func (obj *spannerImpl) All_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -11092,7 +12156,7 @@ func (obj *spannerImpl) Count_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -11111,7 +12175,7 @@ func (obj *spannerImpl) Has_Foo(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -11132,24 +12196,35 @@ func (obj *spannerImpl) Limited_Foo(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -11176,29 +12251,41 @@ func (obj *spannerImpl) Paged_Foo(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*Foo, next *Paged_Foo_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_Foo_Continuation
-	__continuation._set = true
+			var __continuation Paged_Foo_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson), &__continuation._value_id)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson), &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, foo)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -11214,7 +12301,7 @@ func (obj *spannerImpl) Count_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -11235,7 +12322,7 @@ func (obj *spannerImpl) Has_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -11256,7 +12343,7 @@ func (obj *spannerImpl) Find_Foo_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 	if err == sql.ErrNoRows {
 		return (*Foo)(nil), nil
 	}
@@ -11280,7 +12367,7 @@ func (obj *spannerImpl) Get_Foo_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 	if err != nil {
 		return (*Foo)(nil), obj.makeErr(err)
 	}
@@ -11300,26 +12387,37 @@ func (obj *spannerImpl) First_Foo_By_Id(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11333,24 +12431,35 @@ func (obj *spannerImpl) All_Foo_Bool_Foo_Int(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Bool_Int_Row, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		row := &Bool_Int_Row{}
-		err = __rows.Scan(&row.Bool, &row.Int)
+			for __rows.Next() {
+				row := &Bool_Int_Row{}
+				err = __rows.Scan(&row.Bool, &row.Int)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, row)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, row)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -11393,26 +12502,37 @@ func (obj *spannerImpl) First_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_NullU
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11426,34 +12546,48 @@ func (obj *spannerImpl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Int_Equal_Number")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Int_Equal_Number")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11467,34 +12601,48 @@ func (obj *spannerImpl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_NullInt_Is_Null")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_NullInt_Is_Null")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11508,34 +12656,48 @@ func (obj *spannerImpl) Find_Foo_By_String_Equal_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11551,34 +12713,48 @@ func (obj *spannerImpl) Find_Foo_By_Lower_String(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Lower_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Lower_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11594,34 +12770,48 @@ func (obj *spannerImpl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Context
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11637,34 +12827,48 @@ func (obj *spannerImpl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_Lower")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_Lower")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11678,34 +12882,48 @@ func (obj *spannerImpl) Find_Foo_By_String_Equal_Lower_String(ctx context.Contex
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11719,34 +12937,48 @@ func (obj *spannerImpl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_Bool_Equal_True")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_Bool_Equal_True")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11760,34 +12992,48 @@ func (obj *spannerImpl) Find_Foo_By_NullBool_Equal_False(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_By_NullBool_Equal_False")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_By_NullBool_Equal_False")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11801,34 +13047,48 @@ func (obj *spannerImpl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_OrderBy_Asc_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_OrderBy_Asc_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11842,34 +13102,48 @@ func (obj *spannerImpl) Find_Foo_GroupBy_String(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Foo_GroupBy_String")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Foo_GroupBy_String")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -11905,25 +13179,12 @@ func (obj *spannerImpl) Update_D_By_Id_And_AId(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+		})
+	} else {
+		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	}
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -11962,25 +13223,12 @@ func (obj *spannerImpl) Update_A_By_A_Id_And_B_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+		})
+	} else {
+		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	}
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -12022,25 +13270,12 @@ func (obj *spannerImpl) Update_B_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
+		})
+	} else {
+		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	}
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -12215,25 +13450,12 @@ func (obj *spannerImpl) Update_Foo_By_Id(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+		})
+	} else {
+		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 	}
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -12532,25 +13754,12 @@ func (obj *spannerImpl) Update_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_Null
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+		})
+	} else {
+		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 	}
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -13197,4 +14406,31 @@ func (s *spannerJSON) Scan(input any) error {
 		return nil
 	}
 	return fmt.Errorf("unable to decode %T", input)
+}
+
+func (obj *spannerImpl) withTx(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	for {
+		err := obj.withTxOnce(ctx, fn)
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+		}
+		return err
+	}
+}
+
+func (obj *spannerImpl) withTxOnce(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	tx, err := obj.db.BeginTx(ctx, nil)
+	if err != nil {
+		return obj.makeErr(err)
+	}
+	defer func() {
+		if err != nil {
+			err = obj.makeErr(errors.Join(err, tx.Rollback()))
+		} else {
+			err = obj.makeErr(tx.Commit())
+		}
+	}()
+	return fn(tx)
 }

@@ -69,4 +69,31 @@ func (s *spannerJSON) Scan(input any) error {
 	}
 	return fmt.Errorf("unable to decode %T", input)
 }
+
+func (obj *spannerImpl) withTx(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	for {
+		err := obj.withTxOnce(ctx, fn)
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+		}
+		return err
+	}
+}
+
+func (obj *spannerImpl) withTxOnce(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	tx, err := obj.db.BeginTx(ctx, nil)
+	if err != nil {
+		return obj.makeErr(err)
+	}
+	defer func() {
+		if err != nil {
+			err = obj.makeErr(errors.Join(err, tx.Rollback()))
+		} else {
+			err = obj.makeErr(tx.Commit())
+		}
+	}()
+	return fn(tx)
+}
 {{ end -}}

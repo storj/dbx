@@ -34,8 +34,9 @@ var _ = fmt.Sprint
 var _ sync.Mutex
 
 var (
-	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...any)
+	WrapErr     = func(err *Error) error { return err }
+	Logger      func(format string, args ...any)
+	ShouldRetry func(driver string, err error) bool
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
@@ -101,6 +102,13 @@ func makeErr(err error) error {
 	return wrapErr(e)
 }
 
+func shouldRetry(driver string, err error) bool {
+	if ShouldRetry == nil {
+		return false
+	}
+	return ShouldRetry(driver, err)
+}
+
 func unsupportedDriver(driver string) error {
 	return wrapErr(&Error{
 		Err:    errUnsupportedDriver,
@@ -145,6 +153,8 @@ type DB struct {
 	Hooks struct {
 		Now func() time.Time
 	}
+
+	driver string
 }
 
 func Open(driver, source string) (db *DB, err error) {
@@ -176,6 +186,8 @@ func Open(driver, source string) (db *DB, err error) {
 
 	db = &DB{
 		DB: sql_db,
+
+		driver: driver,
 	}
 	db.Hooks.Now = time.Now
 
@@ -234,6 +246,16 @@ type Tx struct {
 	txMethods
 }
 
+func (tx *Tx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return tx.Tx.ExecContext(ctx, query, args...)
+}
+func (tx *Tx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return tx.Tx.QueryContext(ctx, query, args...)
+}
+func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return tx.Tx.QueryRowContext(ctx, query, args...)
+}
+
 type dialectTx struct {
 	tx *sql.Tx
 }
@@ -267,6 +289,40 @@ func (obj *sqlite3Impl) makeErr(err error) error {
 		return constraintViolation(err, constraint)
 	}
 	return makeErr(err)
+}
+
+func (obj *sqlite3Impl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type sqlite3Impl_retryingRow struct {
+	obj   *sqlite3Impl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *sqlite3Impl) queryRowContext(ctx context.Context, query string, args ...any) *sqlite3Impl_retryingRow {
+	return &sqlite3Impl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *sqlite3Impl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
 }
 
 type sqlite3DB struct {
@@ -349,6 +405,40 @@ func (obj *pgxImpl) makeErr(err error) error {
 	return makeErr(err)
 }
 
+func (obj *pgxImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type pgxImpl_retryingRow struct {
+	obj   *pgxImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *pgxImpl) queryRowContext(ctx context.Context, query string, args ...any) *pgxImpl_retryingRow {
+	return &pgxImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *pgxImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
+}
+
 type pgxDB struct {
 	db *DB
 	*pgxImpl
@@ -429,6 +519,40 @@ func (obj *pgxcockroachImpl) makeErr(err error) error {
 	return makeErr(err)
 }
 
+func (obj *pgxcockroachImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type pgxcockroachImpl_retryingRow struct {
+	obj   *pgxcockroachImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *pgxcockroachImpl) queryRowContext(ctx context.Context, query string, args ...any) *pgxcockroachImpl_retryingRow {
+	return &pgxcockroachImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *pgxcockroachImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
+}
+
 type pgxcockroachDB struct {
 	db *DB
 	*pgxcockroachImpl
@@ -507,6 +631,40 @@ func (obj *spannerImpl) makeErr(err error) error {
 		return constraintViolation(err, constraint)
 	}
 	return makeErr(err)
+}
+
+func (obj *spannerImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type spannerImpl_retryingRow struct {
+	obj   *spannerImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *spannerImpl) queryRowContext(ctx context.Context, query string, args ...any) *spannerImpl_retryingRow {
+	return &spannerImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *spannerImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
 }
 
 type spannerDB struct {
@@ -964,7 +1122,7 @@ func (obj *sqlite3Impl) Create_Create_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -982,24 +1140,35 @@ func (obj *sqlite3Impl) All_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -1013,7 +1182,7 @@ func (obj *sqlite3Impl) Count_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -1032,7 +1201,7 @@ func (obj *sqlite3Impl) Has_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -1053,24 +1222,35 @@ func (obj *sqlite3Impl) Limited_Read_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -1094,29 +1274,41 @@ func (obj *sqlite3Impl) Paged_Read_Suffix(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*Foo, next *Paged_Read_Suffix_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_Read_Suffix_Continuation
-	__continuation._set = true
+			var __continuation Paged_Read_Suffix_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U, &__continuation._value_id)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, foo)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -1130,34 +1322,48 @@ func (obj *sqlite3Impl) Find_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Read_Suffix")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Read_Suffix")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -1171,34 +1377,48 @@ func (obj *sqlite3Impl) Get_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, sql.ErrNoRows
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Read_Suffix")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, makeErr(sql.ErrNoRows)
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Read_Suffix")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -1214,7 +1434,7 @@ func (obj *sqlite3Impl) Count_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -1235,7 +1455,7 @@ func (obj *sqlite3Impl) Has_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -1256,7 +1476,7 @@ func (obj *sqlite3Impl) Find_OtherRead_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err == sql.ErrNoRows {
 		return (*Foo)(nil), nil
 	}
@@ -1280,7 +1500,7 @@ func (obj *sqlite3Impl) Get_OtherRead_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err != nil {
 		return (*Foo)(nil), obj.makeErr(err)
 	}
@@ -1300,26 +1520,37 @@ func (obj *sqlite3Impl) First_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -1430,7 +1661,7 @@ func (obj *pgxImpl) Create_Create_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1448,24 +1679,35 @@ func (obj *pgxImpl) All_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -1479,7 +1721,7 @@ func (obj *pgxImpl) Count_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -1498,7 +1740,7 @@ func (obj *pgxImpl) Has_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -1519,24 +1761,35 @@ func (obj *pgxImpl) Limited_Read_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -1560,29 +1813,41 @@ func (obj *pgxImpl) Paged_Read_Suffix(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*Foo, next *Paged_Read_Suffix_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_Read_Suffix_Continuation
-	__continuation._set = true
+			var __continuation Paged_Read_Suffix_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U, &__continuation._value_id)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, foo)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -1596,34 +1861,48 @@ func (obj *pgxImpl) Find_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Read_Suffix")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Read_Suffix")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -1637,34 +1916,48 @@ func (obj *pgxImpl) Get_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, sql.ErrNoRows
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Read_Suffix")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, makeErr(sql.ErrNoRows)
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Read_Suffix")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -1680,7 +1973,7 @@ func (obj *pgxImpl) Count_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -1701,7 +1994,7 @@ func (obj *pgxImpl) Has_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -1722,7 +2015,7 @@ func (obj *pgxImpl) Find_OtherRead_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err == sql.ErrNoRows {
 		return (*Foo)(nil), nil
 	}
@@ -1746,7 +2039,7 @@ func (obj *pgxImpl) Get_OtherRead_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err != nil {
 		return (*Foo)(nil), obj.makeErr(err)
 	}
@@ -1766,26 +2059,37 @@ func (obj *pgxImpl) First_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -1891,7 +2195,7 @@ func (obj *pgxcockroachImpl) Create_Create_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1909,24 +2213,35 @@ func (obj *pgxcockroachImpl) All_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -1940,7 +2255,7 @@ func (obj *pgxcockroachImpl) Count_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -1959,7 +2274,7 @@ func (obj *pgxcockroachImpl) Has_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -1980,24 +2295,35 @@ func (obj *pgxcockroachImpl) Limited_Read_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -2021,29 +2347,41 @@ func (obj *pgxcockroachImpl) Paged_Read_Suffix(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*Foo, next *Paged_Read_Suffix_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_Read_Suffix_Continuation
-	__continuation._set = true
+			var __continuation Paged_Read_Suffix_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U, &__continuation._value_id)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, foo)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2057,34 +2395,48 @@ func (obj *pgxcockroachImpl) Find_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Read_Suffix")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Read_Suffix")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -2098,34 +2450,48 @@ func (obj *pgxcockroachImpl) Get_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, sql.ErrNoRows
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Read_Suffix")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, makeErr(sql.ErrNoRows)
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Read_Suffix")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -2141,7 +2507,7 @@ func (obj *pgxcockroachImpl) Count_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -2162,7 +2528,7 @@ func (obj *pgxcockroachImpl) Has_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -2183,7 +2549,7 @@ func (obj *pgxcockroachImpl) Find_OtherRead_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err == sql.ErrNoRows {
 		return (*Foo)(nil), nil
 	}
@@ -2207,7 +2573,7 @@ func (obj *pgxcockroachImpl) Get_OtherRead_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err != nil {
 		return (*Foo)(nil), obj.makeErr(err)
 	}
@@ -2227,26 +2593,37 @@ func (obj *pgxcockroachImpl) First_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -2389,24 +2766,35 @@ func (obj *spannerImpl) All_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -2420,7 +2808,7 @@ func (obj *spannerImpl) Count_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -2439,7 +2827,7 @@ func (obj *spannerImpl) Has_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -2460,24 +2848,35 @@ func (obj *spannerImpl) Limited_Read_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, err = func() (rows []*Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U)
+				if err != nil {
+					return nil, err
+				}
+				rows = append(rows, foo)
+			}
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+			return rows, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
+		return rows, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-	return rows, nil
 
 }
 
@@ -2504,29 +2903,41 @@ func (obj *spannerImpl) Paged_Read_Suffix(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*Foo, next *Paged_Read_Suffix_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_Read_Suffix_Continuation
-	__continuation._set = true
+			var __continuation Paged_Read_Suffix_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		foo := &Foo{}
-		err = __rows.Scan(&foo.Id, &foo.U, &__continuation._value_id)
+			for __rows.Next() {
+				foo := &Foo{}
+				err = __rows.Scan(&foo.Id, &foo.U, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, foo)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, foo)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2540,34 +2951,48 @@ func (obj *spannerImpl) Find_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Read_Suffix")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Read_Suffix")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -2581,34 +3006,48 @@ func (obj *spannerImpl) Get_Read_Suffix(ctx context.Context) (
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, sql.ErrNoRows
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			if __rows.Next() {
+				return nil, errTooManyRows
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+			if err == errTooManyRows {
+				return nil, tooManyRows("Read_Suffix")
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, makeErr(sql.ErrNoRows)
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	if __rows.Next() {
-		return nil, tooManyRows("Read_Suffix")
-	}
-
-	if err := __rows.Err(); err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -2624,7 +3063,7 @@ func (obj *spannerImpl) Count_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&count)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&count)
 	if err != nil {
 		return 0, obj.makeErr(err)
 	}
@@ -2645,7 +3084,7 @@ func (obj *spannerImpl) Has_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&has)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&has)
 	if err != nil {
 		return false, obj.makeErr(err)
 	}
@@ -2666,7 +3105,7 @@ func (obj *spannerImpl) Find_OtherRead_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err == sql.ErrNoRows {
 		return (*Foo)(nil), nil
 	}
@@ -2690,7 +3129,7 @@ func (obj *spannerImpl) Get_OtherRead_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	if err != nil {
 		return (*Foo)(nil), obj.makeErr(err)
 	}
@@ -2710,26 +3149,37 @@ func (obj *spannerImpl) First_OtherRead_Suffix(ctx context.Context,
 	var __stmt = __sqlbundle_Render(obj.dialect, __embed_stmt)
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		foo, err = func() (foo *Foo, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, err
+			}
+			defer __rows.Close()
 
-	if !__rows.Next() {
-		if err := __rows.Err(); err != nil {
+			if !__rows.Next() {
+				if err := __rows.Err(); err != nil {
+					return nil, err
+				}
+				return nil, nil
+			}
+
+			foo = &Foo{}
+			err = __rows.Scan(&foo.Id, &foo.U)
+			if err != nil {
+				return nil, err
+			}
+
+			return foo, nil
+		}()
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, obj.makeErr(err)
 		}
-		return nil, nil
+		return foo, nil
 	}
-
-	foo = &Foo{}
-	err = __rows.Scan(&foo.Id, &foo.U)
-	if err != nil {
-		return nil, obj.makeErr(err)
-	}
-
-	return foo, nil
 
 }
 
@@ -2758,25 +3208,12 @@ func (obj *spannerImpl) Update_Update_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+		})
+	} else {
+		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	}
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -3025,4 +3462,31 @@ func (s *spannerJSON) Scan(input any) error {
 		return nil
 	}
 	return fmt.Errorf("unable to decode %T", input)
+}
+
+func (obj *spannerImpl) withTx(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	for {
+		err := obj.withTxOnce(ctx, fn)
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+		}
+		return err
+	}
+}
+
+func (obj *spannerImpl) withTxOnce(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	tx, err := obj.db.BeginTx(ctx, nil)
+	if err != nil {
+		return obj.makeErr(err)
+	}
+	defer func() {
+		if err != nil {
+			err = obj.makeErr(errors.Join(err, tx.Rollback()))
+		} else {
+			err = obj.makeErr(tx.Commit())
+		}
+	}()
+	return fn(tx)
 }

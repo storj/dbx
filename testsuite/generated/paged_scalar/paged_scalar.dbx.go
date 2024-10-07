@@ -34,8 +34,9 @@ var _ = fmt.Sprint
 var _ sync.Mutex
 
 var (
-	WrapErr = func(err *Error) error { return err }
-	Logger  func(format string, args ...any)
+	WrapErr     = func(err *Error) error { return err }
+	Logger      func(format string, args ...any)
+	ShouldRetry func(driver string, err error) bool
 
 	errTooManyRows       = errors.New("too many rows")
 	errUnsupportedDriver = errors.New("unsupported driver")
@@ -101,6 +102,13 @@ func makeErr(err error) error {
 	return wrapErr(e)
 }
 
+func shouldRetry(driver string, err error) bool {
+	if ShouldRetry == nil {
+		return false
+	}
+	return ShouldRetry(driver, err)
+}
+
 func unsupportedDriver(driver string) error {
 	return wrapErr(&Error{
 		Err:    errUnsupportedDriver,
@@ -145,6 +153,8 @@ type DB struct {
 	Hooks struct {
 		Now func() time.Time
 	}
+
+	driver string
 }
 
 func Open(driver, source string) (db *DB, err error) {
@@ -176,6 +186,8 @@ func Open(driver, source string) (db *DB, err error) {
 
 	db = &DB{
 		DB: sql_db,
+
+		driver: driver,
 	}
 	db.Hooks.Now = time.Now
 
@@ -234,6 +246,16 @@ type Tx struct {
 	txMethods
 }
 
+func (tx *Tx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return tx.Tx.ExecContext(ctx, query, args...)
+}
+func (tx *Tx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return tx.Tx.QueryContext(ctx, query, args...)
+}
+func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	return tx.Tx.QueryRowContext(ctx, query, args...)
+}
+
 type dialectTx struct {
 	tx *sql.Tx
 }
@@ -267,6 +289,40 @@ func (obj *sqlite3Impl) makeErr(err error) error {
 		return constraintViolation(err, constraint)
 	}
 	return makeErr(err)
+}
+
+func (obj *sqlite3Impl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type sqlite3Impl_retryingRow struct {
+	obj   *sqlite3Impl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *sqlite3Impl) queryRowContext(ctx context.Context, query string, args ...any) *sqlite3Impl_retryingRow {
+	return &sqlite3Impl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *sqlite3Impl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
 }
 
 type sqlite3DB struct {
@@ -439,6 +495,40 @@ func (obj *pgxImpl) makeErr(err error) error {
 	return makeErr(err)
 }
 
+func (obj *pgxImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type pgxImpl_retryingRow struct {
+	obj   *pgxImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *pgxImpl) queryRowContext(ctx context.Context, query string, args ...any) *pgxImpl_retryingRow {
+	return &pgxImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *pgxImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
+}
+
 type pgxDB struct {
 	db *DB
 	*pgxImpl
@@ -609,6 +699,40 @@ func (obj *pgxcockroachImpl) makeErr(err error) error {
 	return makeErr(err)
 }
 
+func (obj *pgxcockroachImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type pgxcockroachImpl_retryingRow struct {
+	obj   *pgxcockroachImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *pgxcockroachImpl) queryRowContext(ctx context.Context, query string, args ...any) *pgxcockroachImpl_retryingRow {
+	return &pgxcockroachImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *pgxcockroachImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
+}
+
 type pgxcockroachDB struct {
 	db *DB
 	*pgxcockroachImpl
@@ -777,6 +901,40 @@ func (obj *spannerImpl) makeErr(err error) error {
 		return constraintViolation(err, constraint)
 	}
 	return makeErr(err)
+}
+
+func (obj *spannerImpl) shouldRetry(err error) bool {
+	return !obj.txn && shouldRetry(obj.db.driver, err)
+}
+
+type spannerImpl_retryingRow struct {
+	obj   *spannerImpl
+	ctx   context.Context
+	query string
+	args  []any
+}
+
+func (obj *spannerImpl) queryRowContext(ctx context.Context, query string, args ...any) *spannerImpl_retryingRow {
+	return &spannerImpl_retryingRow{
+		obj:   obj,
+		ctx:   ctx,
+		query: query,
+		args:  args,
+	}
+}
+
+func (rows *spannerImpl_retryingRow) Scan(dest ...any) error {
+	for {
+		err := rows.obj.driver.QueryRowContext(rows.ctx, rows.query, rows.args...).Scan(dest...)
+		if err != nil {
+			if rows.obj.shouldRetry(err) {
+				continue
+			}
+			// caller will wrap this error
+			return err
+		}
+		return nil
+	}
 }
 
 type spannerDB struct {
@@ -1752,7 +1910,7 @@ func (obj *sqlite3Impl) Create_DataBlob(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_blob = &DataBlob{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_blob.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_blob.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1774,7 +1932,7 @@ func (obj *sqlite3Impl) Create_DataDate(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_date = &DataDate{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_date.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_date.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1796,7 +1954,7 @@ func (obj *sqlite3Impl) Create_DataFloat(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_float = &DataFloat{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_float.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_float.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1818,7 +1976,7 @@ func (obj *sqlite3Impl) Create_DataFloat64(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_float64 = &DataFloat64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_float64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_float64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1840,7 +1998,7 @@ func (obj *sqlite3Impl) Create_DataInt(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_int = &DataInt{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_int.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_int.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1862,7 +2020,7 @@ func (obj *sqlite3Impl) Create_DataInt64(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_int64 = &DataInt64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_int64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_int64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1884,7 +2042,7 @@ func (obj *sqlite3Impl) Create_DataJson(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_json = &DataJson{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_json.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_json.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1903,7 +2061,7 @@ func (obj *sqlite3Impl) Create_DataSerial(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	data_serial = &DataSerial{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_serial.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_serial.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1922,7 +2080,7 @@ func (obj *sqlite3Impl) Create_DataSerial64(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	data_serial64 = &DataSerial64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_serial64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_serial64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1944,7 +2102,7 @@ func (obj *sqlite3Impl) Create_DataText(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_text = &DataText{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_text.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_text.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1966,7 +2124,7 @@ func (obj *sqlite3Impl) Create_DataTimestamp(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_timestamp = &DataTimestamp{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_timestamp.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_timestamp.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -1988,7 +2146,7 @@ func (obj *sqlite3Impl) Create_DataUint(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_uint = &DataUint{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_uint.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_uint.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2010,7 +2168,7 @@ func (obj *sqlite3Impl) Create_DataUint64(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_uint64 = &DataUint64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_uint64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_uint64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2032,7 +2190,7 @@ func (obj *sqlite3Impl) Create_DataUtimestamp(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_utimestamp = &DataUtimestamp{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_utimestamp.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_utimestamp.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2060,29 +2218,41 @@ func (obj *sqlite3Impl) Paged_DataBlob(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataBlob, next *Paged_DataBlob_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataBlob_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataBlob_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_blob := &DataBlob{}
-		err = __rows.Scan(&data_blob.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_blob := &DataBlob{}
+				err = __rows.Scan(&data_blob.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_blob)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_blob)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2106,29 +2276,41 @@ func (obj *sqlite3Impl) Paged_DataDate(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataDate, next *Paged_DataDate_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataDate_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataDate_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_date := &DataDate{}
-		err = __rows.Scan(&data_date.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_date := &DataDate{}
+				err = __rows.Scan(&data_date.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_date)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_date)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2152,29 +2334,41 @@ func (obj *sqlite3Impl) Paged_DataFloat(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataFloat, next *Paged_DataFloat_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataFloat_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataFloat_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_float := &DataFloat{}
-		err = __rows.Scan(&data_float.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_float := &DataFloat{}
+				err = __rows.Scan(&data_float.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_float)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_float)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2198,29 +2392,41 @@ func (obj *sqlite3Impl) Paged_DataFloat64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataFloat64, next *Paged_DataFloat64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataFloat64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataFloat64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_float64 := &DataFloat64{}
-		err = __rows.Scan(&data_float64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_float64 := &DataFloat64{}
+				err = __rows.Scan(&data_float64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_float64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_float64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2244,29 +2450,41 @@ func (obj *sqlite3Impl) Paged_DataInt(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataInt, next *Paged_DataInt_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataInt_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataInt_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_int := &DataInt{}
-		err = __rows.Scan(&data_int.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_int := &DataInt{}
+				err = __rows.Scan(&data_int.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_int)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_int)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2290,29 +2508,41 @@ func (obj *sqlite3Impl) Paged_DataInt64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataInt64, next *Paged_DataInt64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataInt64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataInt64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_int64 := &DataInt64{}
-		err = __rows.Scan(&data_int64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_int64 := &DataInt64{}
+				err = __rows.Scan(&data_int64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_int64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_int64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2336,29 +2566,41 @@ func (obj *sqlite3Impl) Paged_DataJson(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataJson, next *Paged_DataJson_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataJson_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataJson_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_json := &DataJson{}
-		err = __rows.Scan(&data_json.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_json := &DataJson{}
+				err = __rows.Scan(&data_json.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_json)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_json)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2382,29 +2624,41 @@ func (obj *sqlite3Impl) Paged_DataSerial(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataSerial, next *Paged_DataSerial_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataSerial_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataSerial_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_serial := &DataSerial{}
-		err = __rows.Scan(&data_serial.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_serial := &DataSerial{}
+				err = __rows.Scan(&data_serial.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_serial)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_serial)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2428,29 +2682,41 @@ func (obj *sqlite3Impl) Paged_DataSerial64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataSerial64, next *Paged_DataSerial64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataSerial64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataSerial64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_serial64 := &DataSerial64{}
-		err = __rows.Scan(&data_serial64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_serial64 := &DataSerial64{}
+				err = __rows.Scan(&data_serial64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_serial64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_serial64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2474,29 +2740,41 @@ func (obj *sqlite3Impl) Paged_DataText(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataText, next *Paged_DataText_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataText_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataText_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_text := &DataText{}
-		err = __rows.Scan(&data_text.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_text := &DataText{}
+				err = __rows.Scan(&data_text.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_text)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_text)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2520,29 +2798,41 @@ func (obj *sqlite3Impl) Paged_DataTimestamp(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataTimestamp, next *Paged_DataTimestamp_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataTimestamp_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataTimestamp_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_timestamp := &DataTimestamp{}
-		err = __rows.Scan(&data_timestamp.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_timestamp := &DataTimestamp{}
+				err = __rows.Scan(&data_timestamp.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_timestamp)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_timestamp)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2566,29 +2856,41 @@ func (obj *sqlite3Impl) Paged_DataUint(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUint, next *Paged_DataUint_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUint_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUint_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_uint := &DataUint{}
-		err = __rows.Scan(&data_uint.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_uint := &DataUint{}
+				err = __rows.Scan(&data_uint.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_uint)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_uint)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2612,29 +2914,41 @@ func (obj *sqlite3Impl) Paged_DataUint64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUint64, next *Paged_DataUint64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUint64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUint64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_uint64 := &DataUint64{}
-		err = __rows.Scan(&data_uint64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_uint64 := &DataUint64{}
+				err = __rows.Scan(&data_uint64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_uint64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_uint64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2658,29 +2972,41 @@ func (obj *sqlite3Impl) Paged_DataUtimestamp(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUtimestamp, next *Paged_DataUtimestamp_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUtimestamp_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUtimestamp_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_utimestamp := &DataUtimestamp{}
-		err = __rows.Scan(&data_utimestamp.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_utimestamp := &DataUtimestamp{}
+				err = __rows.Scan(&data_utimestamp.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_utimestamp)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_utimestamp)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -2860,7 +3186,7 @@ func (obj *pgxImpl) Create_DataBlob(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_blob = &DataBlob{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_blob.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_blob.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2882,7 +3208,7 @@ func (obj *pgxImpl) Create_DataDate(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_date = &DataDate{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_date.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_date.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2904,7 +3230,7 @@ func (obj *pgxImpl) Create_DataFloat(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_float = &DataFloat{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_float.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_float.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2926,7 +3252,7 @@ func (obj *pgxImpl) Create_DataFloat64(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_float64 = &DataFloat64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_float64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_float64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2948,7 +3274,7 @@ func (obj *pgxImpl) Create_DataInt(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_int = &DataInt{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_int.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_int.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2970,7 +3296,7 @@ func (obj *pgxImpl) Create_DataInt64(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_int64 = &DataInt64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_int64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_int64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -2992,7 +3318,7 @@ func (obj *pgxImpl) Create_DataJson(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_json = &DataJson{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_json.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_json.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -3011,7 +3337,7 @@ func (obj *pgxImpl) Create_DataSerial(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	data_serial = &DataSerial{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_serial.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_serial.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -3030,7 +3356,7 @@ func (obj *pgxImpl) Create_DataSerial64(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	data_serial64 = &DataSerial64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_serial64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_serial64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -3052,7 +3378,7 @@ func (obj *pgxImpl) Create_DataText(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_text = &DataText{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_text.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_text.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -3074,7 +3400,7 @@ func (obj *pgxImpl) Create_DataTimestamp(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_timestamp = &DataTimestamp{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_timestamp.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_timestamp.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -3096,7 +3422,7 @@ func (obj *pgxImpl) Create_DataUint(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_uint = &DataUint{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_uint.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_uint.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -3118,7 +3444,7 @@ func (obj *pgxImpl) Create_DataUint64(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_uint64 = &DataUint64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_uint64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_uint64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -3140,7 +3466,7 @@ func (obj *pgxImpl) Create_DataUtimestamp(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_utimestamp = &DataUtimestamp{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_utimestamp.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_utimestamp.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -3168,29 +3494,41 @@ func (obj *pgxImpl) Paged_DataBlob(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataBlob, next *Paged_DataBlob_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataBlob_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataBlob_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_blob := &DataBlob{}
-		err = __rows.Scan(&data_blob.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_blob := &DataBlob{}
+				err = __rows.Scan(&data_blob.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_blob)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_blob)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3214,29 +3552,41 @@ func (obj *pgxImpl) Paged_DataDate(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataDate, next *Paged_DataDate_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataDate_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataDate_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_date := &DataDate{}
-		err = __rows.Scan(&data_date.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_date := &DataDate{}
+				err = __rows.Scan(&data_date.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_date)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_date)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3260,29 +3610,41 @@ func (obj *pgxImpl) Paged_DataFloat(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataFloat, next *Paged_DataFloat_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataFloat_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataFloat_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_float := &DataFloat{}
-		err = __rows.Scan(&data_float.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_float := &DataFloat{}
+				err = __rows.Scan(&data_float.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_float)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_float)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3306,29 +3668,41 @@ func (obj *pgxImpl) Paged_DataFloat64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataFloat64, next *Paged_DataFloat64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataFloat64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataFloat64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_float64 := &DataFloat64{}
-		err = __rows.Scan(&data_float64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_float64 := &DataFloat64{}
+				err = __rows.Scan(&data_float64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_float64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_float64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3352,29 +3726,41 @@ func (obj *pgxImpl) Paged_DataInt(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataInt, next *Paged_DataInt_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataInt_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataInt_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_int := &DataInt{}
-		err = __rows.Scan(&data_int.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_int := &DataInt{}
+				err = __rows.Scan(&data_int.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_int)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_int)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3398,29 +3784,41 @@ func (obj *pgxImpl) Paged_DataInt64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataInt64, next *Paged_DataInt64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataInt64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataInt64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_int64 := &DataInt64{}
-		err = __rows.Scan(&data_int64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_int64 := &DataInt64{}
+				err = __rows.Scan(&data_int64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_int64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_int64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3444,29 +3842,41 @@ func (obj *pgxImpl) Paged_DataJson(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataJson, next *Paged_DataJson_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataJson_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataJson_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_json := &DataJson{}
-		err = __rows.Scan(&data_json.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_json := &DataJson{}
+				err = __rows.Scan(&data_json.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_json)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_json)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3490,29 +3900,41 @@ func (obj *pgxImpl) Paged_DataSerial(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataSerial, next *Paged_DataSerial_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataSerial_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataSerial_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_serial := &DataSerial{}
-		err = __rows.Scan(&data_serial.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_serial := &DataSerial{}
+				err = __rows.Scan(&data_serial.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_serial)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_serial)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3536,29 +3958,41 @@ func (obj *pgxImpl) Paged_DataSerial64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataSerial64, next *Paged_DataSerial64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataSerial64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataSerial64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_serial64 := &DataSerial64{}
-		err = __rows.Scan(&data_serial64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_serial64 := &DataSerial64{}
+				err = __rows.Scan(&data_serial64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_serial64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_serial64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3582,29 +4016,41 @@ func (obj *pgxImpl) Paged_DataText(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataText, next *Paged_DataText_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataText_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataText_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_text := &DataText{}
-		err = __rows.Scan(&data_text.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_text := &DataText{}
+				err = __rows.Scan(&data_text.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_text)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_text)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3628,29 +4074,41 @@ func (obj *pgxImpl) Paged_DataTimestamp(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataTimestamp, next *Paged_DataTimestamp_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataTimestamp_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataTimestamp_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_timestamp := &DataTimestamp{}
-		err = __rows.Scan(&data_timestamp.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_timestamp := &DataTimestamp{}
+				err = __rows.Scan(&data_timestamp.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_timestamp)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_timestamp)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3674,29 +4132,41 @@ func (obj *pgxImpl) Paged_DataUint(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUint, next *Paged_DataUint_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUint_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUint_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_uint := &DataUint{}
-		err = __rows.Scan(&data_uint.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_uint := &DataUint{}
+				err = __rows.Scan(&data_uint.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_uint)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_uint)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3720,29 +4190,41 @@ func (obj *pgxImpl) Paged_DataUint64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUint64, next *Paged_DataUint64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUint64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUint64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_uint64 := &DataUint64{}
-		err = __rows.Scan(&data_uint64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_uint64 := &DataUint64{}
+				err = __rows.Scan(&data_uint64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_uint64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_uint64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3766,29 +4248,41 @@ func (obj *pgxImpl) Paged_DataUtimestamp(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUtimestamp, next *Paged_DataUtimestamp_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUtimestamp_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUtimestamp_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_utimestamp := &DataUtimestamp{}
-		err = __rows.Scan(&data_utimestamp.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_utimestamp := &DataUtimestamp{}
+				err = __rows.Scan(&data_utimestamp.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_utimestamp)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_utimestamp)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -3963,7 +4457,7 @@ func (obj *pgxcockroachImpl) Create_DataBlob(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_blob = &DataBlob{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_blob.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_blob.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -3985,7 +4479,7 @@ func (obj *pgxcockroachImpl) Create_DataDate(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_date = &DataDate{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_date.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_date.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4007,7 +4501,7 @@ func (obj *pgxcockroachImpl) Create_DataFloat(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_float = &DataFloat{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_float.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_float.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4029,7 +4523,7 @@ func (obj *pgxcockroachImpl) Create_DataFloat64(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_float64 = &DataFloat64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_float64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_float64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4051,7 +4545,7 @@ func (obj *pgxcockroachImpl) Create_DataInt(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_int = &DataInt{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_int.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_int.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4073,7 +4567,7 @@ func (obj *pgxcockroachImpl) Create_DataInt64(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_int64 = &DataInt64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_int64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_int64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4095,7 +4589,7 @@ func (obj *pgxcockroachImpl) Create_DataJson(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_json = &DataJson{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_json.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_json.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4114,7 +4608,7 @@ func (obj *pgxcockroachImpl) Create_DataSerial(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	data_serial = &DataSerial{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_serial.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_serial.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4133,7 +4627,7 @@ func (obj *pgxcockroachImpl) Create_DataSerial64(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	data_serial64 = &DataSerial64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_serial64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_serial64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4155,7 +4649,7 @@ func (obj *pgxcockroachImpl) Create_DataText(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_text = &DataText{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_text.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_text.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4177,7 +4671,7 @@ func (obj *pgxcockroachImpl) Create_DataTimestamp(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_timestamp = &DataTimestamp{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_timestamp.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_timestamp.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4199,7 +4693,7 @@ func (obj *pgxcockroachImpl) Create_DataUint(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_uint = &DataUint{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_uint.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_uint.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4221,7 +4715,7 @@ func (obj *pgxcockroachImpl) Create_DataUint64(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_uint64 = &DataUint64{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_uint64.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_uint64.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4243,7 +4737,7 @@ func (obj *pgxcockroachImpl) Create_DataUtimestamp(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	data_utimestamp = &DataUtimestamp{}
-	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&data_utimestamp.Id)
+	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&data_utimestamp.Id)
 	if err != nil {
 		return nil, obj.makeErr(err)
 	}
@@ -4271,29 +4765,41 @@ func (obj *pgxcockroachImpl) Paged_DataBlob(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataBlob, next *Paged_DataBlob_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataBlob_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataBlob_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_blob := &DataBlob{}
-		err = __rows.Scan(&data_blob.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_blob := &DataBlob{}
+				err = __rows.Scan(&data_blob.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_blob)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_blob)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4317,29 +4823,41 @@ func (obj *pgxcockroachImpl) Paged_DataDate(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataDate, next *Paged_DataDate_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataDate_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataDate_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_date := &DataDate{}
-		err = __rows.Scan(&data_date.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_date := &DataDate{}
+				err = __rows.Scan(&data_date.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_date)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_date)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4363,29 +4881,41 @@ func (obj *pgxcockroachImpl) Paged_DataFloat(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataFloat, next *Paged_DataFloat_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataFloat_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataFloat_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_float := &DataFloat{}
-		err = __rows.Scan(&data_float.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_float := &DataFloat{}
+				err = __rows.Scan(&data_float.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_float)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_float)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4409,29 +4939,41 @@ func (obj *pgxcockroachImpl) Paged_DataFloat64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataFloat64, next *Paged_DataFloat64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataFloat64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataFloat64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_float64 := &DataFloat64{}
-		err = __rows.Scan(&data_float64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_float64 := &DataFloat64{}
+				err = __rows.Scan(&data_float64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_float64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_float64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4455,29 +4997,41 @@ func (obj *pgxcockroachImpl) Paged_DataInt(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataInt, next *Paged_DataInt_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataInt_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataInt_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_int := &DataInt{}
-		err = __rows.Scan(&data_int.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_int := &DataInt{}
+				err = __rows.Scan(&data_int.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_int)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_int)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4501,29 +5055,41 @@ func (obj *pgxcockroachImpl) Paged_DataInt64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataInt64, next *Paged_DataInt64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataInt64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataInt64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_int64 := &DataInt64{}
-		err = __rows.Scan(&data_int64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_int64 := &DataInt64{}
+				err = __rows.Scan(&data_int64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_int64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_int64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4547,29 +5113,41 @@ func (obj *pgxcockroachImpl) Paged_DataJson(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataJson, next *Paged_DataJson_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataJson_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataJson_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_json := &DataJson{}
-		err = __rows.Scan(&data_json.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_json := &DataJson{}
+				err = __rows.Scan(&data_json.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_json)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_json)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4593,29 +5171,41 @@ func (obj *pgxcockroachImpl) Paged_DataSerial(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataSerial, next *Paged_DataSerial_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataSerial_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataSerial_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_serial := &DataSerial{}
-		err = __rows.Scan(&data_serial.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_serial := &DataSerial{}
+				err = __rows.Scan(&data_serial.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_serial)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_serial)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4639,29 +5229,41 @@ func (obj *pgxcockroachImpl) Paged_DataSerial64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataSerial64, next *Paged_DataSerial64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataSerial64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataSerial64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_serial64 := &DataSerial64{}
-		err = __rows.Scan(&data_serial64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_serial64 := &DataSerial64{}
+				err = __rows.Scan(&data_serial64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_serial64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_serial64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4685,29 +5287,41 @@ func (obj *pgxcockroachImpl) Paged_DataText(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataText, next *Paged_DataText_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataText_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataText_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_text := &DataText{}
-		err = __rows.Scan(&data_text.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_text := &DataText{}
+				err = __rows.Scan(&data_text.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_text)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_text)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4731,29 +5345,41 @@ func (obj *pgxcockroachImpl) Paged_DataTimestamp(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataTimestamp, next *Paged_DataTimestamp_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataTimestamp_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataTimestamp_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_timestamp := &DataTimestamp{}
-		err = __rows.Scan(&data_timestamp.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_timestamp := &DataTimestamp{}
+				err = __rows.Scan(&data_timestamp.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_timestamp)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_timestamp)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4777,29 +5403,41 @@ func (obj *pgxcockroachImpl) Paged_DataUint(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUint, next *Paged_DataUint_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUint_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUint_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_uint := &DataUint{}
-		err = __rows.Scan(&data_uint.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_uint := &DataUint{}
+				err = __rows.Scan(&data_uint.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_uint)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_uint)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4823,29 +5461,41 @@ func (obj *pgxcockroachImpl) Paged_DataUint64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUint64, next *Paged_DataUint64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUint64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUint64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_uint64 := &DataUint64{}
-		err = __rows.Scan(&data_uint64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_uint64 := &DataUint64{}
+				err = __rows.Scan(&data_uint64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_uint64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_uint64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -4869,29 +5519,41 @@ func (obj *pgxcockroachImpl) Paged_DataUtimestamp(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUtimestamp, next *Paged_DataUtimestamp_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUtimestamp_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUtimestamp_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_utimestamp := &DataUtimestamp{}
-		err = __rows.Scan(&data_utimestamp.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_utimestamp := &DataUtimestamp{}
+				err = __rows.Scan(&data_utimestamp.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_utimestamp)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_utimestamp)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5643,29 +6305,41 @@ func (obj *spannerImpl) Paged_DataBlob(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataBlob, next *Paged_DataBlob_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataBlob_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataBlob_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_blob := &DataBlob{}
-		err = __rows.Scan(&data_blob.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_blob := &DataBlob{}
+				err = __rows.Scan(&data_blob.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_blob)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_blob)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5692,29 +6366,41 @@ func (obj *spannerImpl) Paged_DataDate(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataDate, next *Paged_DataDate_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataDate_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataDate_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_date := &DataDate{}
-		err = __rows.Scan(&data_date.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_date := &DataDate{}
+				err = __rows.Scan(&data_date.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_date)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_date)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5741,29 +6427,41 @@ func (obj *spannerImpl) Paged_DataFloat(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataFloat, next *Paged_DataFloat_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataFloat_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataFloat_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_float := &DataFloat{}
-		err = __rows.Scan(&data_float.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_float := &DataFloat{}
+				err = __rows.Scan(&data_float.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_float)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_float)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5790,29 +6488,41 @@ func (obj *spannerImpl) Paged_DataFloat64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataFloat64, next *Paged_DataFloat64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataFloat64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataFloat64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_float64 := &DataFloat64{}
-		err = __rows.Scan(&data_float64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_float64 := &DataFloat64{}
+				err = __rows.Scan(&data_float64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_float64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_float64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5839,29 +6549,41 @@ func (obj *spannerImpl) Paged_DataInt(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataInt, next *Paged_DataInt_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataInt_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataInt_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_int := &DataInt{}
-		err = __rows.Scan(&data_int.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_int := &DataInt{}
+				err = __rows.Scan(&data_int.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_int)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_int)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5888,29 +6610,41 @@ func (obj *spannerImpl) Paged_DataInt64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataInt64, next *Paged_DataInt64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataInt64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataInt64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_int64 := &DataInt64{}
-		err = __rows.Scan(&data_int64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_int64 := &DataInt64{}
+				err = __rows.Scan(&data_int64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_int64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_int64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5937,29 +6671,41 @@ func (obj *spannerImpl) Paged_DataJson(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataJson, next *Paged_DataJson_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataJson_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataJson_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_json := &DataJson{}
-		err = __rows.Scan(spannerConvertJSON(&data_json.Id), &__continuation._value_id)
+			for __rows.Next() {
+				data_json := &DataJson{}
+				err = __rows.Scan(spannerConvertJSON(&data_json.Id), &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_json)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_json)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -5986,29 +6732,41 @@ func (obj *spannerImpl) Paged_DataSerial(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataSerial, next *Paged_DataSerial_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataSerial_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataSerial_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_serial := &DataSerial{}
-		err = __rows.Scan(&data_serial.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_serial := &DataSerial{}
+				err = __rows.Scan(&data_serial.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_serial)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_serial)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -6035,29 +6793,41 @@ func (obj *spannerImpl) Paged_DataSerial64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataSerial64, next *Paged_DataSerial64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataSerial64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataSerial64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_serial64 := &DataSerial64{}
-		err = __rows.Scan(&data_serial64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_serial64 := &DataSerial64{}
+				err = __rows.Scan(&data_serial64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_serial64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_serial64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -6084,29 +6854,41 @@ func (obj *spannerImpl) Paged_DataText(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataText, next *Paged_DataText_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataText_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataText_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_text := &DataText{}
-		err = __rows.Scan(&data_text.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_text := &DataText{}
+				err = __rows.Scan(&data_text.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_text)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_text)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -6133,29 +6915,41 @@ func (obj *spannerImpl) Paged_DataTimestamp(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataTimestamp, next *Paged_DataTimestamp_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataTimestamp_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataTimestamp_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_timestamp := &DataTimestamp{}
-		err = __rows.Scan(&data_timestamp.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_timestamp := &DataTimestamp{}
+				err = __rows.Scan(&data_timestamp.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_timestamp)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_timestamp)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -6182,29 +6976,41 @@ func (obj *spannerImpl) Paged_DataUint(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUint, next *Paged_DataUint_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUint_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUint_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_uint := &DataUint{}
-		err = __rows.Scan(&data_uint.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_uint := &DataUint{}
+				err = __rows.Scan(&data_uint.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_uint)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_uint)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -6231,29 +7037,41 @@ func (obj *spannerImpl) Paged_DataUint64(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUint64, next *Paged_DataUint64_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUint64_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUint64_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_uint64 := &DataUint64{}
-		err = __rows.Scan(&data_uint64.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_uint64 := &DataUint64{}
+				err = __rows.Scan(&data_uint64.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_uint64)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_uint64)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -6280,29 +7098,41 @@ func (obj *spannerImpl) Paged_DataUtimestamp(ctx context.Context,
 	}
 	obj.logStmt(__stmt, __values...)
 
-	__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
-	if err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-	defer __rows.Close()
+	for {
+		rows, next, err = func() (rows []*DataUtimestamp, next *Paged_DataUtimestamp_Continuation, err error) {
+			__rows, err := obj.driver.QueryContext(ctx, __stmt, __values...)
+			if err != nil {
+				return nil, nil, err
+			}
+			defer __rows.Close()
 
-	var __continuation Paged_DataUtimestamp_Continuation
-	__continuation._set = true
+			var __continuation Paged_DataUtimestamp_Continuation
+			__continuation._set = true
 
-	for __rows.Next() {
-		data_utimestamp := &DataUtimestamp{}
-		err = __rows.Scan(&data_utimestamp.Id, &__continuation._value_id)
+			for __rows.Next() {
+				data_utimestamp := &DataUtimestamp{}
+				err = __rows.Scan(&data_utimestamp.Id, &__continuation._value_id)
+				if err != nil {
+					return nil, nil, err
+				}
+				rows = append(rows, data_utimestamp)
+				next = &__continuation
+			}
+
+			if err := __rows.Err(); err != nil {
+				return nil, nil, obj.makeErr(err)
+			}
+
+			return rows, next, nil
+		}()
 		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
 			return nil, nil, obj.makeErr(err)
 		}
-		rows = append(rows, data_utimestamp)
-		next = &__continuation
+		return rows, next, nil
 	}
-	if err := __rows.Err(); err != nil {
-		return nil, nil, obj.makeErr(err)
-	}
-
-	return rows, next, nil
 
 }
 
@@ -6702,4 +7532,31 @@ func (s *spannerJSON) Scan(input any) error {
 		return nil
 	}
 	return fmt.Errorf("unable to decode %T", input)
+}
+
+func (obj *spannerImpl) withTx(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	for {
+		err := obj.withTxOnce(ctx, fn)
+		if err != nil {
+			if obj.shouldRetry(err) {
+				continue
+			}
+		}
+		return err
+	}
+}
+
+func (obj *spannerImpl) withTxOnce(ctx context.Context, fn func(tx *sql.Tx) error) (err error) {
+	tx, err := obj.db.BeginTx(ctx, nil)
+	if err != nil {
+		return obj.makeErr(err)
+	}
+	defer func() {
+		if err != nil {
+			err = obj.makeErr(errors.Join(err, tx.Rollback()))
+		} else {
+			err = obj.makeErr(tx.Commit())
+		}
+	}()
+	return fn(tx)
 }
