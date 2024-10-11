@@ -26,7 +26,9 @@ Limited_{{ .Suffix }}({{ ctxarg .Args }}, limit, offset)
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				{{ initnew .Row }}

@@ -1102,7 +1102,9 @@ func (obj *sqlite3Impl) All_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1184,7 +1186,9 @@ func (obj *sqlite3Impl) Limited_Foo(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1236,7 +1240,9 @@ func (obj *sqlite3Impl) Paged_Foo(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Continuation
 			__continuation._set = true
@@ -1284,7 +1290,9 @@ func (obj *sqlite3Impl) Find_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -1339,7 +1347,9 @@ func (obj *sqlite3Impl) Get_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -1482,7 +1492,9 @@ func (obj *sqlite3Impl) First_Foo_By_Id(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -1558,7 +1570,9 @@ func (obj *pgxImpl) All_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1640,7 +1654,9 @@ func (obj *pgxImpl) Limited_Foo(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1692,7 +1708,9 @@ func (obj *pgxImpl) Paged_Foo(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Continuation
 			__continuation._set = true
@@ -1740,7 +1758,9 @@ func (obj *pgxImpl) Find_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -1795,7 +1815,9 @@ func (obj *pgxImpl) Get_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -1938,7 +1960,9 @@ func (obj *pgxImpl) First_Foo_By_Id(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -2009,7 +2033,9 @@ func (obj *pgxcockroachImpl) All_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -2091,7 +2117,9 @@ func (obj *pgxcockroachImpl) Limited_Foo(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -2143,7 +2171,9 @@ func (obj *pgxcockroachImpl) Paged_Foo(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Continuation
 			__continuation._set = true
@@ -2191,7 +2221,9 @@ func (obj *pgxcockroachImpl) Find_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -2246,7 +2278,9 @@ func (obj *pgxcockroachImpl) Get_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -2389,7 +2423,9 @@ func (obj *pgxcockroachImpl) First_Foo_By_Id(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -2460,7 +2496,9 @@ func (obj *spannerImpl) All_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -2542,7 +2580,9 @@ func (obj *spannerImpl) Limited_Foo(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -2597,7 +2637,9 @@ func (obj *spannerImpl) Paged_Foo(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Continuation
 			__continuation._set = true
@@ -2645,7 +2687,9 @@ func (obj *spannerImpl) Find_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -2700,7 +2744,9 @@ func (obj *spannerImpl) Get_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -2843,7 +2889,9 @@ func (obj *spannerImpl) First_Foo_By_Id(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {

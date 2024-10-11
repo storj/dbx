@@ -1140,7 +1140,9 @@ func (obj *sqlite3Impl) All_Kv(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				kv := &Kv{}
@@ -1258,7 +1260,9 @@ func (obj *pgxImpl) All_Kv(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				kv := &Kv{}
@@ -1371,7 +1375,9 @@ func (obj *pgxcockroachImpl) All_Kv(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				kv := &Kv{}
@@ -1484,7 +1490,9 @@ func (obj *spannerImpl) All_Kv(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				kv := &Kv{}

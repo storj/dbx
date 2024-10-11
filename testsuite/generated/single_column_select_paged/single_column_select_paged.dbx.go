@@ -1116,7 +1116,9 @@ func (obj *sqlite3Impl) Paged_Foo_Pk(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Pk_Continuation
 			__continuation._set = true
@@ -1206,7 +1208,9 @@ func (obj *pgxImpl) Paged_Foo_Pk(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Pk_Continuation
 			__continuation._set = true
@@ -1291,7 +1295,9 @@ func (obj *pgxcockroachImpl) Paged_Foo_Pk(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Pk_Continuation
 			__continuation._set = true
@@ -1379,7 +1385,9 @@ func (obj *spannerImpl) Paged_Foo_Pk(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Pk_Continuation
 			__continuation._set = true

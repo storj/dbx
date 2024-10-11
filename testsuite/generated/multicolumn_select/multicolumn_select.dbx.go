@@ -1146,7 +1146,9 @@ func (obj *sqlite3Impl) All_Foo_One_Foo_Two(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &One_Two_Row{}
@@ -1220,7 +1222,9 @@ func (obj *pgxImpl) All_Foo_One_Foo_Two(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &One_Two_Row{}
@@ -1289,7 +1293,9 @@ func (obj *pgxcockroachImpl) All_Foo_One_Foo_Two(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &One_Two_Row{}
@@ -1358,7 +1364,9 @@ func (obj *spannerImpl) All_Foo_One_Foo_Two(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &One_Two_Row{}

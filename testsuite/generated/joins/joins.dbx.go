@@ -1334,7 +1334,9 @@ func (obj *sqlite3Impl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Conte
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Id_Row{}
@@ -1493,7 +1495,9 @@ func (obj *pgxImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Id_Row{}
@@ -1647,7 +1651,9 @@ func (obj *pgxcockroachImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Id_Row{}
@@ -1858,7 +1864,9 @@ func (obj *spannerImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Conte
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Id_Row{}

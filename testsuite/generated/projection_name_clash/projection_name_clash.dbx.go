@@ -1221,7 +1221,9 @@ func (obj *sqlite3Impl) All_T1_T2_Id_T3_Id(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &T1_T2_Id_T3_Id_Row{}
@@ -1315,7 +1317,9 @@ func (obj *pgxImpl) All_T1_T2_Id_T3_Id(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &T1_T2_Id_T3_Id_Row{}
@@ -1404,7 +1408,9 @@ func (obj *pgxcockroachImpl) All_T1_T2_Id_T3_Id(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &T1_T2_Id_T3_Id_Row{}
@@ -1493,7 +1499,9 @@ func (obj *spannerImpl) All_T1_T2_Id_T3_Id(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &T1_T2_Id_T3_Id_Row{}

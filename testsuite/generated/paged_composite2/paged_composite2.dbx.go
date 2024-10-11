@@ -1323,7 +1323,9 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx contex
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual_Continuation
 			__continuation._set = true
@@ -1383,7 +1385,9 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation
 			__continuation._set = true
@@ -1444,7 +1448,9 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNod
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId_Continuation
 			__continuation._set = true
@@ -1569,7 +1575,9 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx context.Co
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual_Continuation
 			__continuation._set = true
@@ -1629,7 +1637,9 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Contex
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation
 			__continuation._set = true
@@ -1690,7 +1700,9 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId(
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId_Continuation
 			__continuation._set = true
@@ -1810,7 +1822,9 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx c
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual_Continuation
 			__continuation._set = true
@@ -1870,7 +1884,9 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx conte
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation
 			__continuation._set = true
@@ -1931,7 +1947,9 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_Stora
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId_Continuation
 			__continuation._set = true
@@ -2054,7 +2072,9 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx contex
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual_Continuation
 			__continuation._set = true
@@ -2117,7 +2137,9 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation
 			__continuation._set = true
@@ -2181,7 +2203,9 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNod
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId_Continuation
 			__continuation._set = true

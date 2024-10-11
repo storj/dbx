@@ -1306,7 +1306,9 @@ func (obj *sqlite3Impl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueN
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -1559,7 +1561,9 @@ func (obj *pgxImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullU
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -1807,7 +1811,9 @@ func (obj *pgxcockroachImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_V
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -2074,7 +2080,9 @@ func (obj *spannerImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueN
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {

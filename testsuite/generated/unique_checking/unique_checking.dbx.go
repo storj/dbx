@@ -1560,7 +1560,9 @@ func (obj *sqlite3Impl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &A_B_C_Row{}
@@ -1763,7 +1765,9 @@ func (obj *pgxImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C_Lon
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &A_B_C_Row{}
@@ -1961,7 +1965,9 @@ func (obj *pgxcockroachImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &A_B_C_Row{}
@@ -2235,7 +2241,9 @@ func (obj *spannerImpl) All_A_B_C_By_A_Id_And_C_Lat_Less_And_C_Lat_Greater_And_C
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &A_B_C_Row{}

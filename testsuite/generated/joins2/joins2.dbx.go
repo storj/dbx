@@ -1373,7 +1373,9 @@ func (obj *sqlite3Impl) All_Foo_Bar_Baz(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Foo_Bar_Baz_Row{}
@@ -1534,7 +1536,9 @@ func (obj *pgxImpl) All_Foo_Bar_Baz(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Foo_Bar_Baz_Row{}
@@ -1690,7 +1694,9 @@ func (obj *pgxcockroachImpl) All_Foo_Bar_Baz(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Foo_Bar_Baz_Row{}
@@ -1846,7 +1852,9 @@ func (obj *spannerImpl) All_Foo_Bar_Baz(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Foo_Bar_Baz_Row{}

@@ -42,7 +42,9 @@ Paged_{{ .Suffix }}({{ ctxarg .Args }}, limit, start)
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			{{ declare .Continuation }}
 			{{ .Continuation.Name }}._set = true

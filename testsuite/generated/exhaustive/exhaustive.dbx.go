@@ -3156,7 +3156,9 @@ func (obj *sqlite3Impl) Paged_E_By_AId(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_E_By_AId_Continuation
 			__continuation._set = true
@@ -3287,7 +3289,9 @@ func (obj *sqlite3Impl) Paged_D_By_AId(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_D_By_AId_Continuation
 			__continuation._set = true
@@ -3412,7 +3416,9 @@ func (obj *sqlite3Impl) Paged_A_By_B_Id(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_A_By_B_Id_Continuation
 			__continuation._set = true
@@ -3504,7 +3510,9 @@ func (obj *sqlite3Impl) All_B_By_Data(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				b := &B{}
@@ -3546,7 +3554,9 @@ func (obj *sqlite3Impl) All_B(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				b := &B{}
@@ -3588,7 +3598,9 @@ func (obj *sqlite3Impl) All_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -3670,7 +3682,9 @@ func (obj *sqlite3Impl) Limited_Foo(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -3722,7 +3736,9 @@ func (obj *sqlite3Impl) Paged_Foo(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Continuation
 			__continuation._set = true
@@ -3858,7 +3874,9 @@ func (obj *sqlite3Impl) First_Foo_By_Id(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -3902,7 +3920,9 @@ func (obj *sqlite3Impl) All_Foo_Bool_Foo_Int(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Bool_Int_Row{}
@@ -3973,7 +3993,9 @@ func (obj *sqlite3Impl) First_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_NullU
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4017,7 +4039,9 @@ func (obj *sqlite3Impl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4072,7 +4096,9 @@ func (obj *sqlite3Impl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4127,7 +4153,9 @@ func (obj *sqlite3Impl) Find_Foo_By_String_Equal_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4184,7 +4212,9 @@ func (obj *sqlite3Impl) Find_Foo_By_Lower_String(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4241,7 +4271,9 @@ func (obj *sqlite3Impl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Context
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4298,7 +4330,9 @@ func (obj *sqlite3Impl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4353,7 +4387,9 @@ func (obj *sqlite3Impl) Find_Foo_By_String_Equal_Lower_String(ctx context.Contex
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4408,7 +4444,9 @@ func (obj *sqlite3Impl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4463,7 +4501,9 @@ func (obj *sqlite3Impl) Find_Foo_By_NullBool_Equal_False(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4518,7 +4558,9 @@ func (obj *sqlite3Impl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -4573,7 +4615,9 @@ func (obj *sqlite3Impl) Find_Foo_GroupBy_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -5956,7 +6000,9 @@ func (obj *pgxImpl) Paged_E_By_AId(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_E_By_AId_Continuation
 			__continuation._set = true
@@ -6087,7 +6133,9 @@ func (obj *pgxImpl) Paged_D_By_AId(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_D_By_AId_Continuation
 			__continuation._set = true
@@ -6212,7 +6260,9 @@ func (obj *pgxImpl) Paged_A_By_B_Id(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_A_By_B_Id_Continuation
 			__continuation._set = true
@@ -6304,7 +6354,9 @@ func (obj *pgxImpl) All_B_By_Data(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				b := &B{}
@@ -6346,7 +6398,9 @@ func (obj *pgxImpl) All_B(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				b := &B{}
@@ -6388,7 +6442,9 @@ func (obj *pgxImpl) All_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -6470,7 +6526,9 @@ func (obj *pgxImpl) Limited_Foo(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -6522,7 +6580,9 @@ func (obj *pgxImpl) Paged_Foo(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Continuation
 			__continuation._set = true
@@ -6658,7 +6718,9 @@ func (obj *pgxImpl) First_Foo_By_Id(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -6702,7 +6764,9 @@ func (obj *pgxImpl) All_Foo_Bool_Foo_Int(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Bool_Int_Row{}
@@ -6773,7 +6837,9 @@ func (obj *pgxImpl) First_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_NullUint_
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -6817,7 +6883,9 @@ func (obj *pgxImpl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -6872,7 +6940,9 @@ func (obj *pgxImpl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -6927,7 +6997,9 @@ func (obj *pgxImpl) Find_Foo_By_String_Equal_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -6984,7 +7056,9 @@ func (obj *pgxImpl) Find_Foo_By_Lower_String(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -7041,7 +7115,9 @@ func (obj *pgxImpl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -7098,7 +7174,9 @@ func (obj *pgxImpl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -7153,7 +7231,9 @@ func (obj *pgxImpl) Find_Foo_By_String_Equal_Lower_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -7208,7 +7288,9 @@ func (obj *pgxImpl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -7263,7 +7345,9 @@ func (obj *pgxImpl) Find_Foo_By_NullBool_Equal_False(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -7318,7 +7402,9 @@ func (obj *pgxImpl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -7373,7 +7459,9 @@ func (obj *pgxImpl) Find_Foo_GroupBy_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -8751,7 +8839,9 @@ func (obj *pgxcockroachImpl) Paged_E_By_AId(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_E_By_AId_Continuation
 			__continuation._set = true
@@ -8882,7 +8972,9 @@ func (obj *pgxcockroachImpl) Paged_D_By_AId(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_D_By_AId_Continuation
 			__continuation._set = true
@@ -9007,7 +9099,9 @@ func (obj *pgxcockroachImpl) Paged_A_By_B_Id(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_A_By_B_Id_Continuation
 			__continuation._set = true
@@ -9099,7 +9193,9 @@ func (obj *pgxcockroachImpl) All_B_By_Data(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				b := &B{}
@@ -9141,7 +9237,9 @@ func (obj *pgxcockroachImpl) All_B(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				b := &B{}
@@ -9183,7 +9281,9 @@ func (obj *pgxcockroachImpl) All_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -9265,7 +9365,9 @@ func (obj *pgxcockroachImpl) Limited_Foo(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -9317,7 +9419,9 @@ func (obj *pgxcockroachImpl) Paged_Foo(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Continuation
 			__continuation._set = true
@@ -9453,7 +9557,9 @@ func (obj *pgxcockroachImpl) First_Foo_By_Id(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -9497,7 +9603,9 @@ func (obj *pgxcockroachImpl) All_Foo_Bool_Foo_Int(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Bool_Int_Row{}
@@ -9568,7 +9676,9 @@ func (obj *pgxcockroachImpl) First_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -9612,7 +9722,9 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -9667,7 +9779,9 @@ func (obj *pgxcockroachImpl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -9722,7 +9836,9 @@ func (obj *pgxcockroachImpl) Find_Foo_By_String_Equal_String(ctx context.Context
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -9779,7 +9895,9 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Lower_String(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -9836,7 +9954,9 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Co
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -9893,7 +10013,9 @@ func (obj *pgxcockroachImpl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -9948,7 +10070,9 @@ func (obj *pgxcockroachImpl) Find_Foo_By_String_Equal_Lower_String(ctx context.C
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -10003,7 +10127,9 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -10058,7 +10184,9 @@ func (obj *pgxcockroachImpl) Find_Foo_By_NullBool_Equal_False(ctx context.Contex
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -10113,7 +10241,9 @@ func (obj *pgxcockroachImpl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -10168,7 +10298,9 @@ func (obj *pgxcockroachImpl) Find_Foo_GroupBy_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -11682,7 +11814,9 @@ func (obj *spannerImpl) Paged_E_By_AId(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_E_By_AId_Continuation
 			__continuation._set = true
@@ -11816,7 +11950,9 @@ func (obj *spannerImpl) Paged_D_By_AId(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_D_By_AId_Continuation
 			__continuation._set = true
@@ -11944,7 +12080,9 @@ func (obj *spannerImpl) Paged_A_By_B_Id(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_A_By_B_Id_Continuation
 			__continuation._set = true
@@ -12036,7 +12174,9 @@ func (obj *spannerImpl) All_B_By_Data(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				b := &B{}
@@ -12078,7 +12218,9 @@ func (obj *spannerImpl) All_B(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				b := &B{}
@@ -12120,7 +12262,9 @@ func (obj *spannerImpl) All_Foo(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -12202,7 +12346,9 @@ func (obj *spannerImpl) Limited_Foo(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -12257,7 +12403,9 @@ func (obj *spannerImpl) Paged_Foo(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			var __continuation Paged_Foo_Continuation
 			__continuation._set = true
@@ -12393,7 +12541,9 @@ func (obj *spannerImpl) First_Foo_By_Id(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12437,7 +12587,9 @@ func (obj *spannerImpl) All_Foo_Bool_Foo_Int(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				row := &Bool_Int_Row{}
@@ -12508,7 +12660,9 @@ func (obj *spannerImpl) First_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_NullU
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12552,7 +12706,9 @@ func (obj *spannerImpl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12607,7 +12763,9 @@ func (obj *spannerImpl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12662,7 +12820,9 @@ func (obj *spannerImpl) Find_Foo_By_String_Equal_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12719,7 +12879,9 @@ func (obj *spannerImpl) Find_Foo_By_Lower_String(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12776,7 +12938,9 @@ func (obj *spannerImpl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Context
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12833,7 +12997,9 @@ func (obj *spannerImpl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12888,7 +13054,9 @@ func (obj *spannerImpl) Find_Foo_By_String_Equal_Lower_String(ctx context.Contex
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12943,7 +13111,9 @@ func (obj *spannerImpl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -12998,7 +13168,9 @@ func (obj *spannerImpl) Find_Foo_By_NullBool_Equal_False(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -13053,7 +13225,9 @@ func (obj *spannerImpl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {
@@ -13108,7 +13282,9 @@ func (obj *spannerImpl) Find_Foo_GroupBy_String(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			if !__rows.Next() {
 				if err := __rows.Err(); err != nil {

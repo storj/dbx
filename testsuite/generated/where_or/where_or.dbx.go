@@ -1193,7 +1193,9 @@ func (obj *sqlite3Impl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1297,7 +1299,9 @@ func (obj *pgxImpl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1396,7 +1400,9 @@ func (obj *pgxcockroachImpl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1514,7 +1520,9 @@ func (obj *spannerImpl) All_Foo_By__A_Or__B_Or_C(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer __rows.Close()
+			defer func() {
+				err = errors.Join(err, __rows.Close())
+			}()
 
 			for __rows.Next() {
 				foo := &Foo{}
