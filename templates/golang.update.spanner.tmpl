@@ -64,7 +64,7 @@ Update{{ if not .Return }}NoReturn{{ end }}_{{ .Suffix }}
 	} else {
 		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan({{ addrof (flatten .Return) }})
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

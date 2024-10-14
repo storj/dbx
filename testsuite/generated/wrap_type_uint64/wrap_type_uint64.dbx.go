@@ -93,10 +93,10 @@ func makeErr(err error) error {
 		return wrapErr(e)
 	}
 	e = &Error{Err: err}
-	switch err {
-	case sql.ErrNoRows:
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		e.Code = ErrorCode_NoRows
-	case sql.ErrTxDone:
+	case errors.Is(err, sql.ErrTxDone):
 		e.Code = ErrorCode_TxDone
 	}
 	return wrapErr(e)
@@ -1337,7 +1337,7 @@ func (obj *sqlite3Impl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueN
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp")
 			}
 			return nil, obj.makeErr(err)
@@ -1398,7 +1398,7 @@ func (obj *sqlite3Impl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_
 
 	person = &Person{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -1592,7 +1592,7 @@ func (obj *pgxImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullU
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp")
 			}
 			return nil, obj.makeErr(err)
@@ -1653,7 +1653,7 @@ func (obj *pgxImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_And_
 
 	person = &Person{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -1842,7 +1842,7 @@ func (obj *pgxcockroachImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_V
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp")
 			}
 			return nil, obj.makeErr(err)
@@ -1903,7 +1903,7 @@ func (obj *pgxcockroachImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_Value
 
 	person = &Person{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -2111,7 +2111,7 @@ func (obj *spannerImpl) Get_Person_By_Value_And_ValueUp_And_ValueNull_And_ValueN
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Person_By_Value_And_ValueUp_And_ValueNull_And_ValueNullUp")
 			}
 			return nil, obj.makeErr(err)
@@ -2177,7 +2177,7 @@ func (obj *spannerImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_
 	} else {
 		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

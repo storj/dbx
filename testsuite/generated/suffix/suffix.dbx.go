@@ -93,10 +93,10 @@ func makeErr(err error) error {
 		return wrapErr(e)
 	}
 	e = &Error{Err: err}
-	switch err {
-	case sql.ErrNoRows:
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		e.Code = ErrorCode_NoRows
-	case sql.ErrTxDone:
+	case errors.Is(err, sql.ErrTxDone):
 		e.Code = ErrorCode_TxDone
 	}
 	return wrapErr(e)
@@ -1365,7 +1365,7 @@ func (obj *sqlite3Impl) Find_Read_Suffix(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Read_Suffix")
 			}
 			return nil, obj.makeErr(err)
@@ -1422,7 +1422,7 @@ func (obj *sqlite3Impl) Get_Read_Suffix(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Read_Suffix")
 			}
 			return nil, obj.makeErr(err)
@@ -1487,7 +1487,7 @@ func (obj *sqlite3Impl) Find_OtherRead_Suffix(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -1592,7 +1592,7 @@ func (obj *sqlite3Impl) Update_Update_Suffix(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -1916,7 +1916,7 @@ func (obj *pgxImpl) Find_Read_Suffix(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Read_Suffix")
 			}
 			return nil, obj.makeErr(err)
@@ -1973,7 +1973,7 @@ func (obj *pgxImpl) Get_Read_Suffix(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Read_Suffix")
 			}
 			return nil, obj.makeErr(err)
@@ -2038,7 +2038,7 @@ func (obj *pgxImpl) Find_OtherRead_Suffix(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -2143,7 +2143,7 @@ func (obj *pgxImpl) Update_Update_Suffix(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -2462,7 +2462,7 @@ func (obj *pgxcockroachImpl) Find_Read_Suffix(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Read_Suffix")
 			}
 			return nil, obj.makeErr(err)
@@ -2519,7 +2519,7 @@ func (obj *pgxcockroachImpl) Get_Read_Suffix(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Read_Suffix")
 			}
 			return nil, obj.makeErr(err)
@@ -2584,7 +2584,7 @@ func (obj *pgxcockroachImpl) Find_OtherRead_Suffix(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -2689,7 +2689,7 @@ func (obj *pgxcockroachImpl) Update_Update_Suffix(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -3030,7 +3030,7 @@ func (obj *spannerImpl) Find_Read_Suffix(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Read_Suffix")
 			}
 			return nil, obj.makeErr(err)
@@ -3087,7 +3087,7 @@ func (obj *spannerImpl) Get_Read_Suffix(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Read_Suffix")
 			}
 			return nil, obj.makeErr(err)
@@ -3152,7 +3152,7 @@ func (obj *spannerImpl) Find_OtherRead_Suffix(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -3263,7 +3263,7 @@ func (obj *spannerImpl) Update_Update_Suffix(ctx context.Context,
 	} else {
 		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

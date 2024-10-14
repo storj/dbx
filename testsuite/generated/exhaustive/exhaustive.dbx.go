@@ -93,10 +93,10 @@ func makeErr(err error) error {
 		return wrapErr(e)
 	}
 	e = &Error{Err: err}
-	switch err {
-	case sql.ErrNoRows:
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		e.Code = ErrorCode_NoRows
-	case sql.ErrTxDone:
+	case errors.Is(err, sql.ErrTxDone):
 		e.Code = ErrorCode_TxDone
 	}
 	return wrapErr(e)
@@ -3825,7 +3825,7 @@ func (obj *sqlite3Impl) Find_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -4070,7 +4070,7 @@ func (obj *sqlite3Impl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Int_Equal_Number")
 			}
 			return nil, obj.makeErr(err)
@@ -4127,7 +4127,7 @@ func (obj *sqlite3Impl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_NullInt_Is_Null")
 			}
 			return nil, obj.makeErr(err)
@@ -4184,7 +4184,7 @@ func (obj *sqlite3Impl) Find_Foo_By_String_Equal_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_String")
 			}
 			return nil, obj.makeErr(err)
@@ -4243,7 +4243,7 @@ func (obj *sqlite3Impl) Find_Foo_By_Lower_String(ctx context.Context,
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Lower_String")
 			}
 			return nil, obj.makeErr(err)
@@ -4302,7 +4302,7 @@ func (obj *sqlite3Impl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Context
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
 			}
 			return nil, obj.makeErr(err)
@@ -4361,7 +4361,7 @@ func (obj *sqlite3Impl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_Lower")
 			}
 			return nil, obj.makeErr(err)
@@ -4418,7 +4418,7 @@ func (obj *sqlite3Impl) Find_Foo_By_String_Equal_Lower_String(ctx context.Contex
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
 			}
 			return nil, obj.makeErr(err)
@@ -4475,7 +4475,7 @@ func (obj *sqlite3Impl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Bool_Equal_True")
 			}
 			return nil, obj.makeErr(err)
@@ -4532,7 +4532,7 @@ func (obj *sqlite3Impl) Find_Foo_By_NullBool_Equal_False(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_NullBool_Equal_False")
 			}
 			return nil, obj.makeErr(err)
@@ -4589,7 +4589,7 @@ func (obj *sqlite3Impl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_OrderBy_Asc_String")
 			}
 			return nil, obj.makeErr(err)
@@ -4646,7 +4646,7 @@ func (obj *sqlite3Impl) Find_Foo_GroupBy_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_GroupBy_String")
 			}
 			return nil, obj.makeErr(err)
@@ -4689,7 +4689,7 @@ func (obj *sqlite3Impl) Update_D_By_Id_And_AId(ctx context.Context,
 
 	d = &D{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -4727,7 +4727,7 @@ func (obj *sqlite3Impl) Update_A_By_A_Id_And_B_Id(ctx context.Context,
 
 	a = &A{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -4768,7 +4768,7 @@ func (obj *sqlite3Impl) Update_B_By_Id(ctx context.Context,
 
 	b = &B{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -4965,7 +4965,7 @@ func (obj *sqlite3Impl) Update_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -5309,7 +5309,7 @@ func (obj *sqlite3Impl) Update_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_Null
 
 	foo = &Foo{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -6669,7 +6669,7 @@ func (obj *pgxImpl) Find_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -6914,7 +6914,7 @@ func (obj *pgxImpl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Int_Equal_Number")
 			}
 			return nil, obj.makeErr(err)
@@ -6971,7 +6971,7 @@ func (obj *pgxImpl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_NullInt_Is_Null")
 			}
 			return nil, obj.makeErr(err)
@@ -7028,7 +7028,7 @@ func (obj *pgxImpl) Find_Foo_By_String_Equal_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_String")
 			}
 			return nil, obj.makeErr(err)
@@ -7087,7 +7087,7 @@ func (obj *pgxImpl) Find_Foo_By_Lower_String(ctx context.Context,
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Lower_String")
 			}
 			return nil, obj.makeErr(err)
@@ -7146,7 +7146,7 @@ func (obj *pgxImpl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Context,
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
 			}
 			return nil, obj.makeErr(err)
@@ -7205,7 +7205,7 @@ func (obj *pgxImpl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_Lower")
 			}
 			return nil, obj.makeErr(err)
@@ -7262,7 +7262,7 @@ func (obj *pgxImpl) Find_Foo_By_String_Equal_Lower_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
 			}
 			return nil, obj.makeErr(err)
@@ -7319,7 +7319,7 @@ func (obj *pgxImpl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Bool_Equal_True")
 			}
 			return nil, obj.makeErr(err)
@@ -7376,7 +7376,7 @@ func (obj *pgxImpl) Find_Foo_By_NullBool_Equal_False(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_NullBool_Equal_False")
 			}
 			return nil, obj.makeErr(err)
@@ -7433,7 +7433,7 @@ func (obj *pgxImpl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_OrderBy_Asc_String")
 			}
 			return nil, obj.makeErr(err)
@@ -7490,7 +7490,7 @@ func (obj *pgxImpl) Find_Foo_GroupBy_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_GroupBy_String")
 			}
 			return nil, obj.makeErr(err)
@@ -7533,7 +7533,7 @@ func (obj *pgxImpl) Update_D_By_Id_And_AId(ctx context.Context,
 
 	d = &D{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -7571,7 +7571,7 @@ func (obj *pgxImpl) Update_A_By_A_Id_And_B_Id(ctx context.Context,
 
 	a = &A{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -7612,7 +7612,7 @@ func (obj *pgxImpl) Update_B_By_Id(ctx context.Context,
 
 	b = &B{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -7809,7 +7809,7 @@ func (obj *pgxImpl) Update_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -8153,7 +8153,7 @@ func (obj *pgxImpl) Update_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_NullUint
 
 	foo = &Foo{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -9508,7 +9508,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -9753,7 +9753,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Int_Equal_Number")
 			}
 			return nil, obj.makeErr(err)
@@ -9810,7 +9810,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_NullInt_Is_Null")
 			}
 			return nil, obj.makeErr(err)
@@ -9867,7 +9867,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_String_Equal_String(ctx context.Context
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_String")
 			}
 			return nil, obj.makeErr(err)
@@ -9926,7 +9926,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Lower_String(ctx context.Context,
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Lower_String")
 			}
 			return nil, obj.makeErr(err)
@@ -9985,7 +9985,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Co
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
 			}
 			return nil, obj.makeErr(err)
@@ -10044,7 +10044,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_Lower")
 			}
 			return nil, obj.makeErr(err)
@@ -10101,7 +10101,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_String_Equal_Lower_String(ctx context.C
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
 			}
 			return nil, obj.makeErr(err)
@@ -10158,7 +10158,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Bool_Equal_True")
 			}
 			return nil, obj.makeErr(err)
@@ -10215,7 +10215,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_NullBool_Equal_False(ctx context.Contex
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_NullBool_Equal_False")
 			}
 			return nil, obj.makeErr(err)
@@ -10272,7 +10272,7 @@ func (obj *pgxcockroachImpl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_OrderBy_Asc_String")
 			}
 			return nil, obj.makeErr(err)
@@ -10329,7 +10329,7 @@ func (obj *pgxcockroachImpl) Find_Foo_GroupBy_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_GroupBy_String")
 			}
 			return nil, obj.makeErr(err)
@@ -10372,7 +10372,7 @@ func (obj *pgxcockroachImpl) Update_D_By_Id_And_AId(ctx context.Context,
 
 	d = &D{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -10410,7 +10410,7 @@ func (obj *pgxcockroachImpl) Update_A_By_A_Id_And_B_Id(ctx context.Context,
 
 	a = &A{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -10451,7 +10451,7 @@ func (obj *pgxcockroachImpl) Update_B_By_Id(ctx context.Context,
 
 	b = &B{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -10648,7 +10648,7 @@ func (obj *pgxcockroachImpl) Update_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -10992,7 +10992,7 @@ func (obj *pgxcockroachImpl) Update_Foo_By_NullInt_And_Int_And_NullInt64_Not_And
 
 	foo = &Foo{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, &foo.Json, &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, &foo.NullJson)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -12492,7 +12492,7 @@ func (obj *spannerImpl) Find_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -12737,7 +12737,7 @@ func (obj *spannerImpl) Find_Foo_By_Int_Equal_Number(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Int_Equal_Number")
 			}
 			return nil, obj.makeErr(err)
@@ -12794,7 +12794,7 @@ func (obj *spannerImpl) Find_Foo_By_NullInt_Is_Null(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_NullInt_Is_Null")
 			}
 			return nil, obj.makeErr(err)
@@ -12851,7 +12851,7 @@ func (obj *spannerImpl) Find_Foo_By_String_Equal_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_String")
 			}
 			return nil, obj.makeErr(err)
@@ -12910,7 +12910,7 @@ func (obj *spannerImpl) Find_Foo_By_Lower_String(ctx context.Context,
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Lower_String")
 			}
 			return nil, obj.makeErr(err)
@@ -12969,7 +12969,7 @@ func (obj *spannerImpl) Find_Foo_By_Lower_String_Equal_Lower(ctx context.Context
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Lower_String_Equal_Lower")
 			}
 			return nil, obj.makeErr(err)
@@ -13028,7 +13028,7 @@ func (obj *spannerImpl) Find_Foo_By_String_Equal_Lower(ctx context.Context,
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_Lower")
 			}
 			return nil, obj.makeErr(err)
@@ -13085,7 +13085,7 @@ func (obj *spannerImpl) Find_Foo_By_String_Equal_Lower_String(ctx context.Contex
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_String_Equal_Lower_String")
 			}
 			return nil, obj.makeErr(err)
@@ -13142,7 +13142,7 @@ func (obj *spannerImpl) Find_Foo_By_Bool_Equal_True(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_Bool_Equal_True")
 			}
 			return nil, obj.makeErr(err)
@@ -13199,7 +13199,7 @@ func (obj *spannerImpl) Find_Foo_By_NullBool_Equal_False(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_By_NullBool_Equal_False")
 			}
 			return nil, obj.makeErr(err)
@@ -13256,7 +13256,7 @@ func (obj *spannerImpl) Find_Foo_OrderBy_Asc_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_OrderBy_Asc_String")
 			}
 			return nil, obj.makeErr(err)
@@ -13313,7 +13313,7 @@ func (obj *spannerImpl) Find_Foo_GroupBy_String(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo_GroupBy_String")
 			}
 			return nil, obj.makeErr(err)
@@ -13362,7 +13362,7 @@ func (obj *spannerImpl) Update_D_By_Id_And_AId(ctx context.Context,
 	} else {
 		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -13406,7 +13406,7 @@ func (obj *spannerImpl) Update_A_By_A_Id_And_B_Id(ctx context.Context,
 	} else {
 		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -13453,7 +13453,7 @@ func (obj *spannerImpl) Update_B_By_Id(ctx context.Context,
 	} else {
 		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -13633,7 +13633,7 @@ func (obj *spannerImpl) Update_Foo_By_Id(ctx context.Context,
 	} else {
 		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -13937,7 +13937,7 @@ func (obj *spannerImpl) Update_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_Null
 	} else {
 		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

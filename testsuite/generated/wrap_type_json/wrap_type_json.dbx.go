@@ -93,10 +93,10 @@ func makeErr(err error) error {
 		return wrapErr(e)
 	}
 	e = &Error{Err: err}
-	switch err {
-	case sql.ErrNoRows:
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		e.Code = ErrorCode_NoRows
-	case sql.ErrTxDone:
+	case errors.Is(err, sql.ErrTxDone):
 		e.Code = ErrorCode_TxDone
 	}
 	return wrapErr(e)
@@ -1355,7 +1355,7 @@ func (obj *sqlite3Impl) Update_Person_By_Pk(ctx context.Context,
 
 	person = &Person{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -1530,7 +1530,7 @@ func (obj *pgxImpl) Update_Person_By_Pk(ctx context.Context,
 
 	person = &Person{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -1700,7 +1700,7 @@ func (obj *pgxcockroachImpl) Update_Person_By_Pk(ctx context.Context,
 
 	person = &Person{}
 	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp, &person.ValueDefault)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -1898,7 +1898,7 @@ func (obj *spannerImpl) Update_Person_By_Pk(ctx context.Context,
 	} else {
 		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
 	}
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

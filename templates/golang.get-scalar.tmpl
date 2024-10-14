@@ -19,7 +19,7 @@ Find_{{ .Suffix }}({{ ctxarg .Args }})
 
 	{{ init .Row }}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan({{ addrof (flatten .Row) }})
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return {{ zero .Row }}, nil
 	}
 	if err != nil {

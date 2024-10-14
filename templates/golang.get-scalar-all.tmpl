@@ -54,7 +54,7 @@ Find_{{ .Suffix }}({{ ctxarg .Args }})
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows({{ printf "%q" .Suffix }})
 			}
 			return nil, obj.makeErr(err)

@@ -93,10 +93,10 @@ func makeErr(err error) error {
 		return wrapErr(e)
 	}
 	e = &Error{Err: err}
-	switch err {
-	case sql.ErrNoRows:
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
 		e.Code = ErrorCode_NoRows
-	case sql.ErrTxDone:
+	case errors.Is(err, sql.ErrTxDone):
 		e.Code = ErrorCode_TxDone
 	}
 	return wrapErr(e)
@@ -1321,7 +1321,7 @@ func (obj *sqlite3Impl) Find_Foo(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo")
 			}
 			return nil, obj.makeErr(err)
@@ -1378,7 +1378,7 @@ func (obj *sqlite3Impl) Get_Foo(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo")
 			}
 			return nil, obj.makeErr(err)
@@ -1443,7 +1443,7 @@ func (obj *sqlite3Impl) Find_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -1789,7 +1789,7 @@ func (obj *pgxImpl) Find_Foo(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo")
 			}
 			return nil, obj.makeErr(err)
@@ -1846,7 +1846,7 @@ func (obj *pgxImpl) Get_Foo(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo")
 			}
 			return nil, obj.makeErr(err)
@@ -1911,7 +1911,7 @@ func (obj *pgxImpl) Find_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -2252,7 +2252,7 @@ func (obj *pgxcockroachImpl) Find_Foo(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo")
 			}
 			return nil, obj.makeErr(err)
@@ -2309,7 +2309,7 @@ func (obj *pgxcockroachImpl) Get_Foo(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo")
 			}
 			return nil, obj.makeErr(err)
@@ -2374,7 +2374,7 @@ func (obj *pgxcockroachImpl) Find_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
@@ -2718,7 +2718,7 @@ func (obj *spannerImpl) Find_Foo(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo")
 			}
 			return nil, obj.makeErr(err)
@@ -2775,7 +2775,7 @@ func (obj *spannerImpl) Get_Foo(ctx context.Context) (
 			if obj.shouldRetry(err) {
 				continue
 			}
-			if err == errTooManyRows {
+			if errors.Is(err, errTooManyRows) {
 				return nil, tooManyRows("Foo")
 			}
 			return nil, obj.makeErr(err)
@@ -2840,7 +2840,7 @@ func (obj *spannerImpl) Find_Foo_By_Id(ctx context.Context,
 
 	foo = &Foo{}
 	err = obj.queryRowContext(ctx, __stmt, __values...).Scan(&foo.Id)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return (*Foo)(nil), nil
 	}
 	if err != nil {
