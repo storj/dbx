@@ -12744,7 +12744,7 @@ func (obj *spannerImpl) Update_D_By_Id_And_AId(ctx context.Context,
 			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 		})
 	} else {
-		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Pk, &d.Id, &d.Alias, &d.Date, &d.EId, &d.AId)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -12788,7 +12788,7 @@ func (obj *spannerImpl) Update_A_By_A_Id_And_B_Id(ctx context.Context,
 			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 		})
 	} else {
-		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Pk, &a.Ctime, &a.Mtime, &a.Id, &a.Name)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -12835,7 +12835,7 @@ func (obj *spannerImpl) Update_B_By_Id(ctx context.Context,
 			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 		})
 	} else {
-		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Pk, &b.Id, &b.Data)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -13015,7 +13015,7 @@ func (obj *spannerImpl) Update_Foo_By_Id(ctx context.Context,
 			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 		})
 	} else {
-		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -13319,7 +13319,7 @@ func (obj *spannerImpl) Update_Foo_By_NullInt_And_Int_And_NullInt64_Not_And_Null
 			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 		})
 	} else {
-		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.Int, &foo.Int64, &foo.Uint, &foo.Uint64, &foo.Float, &foo.Float64, &foo.String, &foo.Blob, &foo.Timestamp, &foo.Utimestamp, &foo.Bool, &foo.Date, spannerConvertJSON(&foo.Json), &foo.NullInt, &foo.NullInt64, &foo.NullUint, &foo.NullUint64, &foo.NullFloat, &foo.NullFloat64, &foo.NullString, &foo.NullBlob, &foo.NullTimestamp, &foo.NullUtimestamp, &foo.NullBool, &foo.NullDate, spannerConvertJSON(&foo.NullJson))
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil

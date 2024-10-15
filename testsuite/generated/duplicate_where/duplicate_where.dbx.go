@@ -1645,7 +1645,7 @@ func (obj *spannerImpl) Update_Foo_By_Pk_And_Pk(ctx context.Context,
 			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.Data)
 		})
 	} else {
-		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.Data)
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.Data)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil

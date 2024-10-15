@@ -3121,7 +3121,7 @@ func (obj *spannerImpl) Update_Update_Suffix(ctx context.Context,
 			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 		})
 	} else {
-		err = obj.db.DB.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
