@@ -42,9 +42,7 @@ Paged_{{ .Suffix }}({{ ctxarg .Args }}, limit, start)
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			{{ declare .Continuation }}
 			{{ .Continuation.Name }}._set = true
@@ -57,10 +55,6 @@ Paged_{{ .Suffix }}({{ ctxarg .Args }}, limit, start)
 				}
 				rows = append(rows, {{ arg .Row }})
 				next = {{ addrof .Continuation }}
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil

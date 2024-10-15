@@ -140,6 +140,22 @@ func constraintViolation(err error, constraint string) error {
 	})
 }
 
+func closeRows(rows *sql.Rows, err *error) {
+	rowsErr := rows.Err()
+	closeErr := rows.Close()
+	if *err != nil {
+		// throw away errors from .Err() and .Close(), if any; they are almost certainly less important
+		// than the error we already have
+		return
+	}
+	if rowsErr != nil {
+		// throw away error from .Close(), if any; it is probably less important
+		*err = rowsErr
+		return
+	}
+	*err = closeErr
+}
+
 type driver interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
@@ -1323,9 +1339,7 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx contex
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual_Continuation
 			__continuation._set = true
@@ -1338,10 +1352,6 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx contex
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1385,9 +1395,7 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation
 			__continuation._set = true
@@ -1400,10 +1408,6 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1448,9 +1452,7 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNod
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId_Continuation
 			__continuation._set = true
@@ -1463,10 +1465,6 @@ func (obj *sqlite3Impl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNod
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1575,9 +1573,7 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx context.Co
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual_Continuation
 			__continuation._set = true
@@ -1590,10 +1586,6 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx context.Co
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1637,9 +1629,7 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Contex
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation
 			__continuation._set = true
@@ -1652,10 +1642,6 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Contex
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1700,9 +1686,7 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId(
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId_Continuation
 			__continuation._set = true
@@ -1715,10 +1699,6 @@ func (obj *pgxImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId(
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1822,9 +1802,7 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx c
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual_Continuation
 			__continuation._set = true
@@ -1837,10 +1815,6 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx c
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1884,9 +1858,7 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx conte
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation
 			__continuation._set = true
@@ -1899,10 +1871,6 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx conte
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1947,9 +1915,7 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_Stora
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId_Continuation
 			__continuation._set = true
@@ -1962,10 +1928,6 @@ func (obj *pgxcockroachImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_Stora
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2072,9 +2034,7 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx contex
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual_Continuation
 			__continuation._set = true
@@ -2087,10 +2047,6 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_LessOrEqual(ctx contex
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2137,9 +2093,7 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_Continuation
 			__continuation._set = true
@@ -2152,10 +2106,6 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater(ctx context.Co
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2203,9 +2153,7 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNod
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNodeId_Continuation
 			__continuation._set = true
@@ -2218,10 +2166,6 @@ func (obj *spannerImpl) Paged_ConsumedSerial_By_ExpiresAt_Greater_And_StorageNod
 				}
 				rows = append(rows, consumed_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil

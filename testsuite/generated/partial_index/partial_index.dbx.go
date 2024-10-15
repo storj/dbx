@@ -140,6 +140,22 @@ func constraintViolation(err error, constraint string) error {
 	})
 }
 
+func closeRows(rows *sql.Rows, err *error) {
+	rowsErr := rows.Err()
+	closeErr := rows.Close()
+	if *err != nil {
+		// throw away errors from .Err() and .Close(), if any; they are almost certainly less important
+		// than the error we already have
+		return
+	}
+	if rowsErr != nil {
+		// throw away error from .Close(), if any; it is probably less important
+		*err = rowsErr
+		return
+	}
+	*err = closeErr
+}
+
 type driver interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)

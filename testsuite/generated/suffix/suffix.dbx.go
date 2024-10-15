@@ -140,6 +140,22 @@ func constraintViolation(err error, constraint string) error {
 	})
 }
 
+func closeRows(rows *sql.Rows, err *error) {
+	rowsErr := rows.Err()
+	closeErr := rows.Close()
+	if *err != nil {
+		// throw away errors from .Err() and .Close(), if any; they are almost certainly less important
+		// than the error we already have
+		return
+	}
+	if rowsErr != nil {
+		// throw away error from .Close(), if any; it is probably less important
+		*err = rowsErr
+		return
+	}
+	*err = closeErr
+}
+
 type driver interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
@@ -1146,9 +1162,7 @@ func (obj *sqlite3Impl) All_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1157,9 +1171,6 @@ func (obj *sqlite3Impl) All_Read_Suffix(ctx context.Context) (
 					return nil, err
 				}
 				rows = append(rows, foo)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1230,9 +1241,7 @@ func (obj *sqlite3Impl) Limited_Read_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1241,9 +1250,6 @@ func (obj *sqlite3Impl) Limited_Read_Suffix(ctx context.Context,
 					return nil, err
 				}
 				rows = append(rows, foo)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1284,9 +1290,7 @@ func (obj *sqlite3Impl) Paged_Read_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_Read_Suffix_Continuation
 			__continuation._set = true
@@ -1299,10 +1303,6 @@ func (obj *sqlite3Impl) Paged_Read_Suffix(ctx context.Context,
 				}
 				rows = append(rows, foo)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1334,14 +1334,9 @@ func (obj *sqlite3Impl) Find_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, nil
 			}
 
@@ -1353,10 +1348,6 @@ func (obj *sqlite3Impl) Find_Read_Suffix(ctx context.Context) (
 
 			if __rows.Next() {
 				return nil, errTooManyRows
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 
 			return foo, nil
@@ -1391,14 +1382,9 @@ func (obj *sqlite3Impl) Get_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, sql.ErrNoRows
 			}
 
@@ -1410,10 +1396,6 @@ func (obj *sqlite3Impl) Get_Read_Suffix(ctx context.Context) (
 
 			if __rows.Next() {
 				return nil, errTooManyRows
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 
 			return foo, nil
@@ -1536,14 +1518,9 @@ func (obj *sqlite3Impl) First_OtherRead_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, nil
 			}
 
@@ -1697,9 +1674,7 @@ func (obj *pgxImpl) All_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1708,9 +1683,6 @@ func (obj *pgxImpl) All_Read_Suffix(ctx context.Context) (
 					return nil, err
 				}
 				rows = append(rows, foo)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1781,9 +1753,7 @@ func (obj *pgxImpl) Limited_Read_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -1792,9 +1762,6 @@ func (obj *pgxImpl) Limited_Read_Suffix(ctx context.Context,
 					return nil, err
 				}
 				rows = append(rows, foo)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1835,9 +1802,7 @@ func (obj *pgxImpl) Paged_Read_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_Read_Suffix_Continuation
 			__continuation._set = true
@@ -1850,10 +1815,6 @@ func (obj *pgxImpl) Paged_Read_Suffix(ctx context.Context,
 				}
 				rows = append(rows, foo)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -1885,14 +1846,9 @@ func (obj *pgxImpl) Find_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, nil
 			}
 
@@ -1904,10 +1860,6 @@ func (obj *pgxImpl) Find_Read_Suffix(ctx context.Context) (
 
 			if __rows.Next() {
 				return nil, errTooManyRows
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 
 			return foo, nil
@@ -1942,14 +1894,9 @@ func (obj *pgxImpl) Get_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, sql.ErrNoRows
 			}
 
@@ -1961,10 +1908,6 @@ func (obj *pgxImpl) Get_Read_Suffix(ctx context.Context) (
 
 			if __rows.Next() {
 				return nil, errTooManyRows
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 
 			return foo, nil
@@ -2087,14 +2030,9 @@ func (obj *pgxImpl) First_OtherRead_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, nil
 			}
 
@@ -2243,9 +2181,7 @@ func (obj *pgxcockroachImpl) All_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -2254,9 +2190,6 @@ func (obj *pgxcockroachImpl) All_Read_Suffix(ctx context.Context) (
 					return nil, err
 				}
 				rows = append(rows, foo)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -2327,9 +2260,7 @@ func (obj *pgxcockroachImpl) Limited_Read_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -2338,9 +2269,6 @@ func (obj *pgxcockroachImpl) Limited_Read_Suffix(ctx context.Context,
 					return nil, err
 				}
 				rows = append(rows, foo)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -2381,9 +2309,7 @@ func (obj *pgxcockroachImpl) Paged_Read_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_Read_Suffix_Continuation
 			__continuation._set = true
@@ -2396,10 +2322,6 @@ func (obj *pgxcockroachImpl) Paged_Read_Suffix(ctx context.Context,
 				}
 				rows = append(rows, foo)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2431,14 +2353,9 @@ func (obj *pgxcockroachImpl) Find_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, nil
 			}
 
@@ -2450,10 +2367,6 @@ func (obj *pgxcockroachImpl) Find_Read_Suffix(ctx context.Context) (
 
 			if __rows.Next() {
 				return nil, errTooManyRows
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 
 			return foo, nil
@@ -2488,14 +2401,9 @@ func (obj *pgxcockroachImpl) Get_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, sql.ErrNoRows
 			}
 
@@ -2507,10 +2415,6 @@ func (obj *pgxcockroachImpl) Get_Read_Suffix(ctx context.Context) (
 
 			if __rows.Next() {
 				return nil, errTooManyRows
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 
 			return foo, nil
@@ -2633,14 +2537,9 @@ func (obj *pgxcockroachImpl) First_OtherRead_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, nil
 			}
 
@@ -2808,9 +2707,7 @@ func (obj *spannerImpl) All_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -2819,9 +2716,6 @@ func (obj *spannerImpl) All_Read_Suffix(ctx context.Context) (
 					return nil, err
 				}
 				rows = append(rows, foo)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -2892,9 +2786,7 @@ func (obj *spannerImpl) Limited_Read_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				foo := &Foo{}
@@ -2903,9 +2795,6 @@ func (obj *spannerImpl) Limited_Read_Suffix(ctx context.Context,
 					return nil, err
 				}
 				rows = append(rows, foo)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -2949,9 +2838,7 @@ func (obj *spannerImpl) Paged_Read_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_Read_Suffix_Continuation
 			__continuation._set = true
@@ -2964,10 +2851,6 @@ func (obj *spannerImpl) Paged_Read_Suffix(ctx context.Context,
 				}
 				rows = append(rows, foo)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2999,14 +2882,9 @@ func (obj *spannerImpl) Find_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, nil
 			}
 
@@ -3018,10 +2896,6 @@ func (obj *spannerImpl) Find_Read_Suffix(ctx context.Context) (
 
 			if __rows.Next() {
 				return nil, errTooManyRows
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 
 			return foo, nil
@@ -3056,14 +2930,9 @@ func (obj *spannerImpl) Get_Read_Suffix(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, sql.ErrNoRows
 			}
 
@@ -3075,10 +2944,6 @@ func (obj *spannerImpl) Get_Read_Suffix(ctx context.Context) (
 
 			if __rows.Next() {
 				return nil, errTooManyRows
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 
 			return foo, nil
@@ -3201,14 +3066,9 @@ func (obj *spannerImpl) First_OtherRead_Suffix(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, nil
 			}
 

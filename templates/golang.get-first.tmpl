@@ -23,14 +23,9 @@ First_{{ .Suffix }}({{ ctxarg .Args }})
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			if !__rows.Next() {
-				if err := __rows.Err(); err != nil {
-					return nil, err
-				}
 				return nil, nil
 			}
 

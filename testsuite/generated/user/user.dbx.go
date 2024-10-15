@@ -140,6 +140,22 @@ func constraintViolation(err error, constraint string) error {
 	})
 }
 
+func closeRows(rows *sql.Rows, err *error) {
+	rowsErr := rows.Err()
+	closeErr := rows.Close()
+	if *err != nil {
+		// throw away errors from .Err() and .Close(), if any; they are almost certainly less important
+		// than the error we already have
+		return
+	}
+	if rowsErr != nil {
+		// throw away error from .Close(), if any; it is probably less important
+		*err = rowsErr
+		return
+	}
+	*err = closeErr
+}
+
 type driver interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
@@ -1334,9 +1350,7 @@ func (obj *sqlite3Impl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Conte
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				row := &Id_Row{}
@@ -1345,9 +1359,6 @@ func (obj *sqlite3Impl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Conte
 					return nil, err
 				}
 				rows = append(rows, row)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1495,9 +1506,7 @@ func (obj *pgxImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Context,
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				row := &Id_Row{}
@@ -1506,9 +1515,6 @@ func (obj *pgxImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Context,
 					return nil, err
 				}
 				rows = append(rows, row)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1651,9 +1657,7 @@ func (obj *pgxcockroachImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				row := &Id_Row{}
@@ -1662,9 +1666,6 @@ func (obj *pgxcockroachImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.
 					return nil, err
 				}
 				rows = append(rows, row)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1864,9 +1865,7 @@ func (obj *spannerImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Conte
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				row := &Id_Row{}
@@ -1875,9 +1874,6 @@ func (obj *spannerImpl) All_Session_Id_By_AssociatedAccount_Pk(ctx context.Conte
 					return nil, err
 				}
 				rows = append(rows, row)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()

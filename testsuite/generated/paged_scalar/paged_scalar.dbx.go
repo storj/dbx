@@ -140,6 +140,22 @@ func constraintViolation(err error, constraint string) error {
 	})
 }
 
+func closeRows(rows *sql.Rows, err *error) {
+	rowsErr := rows.Err()
+	closeErr := rows.Close()
+	if *err != nil {
+		// throw away errors from .Err() and .Close(), if any; they are almost certainly less important
+		// than the error we already have
+		return
+	}
+	if rowsErr != nil {
+		// throw away error from .Close(), if any; it is probably less important
+		*err = rowsErr
+		return
+	}
+	*err = closeErr
+}
+
 type driver interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
@@ -2224,9 +2240,7 @@ func (obj *sqlite3Impl) Paged_DataBlob(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataBlob_Continuation
 			__continuation._set = true
@@ -2239,10 +2253,6 @@ func (obj *sqlite3Impl) Paged_DataBlob(ctx context.Context,
 				}
 				rows = append(rows, data_blob)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2284,9 +2294,7 @@ func (obj *sqlite3Impl) Paged_DataDate(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataDate_Continuation
 			__continuation._set = true
@@ -2299,10 +2307,6 @@ func (obj *sqlite3Impl) Paged_DataDate(ctx context.Context,
 				}
 				rows = append(rows, data_date)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2344,9 +2348,7 @@ func (obj *sqlite3Impl) Paged_DataFloat(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataFloat_Continuation
 			__continuation._set = true
@@ -2359,10 +2361,6 @@ func (obj *sqlite3Impl) Paged_DataFloat(ctx context.Context,
 				}
 				rows = append(rows, data_float)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2404,9 +2402,7 @@ func (obj *sqlite3Impl) Paged_DataFloat64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataFloat64_Continuation
 			__continuation._set = true
@@ -2419,10 +2415,6 @@ func (obj *sqlite3Impl) Paged_DataFloat64(ctx context.Context,
 				}
 				rows = append(rows, data_float64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2464,9 +2456,7 @@ func (obj *sqlite3Impl) Paged_DataInt(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataInt_Continuation
 			__continuation._set = true
@@ -2479,10 +2469,6 @@ func (obj *sqlite3Impl) Paged_DataInt(ctx context.Context,
 				}
 				rows = append(rows, data_int)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2524,9 +2510,7 @@ func (obj *sqlite3Impl) Paged_DataInt64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataInt64_Continuation
 			__continuation._set = true
@@ -2539,10 +2523,6 @@ func (obj *sqlite3Impl) Paged_DataInt64(ctx context.Context,
 				}
 				rows = append(rows, data_int64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2584,9 +2564,7 @@ func (obj *sqlite3Impl) Paged_DataJson(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataJson_Continuation
 			__continuation._set = true
@@ -2599,10 +2577,6 @@ func (obj *sqlite3Impl) Paged_DataJson(ctx context.Context,
 				}
 				rows = append(rows, data_json)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2644,9 +2618,7 @@ func (obj *sqlite3Impl) Paged_DataSerial(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataSerial_Continuation
 			__continuation._set = true
@@ -2659,10 +2631,6 @@ func (obj *sqlite3Impl) Paged_DataSerial(ctx context.Context,
 				}
 				rows = append(rows, data_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2704,9 +2672,7 @@ func (obj *sqlite3Impl) Paged_DataSerial64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataSerial64_Continuation
 			__continuation._set = true
@@ -2719,10 +2685,6 @@ func (obj *sqlite3Impl) Paged_DataSerial64(ctx context.Context,
 				}
 				rows = append(rows, data_serial64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2764,9 +2726,7 @@ func (obj *sqlite3Impl) Paged_DataText(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataText_Continuation
 			__continuation._set = true
@@ -2779,10 +2739,6 @@ func (obj *sqlite3Impl) Paged_DataText(ctx context.Context,
 				}
 				rows = append(rows, data_text)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2824,9 +2780,7 @@ func (obj *sqlite3Impl) Paged_DataTimestamp(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataTimestamp_Continuation
 			__continuation._set = true
@@ -2839,10 +2793,6 @@ func (obj *sqlite3Impl) Paged_DataTimestamp(ctx context.Context,
 				}
 				rows = append(rows, data_timestamp)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2884,9 +2834,7 @@ func (obj *sqlite3Impl) Paged_DataUint(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUint_Continuation
 			__continuation._set = true
@@ -2899,10 +2847,6 @@ func (obj *sqlite3Impl) Paged_DataUint(ctx context.Context,
 				}
 				rows = append(rows, data_uint)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -2944,9 +2888,7 @@ func (obj *sqlite3Impl) Paged_DataUint64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUint64_Continuation
 			__continuation._set = true
@@ -2959,10 +2901,6 @@ func (obj *sqlite3Impl) Paged_DataUint64(ctx context.Context,
 				}
 				rows = append(rows, data_uint64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -3004,9 +2942,7 @@ func (obj *sqlite3Impl) Paged_DataUtimestamp(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUtimestamp_Continuation
 			__continuation._set = true
@@ -3019,10 +2955,6 @@ func (obj *sqlite3Impl) Paged_DataUtimestamp(ctx context.Context,
 				}
 				rows = append(rows, data_utimestamp)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -3528,9 +3460,7 @@ func (obj *pgxImpl) Paged_DataBlob(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataBlob_Continuation
 			__continuation._set = true
@@ -3543,10 +3473,6 @@ func (obj *pgxImpl) Paged_DataBlob(ctx context.Context,
 				}
 				rows = append(rows, data_blob)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -3588,9 +3514,7 @@ func (obj *pgxImpl) Paged_DataDate(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataDate_Continuation
 			__continuation._set = true
@@ -3603,10 +3527,6 @@ func (obj *pgxImpl) Paged_DataDate(ctx context.Context,
 				}
 				rows = append(rows, data_date)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -3648,9 +3568,7 @@ func (obj *pgxImpl) Paged_DataFloat(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataFloat_Continuation
 			__continuation._set = true
@@ -3663,10 +3581,6 @@ func (obj *pgxImpl) Paged_DataFloat(ctx context.Context,
 				}
 				rows = append(rows, data_float)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -3708,9 +3622,7 @@ func (obj *pgxImpl) Paged_DataFloat64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataFloat64_Continuation
 			__continuation._set = true
@@ -3723,10 +3635,6 @@ func (obj *pgxImpl) Paged_DataFloat64(ctx context.Context,
 				}
 				rows = append(rows, data_float64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -3768,9 +3676,7 @@ func (obj *pgxImpl) Paged_DataInt(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataInt_Continuation
 			__continuation._set = true
@@ -3783,10 +3689,6 @@ func (obj *pgxImpl) Paged_DataInt(ctx context.Context,
 				}
 				rows = append(rows, data_int)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -3828,9 +3730,7 @@ func (obj *pgxImpl) Paged_DataInt64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataInt64_Continuation
 			__continuation._set = true
@@ -3843,10 +3743,6 @@ func (obj *pgxImpl) Paged_DataInt64(ctx context.Context,
 				}
 				rows = append(rows, data_int64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -3888,9 +3784,7 @@ func (obj *pgxImpl) Paged_DataJson(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataJson_Continuation
 			__continuation._set = true
@@ -3903,10 +3797,6 @@ func (obj *pgxImpl) Paged_DataJson(ctx context.Context,
 				}
 				rows = append(rows, data_json)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -3948,9 +3838,7 @@ func (obj *pgxImpl) Paged_DataSerial(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataSerial_Continuation
 			__continuation._set = true
@@ -3963,10 +3851,6 @@ func (obj *pgxImpl) Paged_DataSerial(ctx context.Context,
 				}
 				rows = append(rows, data_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -4008,9 +3892,7 @@ func (obj *pgxImpl) Paged_DataSerial64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataSerial64_Continuation
 			__continuation._set = true
@@ -4023,10 +3905,6 @@ func (obj *pgxImpl) Paged_DataSerial64(ctx context.Context,
 				}
 				rows = append(rows, data_serial64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -4068,9 +3946,7 @@ func (obj *pgxImpl) Paged_DataText(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataText_Continuation
 			__continuation._set = true
@@ -4083,10 +3959,6 @@ func (obj *pgxImpl) Paged_DataText(ctx context.Context,
 				}
 				rows = append(rows, data_text)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -4128,9 +4000,7 @@ func (obj *pgxImpl) Paged_DataTimestamp(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataTimestamp_Continuation
 			__continuation._set = true
@@ -4143,10 +4013,6 @@ func (obj *pgxImpl) Paged_DataTimestamp(ctx context.Context,
 				}
 				rows = append(rows, data_timestamp)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -4188,9 +4054,7 @@ func (obj *pgxImpl) Paged_DataUint(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUint_Continuation
 			__continuation._set = true
@@ -4203,10 +4067,6 @@ func (obj *pgxImpl) Paged_DataUint(ctx context.Context,
 				}
 				rows = append(rows, data_uint)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -4248,9 +4108,7 @@ func (obj *pgxImpl) Paged_DataUint64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUint64_Continuation
 			__continuation._set = true
@@ -4263,10 +4121,6 @@ func (obj *pgxImpl) Paged_DataUint64(ctx context.Context,
 				}
 				rows = append(rows, data_uint64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -4308,9 +4162,7 @@ func (obj *pgxImpl) Paged_DataUtimestamp(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUtimestamp_Continuation
 			__continuation._set = true
@@ -4323,10 +4175,6 @@ func (obj *pgxImpl) Paged_DataUtimestamp(ctx context.Context,
 				}
 				rows = append(rows, data_utimestamp)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -4827,9 +4675,7 @@ func (obj *pgxcockroachImpl) Paged_DataBlob(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataBlob_Continuation
 			__continuation._set = true
@@ -4842,10 +4688,6 @@ func (obj *pgxcockroachImpl) Paged_DataBlob(ctx context.Context,
 				}
 				rows = append(rows, data_blob)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -4887,9 +4729,7 @@ func (obj *pgxcockroachImpl) Paged_DataDate(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataDate_Continuation
 			__continuation._set = true
@@ -4902,10 +4742,6 @@ func (obj *pgxcockroachImpl) Paged_DataDate(ctx context.Context,
 				}
 				rows = append(rows, data_date)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -4947,9 +4783,7 @@ func (obj *pgxcockroachImpl) Paged_DataFloat(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataFloat_Continuation
 			__continuation._set = true
@@ -4962,10 +4796,6 @@ func (obj *pgxcockroachImpl) Paged_DataFloat(ctx context.Context,
 				}
 				rows = append(rows, data_float)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5007,9 +4837,7 @@ func (obj *pgxcockroachImpl) Paged_DataFloat64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataFloat64_Continuation
 			__continuation._set = true
@@ -5022,10 +4850,6 @@ func (obj *pgxcockroachImpl) Paged_DataFloat64(ctx context.Context,
 				}
 				rows = append(rows, data_float64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5067,9 +4891,7 @@ func (obj *pgxcockroachImpl) Paged_DataInt(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataInt_Continuation
 			__continuation._set = true
@@ -5082,10 +4904,6 @@ func (obj *pgxcockroachImpl) Paged_DataInt(ctx context.Context,
 				}
 				rows = append(rows, data_int)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5127,9 +4945,7 @@ func (obj *pgxcockroachImpl) Paged_DataInt64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataInt64_Continuation
 			__continuation._set = true
@@ -5142,10 +4958,6 @@ func (obj *pgxcockroachImpl) Paged_DataInt64(ctx context.Context,
 				}
 				rows = append(rows, data_int64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5187,9 +4999,7 @@ func (obj *pgxcockroachImpl) Paged_DataJson(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataJson_Continuation
 			__continuation._set = true
@@ -5202,10 +5012,6 @@ func (obj *pgxcockroachImpl) Paged_DataJson(ctx context.Context,
 				}
 				rows = append(rows, data_json)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5247,9 +5053,7 @@ func (obj *pgxcockroachImpl) Paged_DataSerial(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataSerial_Continuation
 			__continuation._set = true
@@ -5262,10 +5066,6 @@ func (obj *pgxcockroachImpl) Paged_DataSerial(ctx context.Context,
 				}
 				rows = append(rows, data_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5307,9 +5107,7 @@ func (obj *pgxcockroachImpl) Paged_DataSerial64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataSerial64_Continuation
 			__continuation._set = true
@@ -5322,10 +5120,6 @@ func (obj *pgxcockroachImpl) Paged_DataSerial64(ctx context.Context,
 				}
 				rows = append(rows, data_serial64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5367,9 +5161,7 @@ func (obj *pgxcockroachImpl) Paged_DataText(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataText_Continuation
 			__continuation._set = true
@@ -5382,10 +5174,6 @@ func (obj *pgxcockroachImpl) Paged_DataText(ctx context.Context,
 				}
 				rows = append(rows, data_text)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5427,9 +5215,7 @@ func (obj *pgxcockroachImpl) Paged_DataTimestamp(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataTimestamp_Continuation
 			__continuation._set = true
@@ -5442,10 +5228,6 @@ func (obj *pgxcockroachImpl) Paged_DataTimestamp(ctx context.Context,
 				}
 				rows = append(rows, data_timestamp)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5487,9 +5269,7 @@ func (obj *pgxcockroachImpl) Paged_DataUint(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUint_Continuation
 			__continuation._set = true
@@ -5502,10 +5282,6 @@ func (obj *pgxcockroachImpl) Paged_DataUint(ctx context.Context,
 				}
 				rows = append(rows, data_uint)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5547,9 +5323,7 @@ func (obj *pgxcockroachImpl) Paged_DataUint64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUint64_Continuation
 			__continuation._set = true
@@ -5562,10 +5336,6 @@ func (obj *pgxcockroachImpl) Paged_DataUint64(ctx context.Context,
 				}
 				rows = append(rows, data_uint64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -5607,9 +5377,7 @@ func (obj *pgxcockroachImpl) Paged_DataUtimestamp(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUtimestamp_Continuation
 			__continuation._set = true
@@ -5622,10 +5390,6 @@ func (obj *pgxcockroachImpl) Paged_DataUtimestamp(ctx context.Context,
 				}
 				rows = append(rows, data_utimestamp)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6395,9 +6159,7 @@ func (obj *spannerImpl) Paged_DataBlob(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataBlob_Continuation
 			__continuation._set = true
@@ -6410,10 +6172,6 @@ func (obj *spannerImpl) Paged_DataBlob(ctx context.Context,
 				}
 				rows = append(rows, data_blob)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6458,9 +6216,7 @@ func (obj *spannerImpl) Paged_DataDate(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataDate_Continuation
 			__continuation._set = true
@@ -6473,10 +6229,6 @@ func (obj *spannerImpl) Paged_DataDate(ctx context.Context,
 				}
 				rows = append(rows, data_date)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6521,9 +6273,7 @@ func (obj *spannerImpl) Paged_DataFloat(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataFloat_Continuation
 			__continuation._set = true
@@ -6536,10 +6286,6 @@ func (obj *spannerImpl) Paged_DataFloat(ctx context.Context,
 				}
 				rows = append(rows, data_float)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6584,9 +6330,7 @@ func (obj *spannerImpl) Paged_DataFloat64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataFloat64_Continuation
 			__continuation._set = true
@@ -6599,10 +6343,6 @@ func (obj *spannerImpl) Paged_DataFloat64(ctx context.Context,
 				}
 				rows = append(rows, data_float64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6647,9 +6387,7 @@ func (obj *spannerImpl) Paged_DataInt(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataInt_Continuation
 			__continuation._set = true
@@ -6662,10 +6400,6 @@ func (obj *spannerImpl) Paged_DataInt(ctx context.Context,
 				}
 				rows = append(rows, data_int)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6710,9 +6444,7 @@ func (obj *spannerImpl) Paged_DataInt64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataInt64_Continuation
 			__continuation._set = true
@@ -6725,10 +6457,6 @@ func (obj *spannerImpl) Paged_DataInt64(ctx context.Context,
 				}
 				rows = append(rows, data_int64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6773,9 +6501,7 @@ func (obj *spannerImpl) Paged_DataJson(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataJson_Continuation
 			__continuation._set = true
@@ -6788,10 +6514,6 @@ func (obj *spannerImpl) Paged_DataJson(ctx context.Context,
 				}
 				rows = append(rows, data_json)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6836,9 +6558,7 @@ func (obj *spannerImpl) Paged_DataSerial(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataSerial_Continuation
 			__continuation._set = true
@@ -6851,10 +6571,6 @@ func (obj *spannerImpl) Paged_DataSerial(ctx context.Context,
 				}
 				rows = append(rows, data_serial)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6899,9 +6615,7 @@ func (obj *spannerImpl) Paged_DataSerial64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataSerial64_Continuation
 			__continuation._set = true
@@ -6914,10 +6628,6 @@ func (obj *spannerImpl) Paged_DataSerial64(ctx context.Context,
 				}
 				rows = append(rows, data_serial64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -6962,9 +6672,7 @@ func (obj *spannerImpl) Paged_DataText(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataText_Continuation
 			__continuation._set = true
@@ -6977,10 +6685,6 @@ func (obj *spannerImpl) Paged_DataText(ctx context.Context,
 				}
 				rows = append(rows, data_text)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -7025,9 +6729,7 @@ func (obj *spannerImpl) Paged_DataTimestamp(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataTimestamp_Continuation
 			__continuation._set = true
@@ -7040,10 +6742,6 @@ func (obj *spannerImpl) Paged_DataTimestamp(ctx context.Context,
 				}
 				rows = append(rows, data_timestamp)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -7088,9 +6786,7 @@ func (obj *spannerImpl) Paged_DataUint(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUint_Continuation
 			__continuation._set = true
@@ -7103,10 +6799,6 @@ func (obj *spannerImpl) Paged_DataUint(ctx context.Context,
 				}
 				rows = append(rows, data_uint)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -7151,9 +6843,7 @@ func (obj *spannerImpl) Paged_DataUint64(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUint64_Continuation
 			__continuation._set = true
@@ -7166,10 +6856,6 @@ func (obj *spannerImpl) Paged_DataUint64(ctx context.Context,
 				}
 				rows = append(rows, data_uint64)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil
@@ -7214,9 +6900,7 @@ func (obj *spannerImpl) Paged_DataUtimestamp(ctx context.Context,
 			if err != nil {
 				return nil, nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			var __continuation Paged_DataUtimestamp_Continuation
 			__continuation._set = true
@@ -7229,10 +6913,6 @@ func (obj *spannerImpl) Paged_DataUtimestamp(ctx context.Context,
 				}
 				rows = append(rows, data_utimestamp)
 				next = &__continuation
-			}
-
-			if err := __rows.Err(); err != nil {
-				return nil, nil, obj.makeErr(err)
 			}
 
 			return rows, next, nil

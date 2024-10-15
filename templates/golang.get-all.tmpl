@@ -23,9 +23,7 @@ All_{{ .Suffix }}({{ ctxarg .Args }})
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				{{ initnew .Row }}
@@ -34,9 +32,6 @@ All_{{ .Suffix }}({{ ctxarg .Args }})
 					return nil, err
 				}
 				rows = append(rows, {{ arg .Row }})
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()

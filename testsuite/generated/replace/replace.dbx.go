@@ -140,6 +140,22 @@ func constraintViolation(err error, constraint string) error {
 	})
 }
 
+func closeRows(rows *sql.Rows, err *error) {
+	rowsErr := rows.Err()
+	closeErr := rows.Close()
+	if *err != nil {
+		// throw away errors from .Err() and .Close(), if any; they are almost certainly less important
+		// than the error we already have
+		return
+	}
+	if rowsErr != nil {
+		// throw away error from .Close(), if any; it is probably less important
+		*err = rowsErr
+		return
+	}
+	*err = closeErr
+}
+
 type driver interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
@@ -1140,9 +1156,7 @@ func (obj *sqlite3Impl) All_Kv(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				kv := &Kv{}
@@ -1151,9 +1165,6 @@ func (obj *sqlite3Impl) All_Kv(ctx context.Context) (
 					return nil, err
 				}
 				rows = append(rows, kv)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1260,9 +1271,7 @@ func (obj *pgxImpl) All_Kv(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				kv := &Kv{}
@@ -1271,9 +1280,6 @@ func (obj *pgxImpl) All_Kv(ctx context.Context) (
 					return nil, err
 				}
 				rows = append(rows, kv)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1375,9 +1381,7 @@ func (obj *pgxcockroachImpl) All_Kv(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				kv := &Kv{}
@@ -1386,9 +1390,6 @@ func (obj *pgxcockroachImpl) All_Kv(ctx context.Context) (
 					return nil, err
 				}
 				rows = append(rows, kv)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
@@ -1490,9 +1491,7 @@ func (obj *spannerImpl) All_Kv(ctx context.Context) (
 			if err != nil {
 				return nil, err
 			}
-			defer func() {
-				err = errors.Join(err, __rows.Close())
-			}()
+			defer closeRows(__rows, &err)
 
 			for __rows.Next() {
 				kv := &Kv{}
@@ -1501,9 +1500,6 @@ func (obj *spannerImpl) All_Kv(ctx context.Context) (
 					return nil, err
 				}
 				rows = append(rows, kv)
-			}
-			if err := __rows.Err(); err != nil {
-				return nil, err
 			}
 			return rows, nil
 		}()
