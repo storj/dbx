@@ -2664,25 +2664,12 @@ func (obj *spannerImpl) Create_Create_Suffix(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Id, &foo.U)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)

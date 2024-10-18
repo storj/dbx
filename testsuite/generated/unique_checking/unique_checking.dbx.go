@@ -2062,25 +2062,12 @@ func (obj *spannerImpl) Create_A(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	a = &A{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Id)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Id)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&a.Id)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)
@@ -2103,25 +2090,12 @@ func (obj *spannerImpl) Create_B(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	b = &B{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Id, &b.AId)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Id, &b.AId)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&b.Id, &b.AId)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)
@@ -2148,25 +2122,12 @@ func (obj *spannerImpl) Create_C(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	c = &C{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Id, &c.Lat, &c.Lon, &c.BId)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Id, &c.Lat, &c.Lon, &c.BId)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&c.Id, &c.Lat, &c.Lon, &c.BId)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)
@@ -2193,25 +2154,12 @@ func (obj *spannerImpl) Create_D(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	d = &D{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Id, &d.A, &d.B, &d.C)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Id, &d.A, &d.B, &d.C)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&d.Id, &d.A, &d.B, &d.C)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)

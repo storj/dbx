@@ -1738,25 +1738,12 @@ func (obj *spannerImpl) Create_User(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	user = &User{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&user.Pk)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&user.Pk)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&user.Pk)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)
@@ -1779,25 +1766,12 @@ func (obj *spannerImpl) Create_AssociatedAccount(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	associated_account = &AssociatedAccount{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&associated_account.Pk, &associated_account.UserPk)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&associated_account.Pk, &associated_account.UserPk)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&associated_account.Pk, &associated_account.UserPk)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)
@@ -1820,25 +1794,12 @@ func (obj *spannerImpl) Create_Session(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	session = &Session{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&session.Id, &session.UserPk)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&session.Id, &session.UserPk)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&session.Id, &session.UserPk)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)

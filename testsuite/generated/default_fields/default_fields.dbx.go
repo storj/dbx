@@ -2511,25 +2511,12 @@ func (obj *spannerImpl) Create_Foo(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.A, &foo.B, &foo.C)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)
@@ -2580,25 +2567,12 @@ func (obj *spannerImpl) Create_Bar(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	bar = &Bar{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&bar.Pk, &bar.A, &bar.B, &bar.C)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&bar.Pk, &bar.A, &bar.B, &bar.C)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&bar.Pk, &bar.A, &bar.B, &bar.C)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)
@@ -2662,25 +2636,12 @@ func (obj *spannerImpl) Create_Baz(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	baz = &Baz{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&baz.Pk, &baz.A, &baz.B, &baz.C)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&baz.Pk, &baz.A, &baz.B, &baz.C)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&baz.Pk, &baz.A, &baz.B, &baz.C)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)
@@ -2700,25 +2661,12 @@ func (obj *spannerImpl) Create_Minimal(ctx context.Context) (
 	obj.logStmt(__stmt, __values...)
 
 	minimal = &Minimal{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&minimal.Pk)
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&minimal.Pk)
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&minimal.Pk)
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)

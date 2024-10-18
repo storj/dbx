@@ -1824,25 +1824,12 @@ func (obj *spannerImpl) Create_Person(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	__d := obj.driver
-	var tx *sql.Tx
 	if !obj.txn {
-		tx, err = obj.db.DB.BeginTx(ctx, nil)
-		if err != nil {
-			return nil, obj.makeErr(err)
-		}
-		__d = tx
-		defer func() {
-			if txErr := tx.Rollback(); txErr != nil && !errors.Is(txErr, sql.ErrTxDone) {
-				err = obj.makeErr(errors.Join(err, txErr))
-			}
-		}()
-	}
-	err = __d.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
-	if !obj.txn {
-		if err == nil {
-			err = obj.makeErr(tx.Commit())
-		}
+		err = obj.withTx(ctx, func(tx *sql.Tx) error {
+			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
+		})
+	} else {
+		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
 	}
 	if err != nil {
 		return nil, obj.makeErr(err)
