@@ -1688,13 +1688,7 @@ func (obj *spannerImpl) Update_Foo_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	foo = &Foo{}
-	if !obj.txn {
-		err = obj.withTx(ctx, func(tx *sql.Tx) error {
-			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.Data)
-		})
-	} else {
-		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.Data)
-	}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&foo.Pk, &foo.Data)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

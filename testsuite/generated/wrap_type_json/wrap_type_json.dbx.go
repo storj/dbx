@@ -1894,13 +1894,7 @@ func (obj *spannerImpl) Update_Person_By_Pk(ctx context.Context,
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	if !obj.txn {
-		err = obj.withTx(ctx, func(tx *sql.Tx) error {
-			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
-		})
-	} else {
-		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
-	}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, spannerConvertJSON(&person.Value), spannerConvertJSON(&person.ValueUp), spannerConvertJSON(&person.ValueNull), spannerConvertJSON(&person.ValueNullUp), spannerConvertJSON(&person.ValueDefault))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

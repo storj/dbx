@@ -57,13 +57,7 @@ Update{{ if not .Return }}NoReturn{{ end }}_{{ .Suffix }}
 	{{- else }}
 
 	{{ init .Return }}
-	if !obj.txn {
-		err = obj.withTx(ctx, func(tx *sql.Tx) error {
-			return tx.QueryRowContext(ctx, __stmt, __values...).Scan({{ addrof (flatten .Return) }})
-		})
-	} else {
-		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan({{ addrof (flatten .Return) }})
-	}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan({{ addrof (flatten .Return) }})
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}

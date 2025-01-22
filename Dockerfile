@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.22 as buildenv
+FROM golang:1.23 as buildenv
 WORKDIR /dbx
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
@@ -11,10 +11,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
 
 FROM debian:bookworm as integration-test
 RUN apt-get update && apt-get install -y postgresql wget procps gcc gcc-multilib
-RUN wget https://go.dev/dl/go1.22.5.linux-amd64.tar.gz && \
+RUN wget https://go.dev/dl/go1.23.5.linux-amd64.tar.gz && \
     rm -rf /usr/local/go && \
-    tar -C /usr/local -xzf go1.22.5.linux-amd64.tar.gz && \
-    rm go1.22.5.linux-amd64.tar.gz
+    tar -C /usr/local -xzf go1.23.5.linux-amd64.tar.gz && \
+    rm go1.23.5.linux-amd64.tar.gz
 ENV PATH=$PATH:/usr/local/go/bin:/root/go/bin
 RUN echo 'local   all             all                                     trust' > /etc/postgresql/15/main/pg_hba.conf && \
     echo 'host    all             all             127.0.0.1/8             trust' >> /etc/postgresql/15/main/pg_hba.conf && \
@@ -27,7 +27,7 @@ RUN wget -qO- https://binaries.cockroachdb.com/cockroach-v23.2.2.linux-amd64.tgz
     mv cockroach-v23.2.2.linux-amd64/cockroach /usr/local/bin/ && \
     mv cockroach-v23.2.2.linux-amd64/lib/* /usr/lib/
 
-RUN wget -qO- https://storage.googleapis.com/cloud-spanner-emulator/releases/1.5.19/cloud-spanner-emulator_linux_amd64-1.5.19.tar.gz | tar xvz && \
+RUN wget -qO- https://storage.googleapis.com/cloud-spanner-emulator/releases/1.5.28/cloud-spanner-emulator_linux_amd64-1.5.28.tar.gz | tar xvz && \
     chmod u+x gateway_main emulator_main && \
     cp gateway_main /usr/local/bin/spanner_gateway && \
     cp emulator_main /usr/local/bin/spanner_emulator

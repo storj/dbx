@@ -77,7 +77,7 @@ func runDesc(t *testing.T, db *DB, desc Desc) {
 
 	// paged iterate over it 2 at a time
 	count := 0
-	cont := reflect.Zero(reflect.PtrTo(desc.Cont))
+	cont := reflect.Zero(reflect.PointerTo(desc.Cont))
 	for j := 0; j < 6; j++ {
 		out := paged.Call(vs{val(ctx), val(2), cont})
 		require.True(t, out[2].IsNil())

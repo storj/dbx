@@ -2137,13 +2137,7 @@ func (obj *spannerImpl) Update_Person_By_Pk_And_Value_And_ValueUp_And_ValueNull_
 	obj.logStmt(__stmt, __values...)
 
 	person = &Person{}
-	if !obj.txn {
-		err = obj.withTx(ctx, func(tx *sql.Tx) error {
-			return tx.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
-		})
-	} else {
-		err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
-	}
+	err = obj.driver.QueryRowContext(ctx, __stmt, __values...).Scan(&person.Pk, &person.Name, &person.Value, &person.ValueUp, &person.ValueNull, &person.ValueNullUp)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
