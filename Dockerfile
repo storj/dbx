@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.23 as buildenv
+FROM golang:1.23 AS buildenv
 WORKDIR /dbx
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
@@ -9,7 +9,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
 
 ### integration-test
 
-FROM debian:bookworm as integration-test
+FROM debian:bookworm AS integration-test
 RUN apt-get update && apt-get install -y postgresql wget procps gcc gcc-multilib
 RUN wget https://go.dev/dl/go1.23.5.linux-amd64.tar.gz && \
     rm -rf /usr/local/go && \
@@ -52,7 +52,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build,id=gobuild \
 
 ### check-generated
 
-FROM storjlabs/ci:slim as check-generated
+FROM storjlabs/ci:slim AS check-generated
 WORKDIR /dbx
 COPY . .
 
@@ -69,7 +69,7 @@ RUN git diff --exit-code
 
 ### lint
 
-FROM storjlabs/ci:slim as lint
+FROM storjlabs/ci:slim AS lint
 WORKDIR /dbx
 COPY . .
 
