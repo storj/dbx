@@ -14,9 +14,8 @@ import (
 )
 
 func TestJoins(t *testing.T) {
-	ctx := context.Background()
-	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-		testutil.RecreateSchema(t, db)
+	testutil.RunDBTest[*DB](t, Open, func(ctx context.Context, t *testing.T, db *DB) {
+		testutil.RecreateSchema(ctx, t, db)
 
 		user, err := db.Create_User(ctx)
 		require.NoError(t, err)

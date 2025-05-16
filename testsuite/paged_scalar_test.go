@@ -42,23 +42,22 @@ var descs = []Desc{
 }
 
 func TestPagedScalar(t *testing.T) {
-	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
+	testutil.RunDBTest[*DB](t, Open, func(ctx context.Context, t *testing.T, db *DB) {
 		if testutil.IsSpanner[*DB](db.DB) {
 			t.Skip("TODO(spanner): column data_jsons.id has type JSON, but is part of the primary key")
 		}
 
-		testutil.RecreateSchema(t, db)
+		testutil.RecreateSchema(ctx, t, db)
 
 		for _, desc := range descs {
 			t.Run(strings.ToLower(desc.Name), func(t *testing.T) {
-				runDesc(t, db, desc)
+				runDesc(t.Context(), t, db, desc)
 			})
 		}
 	})
 }
 
-func runDesc(t *testing.T, db *DB, desc Desc) {
-	ctx := context.Background()
+func runDesc(ctx context.Context, t *testing.T, db *DB, desc Desc) {
 	create := val(db).MethodByName(fmt.Sprintf("Create_Data%s", desc.Name))
 	paged := val(db).MethodByName(fmt.Sprintf("Paged_Data%s", desc.Name))
 	id := reflect.Zero(desc.Field.Type().In(0)).Interface()

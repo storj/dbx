@@ -16,10 +16,9 @@ import (
 )
 
 func TestPagedComposite(t *testing.T) {
-	ctx := context.Background()
-	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
+	testutil.RunDBTest[*DB](t, Open, func(ctx context.Context, t *testing.T, db *DB) {
 
-		testutil.RecreateSchema(t, db)
+		testutil.RecreateSchema(ctx, t, db)
 
 		for i := 0; i < 1000; i++ {
 			err := db.CreateNoReturn_ConsumedSerial(ctx,

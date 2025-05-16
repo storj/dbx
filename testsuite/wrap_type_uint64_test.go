@@ -15,10 +15,8 @@ import (
 )
 
 func TestWrapTypeUint64(t *testing.T) {
-	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-		ctx := context.Background()
-
-		testutil.RecreateSchema(t, db)
+	testutil.RunDBTest[*DB](t, Open, func(ctx context.Context, t *testing.T, db *DB) {
+		testutil.RecreateSchema(ctx, t, db)
 
 		// Create Person
 		person, err := db.Create_Person(ctx,

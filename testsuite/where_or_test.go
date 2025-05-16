@@ -14,9 +14,8 @@ import (
 )
 
 func TestWhereOr(t *testing.T) {
-	ctx := context.Background()
-	testutil.RunDBTest[*DB](t, Open, func(t *testing.T, db *DB) {
-		testutil.RecreateSchema(t, db)
+	testutil.RunDBTest[*DB](t, Open, func(ctx context.Context, t *testing.T, db *DB) {
+		testutil.RecreateSchema(ctx, t, db)
 
 		foo, err := db.Create_Foo(ctx, Foo_A(1), Foo_B("b"), Foo_C("c"))
 		require.NoError(t, err)

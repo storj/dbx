@@ -45,7 +45,7 @@ type TestDB interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 }
 
-func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, err error), callback func(t *testing.T, db T)) {
+func RunDBTest[T TestDB](t *testing.T, open func(driver string, source string) (db T, err error), callback func(ctx context.Context, t *testing.T, db T)) {
 	t.Run("sqlite3", func(t *testing.T) {
 		db, err := open("sqlite3", ":memory:")
 		require.NoError(t, err)
@@ -53,7 +53,7 @@ func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, e
 			err := db.Close()
 			require.NoError(t, err)
 		}()
-		callback(t, db)
+		callback(t.Context(), t, db)
 	})
 
 	dsn := os.Getenv("STORJ_TEST_POSTGRES")
@@ -62,6 +62,7 @@ func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, e
 			if dsn == "" {
 				t.Skip("Skipping pgx tests because environment variable STORJ_TEST_POSTGRES is not set")
 			}
+			ctx := t.Context()
 
 			schemaName := pgxSchemaName(t)
 			dsn = pgxConnStrWithSchema(dsn, schemaName)
@@ -70,10 +71,12 @@ func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, e
 			require.NoError(t, err)
 			defer func() { require.NoError(t, db.Close()) }()
 
-			require.NoError(t, pgxCreateSchema(context.Background(), db, schemaName))
-			defer func() { require.NoError(t, pgxDropSchema(context.Background(), db, schemaName)) }()
+			require.NoError(t, pgxCreateSchema(ctx, db, schemaName))
+			defer func() {
+				require.NoError(t, pgxDropSchema(context.WithoutCancel(ctx), db, schemaName))
+			}()
 
-			callback(t, db)
+			callback(ctx, t, db)
 		})
 	}
 
@@ -83,6 +86,7 @@ func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, e
 			if dsn == "" {
 				t.Skip("Skipping pgxcockroach tests because environment variable STORJ_TEST_COCKROACH is not set")
 			}
+			ctx := t.Context()
 
 			if strings.HasPrefix(dsn, "cockroach://") {
 				dsn = "postgres://" + strings.TrimPrefix(dsn, "cockroach://")
@@ -95,17 +99,17 @@ func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, e
 			require.NoError(t, err)
 			defer func() { require.NoError(t, db.Close()) }()
 
-			require.NoError(t, pgxCreateSchema(context.Background(), db, schemaName))
-			defer func() { require.NoError(t, pgxDropSchema(context.Background(), db, schemaName)) }()
+			require.NoError(t, pgxCreateSchema(ctx, db, schemaName))
+			defer func() { require.NoError(t, pgxDropSchema(context.WithoutCancel(ctx), db, schemaName)) }()
 
-			callback(t, db)
+			callback(ctx, t, db)
 		})
 	}
 
 	dsn = os.Getenv("STORJ_TEST_SPANNER")
 	if dsn != "omit" {
 		t.Run("spanner", func(t *testing.T) {
-			ctx := context.Background()
+			ctx := t.Context()
 
 			if dsn == "" {
 				t.Skip("Skipping spanner tests because environment variable STORJ_TEST_SPANNER is not set")
@@ -122,7 +126,7 @@ func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, e
 				db, err := open("spanner", dsn)
 				require.NoError(t, err)
 				defer func() { require.NoError(t, db.Close()) }()
-				callback(t, db)
+				callback(ctx, t, db)
 				return
 			}
 
@@ -185,7 +189,7 @@ func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, e
 			require.NoError(t, err)
 			defer func() { require.NoError(t, db.Close()) }()
 
-			callback(t, db)
+			callback(ctx, t, db)
 		})
 	}
 }
@@ -194,16 +198,16 @@ func RunDBTest[T TestDB](t *testing.T, open func(driver, source string) (db T, e
 type SchemaHandler interface {
 	Schema() []string
 	DropSchema() []string
-	Exec(query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
 // RecreateSchema will drop and recreate schema. Will try it with multiple times with increased sleep time.
 // To void errors like "Schema change operation rejected because a concurrent schema change operation or read-write transaction is already in progress.".
-func RecreateSchema(t *testing.T, db SchemaHandler) {
+func RecreateSchema(ctx context.Context, t *testing.T, db SchemaHandler) {
 	var err error
 	p := time.Millisecond * 250
 	for i := 0; i < 10; i++ {
-		err = RecreateSchemaOnce(db)
+		err = RecreateSchemaOnce(ctx, db)
 		if err == nil {
 			return
 		}
@@ -218,16 +222,16 @@ func RecreateSchema(t *testing.T, db SchemaHandler) {
 }
 
 // RecreateSchemaOnce will drop and recreate schema.
-func RecreateSchemaOnce(db SchemaHandler) (err error) {
+func RecreateSchemaOnce(ctx context.Context, db SchemaHandler) (err error) {
 	// TODO(spanner): should use START BATCH DDL here, however there's no
 	// easy way to get the conn via methods at the moment.
 
 	for _, stmt := range db.DropSchema() {
-		_, _ = db.Exec(stmt)
+		_, _ = db.ExecContext(ctx, stmt)
 	}
 
 	for _, stmt := range db.Schema() {
-		_, err := db.Exec(stmt)
+		_, err := db.ExecContext(ctx, stmt)
 		if err != nil {
 			return err
 		}
@@ -283,7 +287,7 @@ func spannerEmulatorCreateInstance(ctx context.Context, t *testing.T, hostport, 
 	}
 
 	t.Cleanup(func() {
-		err := admin.DeleteInstance(ctx, &instancepb.DeleteInstanceRequest{
+		err := admin.DeleteInstance(context.WithoutCancel(ctx), &instancepb.DeleteInstanceRequest{
 			Name: "projects/" + projectID + "/instances/" + instanceID,
 		})
 		if err != nil {
@@ -316,7 +320,7 @@ func spannerEmulatoreCreateDatabase(ctx context.Context, t *testing.T, hostport,
 	}
 
 	t.Cleanup(func() {
-		if err := admin.DropDatabase(ctx, &databasepb.DropDatabaseRequest{
+		if err := admin.DropDatabase(context.WithoutCancel(ctx), &databasepb.DropDatabaseRequest{
 			Database: "projects/" + projectID + "/instances/" + instanceID + "/databases/" + databaseID,
 		}); err != nil {
 			t.Fatal(err)
