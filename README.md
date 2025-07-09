@@ -45,7 +45,7 @@ $ dbx golang example.dbx .
 ```
 
 This will create an `example.go` file in the current directory. Check the
-output of `dbx golang` for more options like controling the package name or
+output of `dbx golang` for more options like controlling the package name or
 other features of the generated code.
 
 Generating a schema is also straightforward:
