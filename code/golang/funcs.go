@@ -350,7 +350,7 @@ func spanner_setoptionalfieldsFn(modelFields []*ModelField) string {
 		}
 		_, _ = fmt.Fprintf(&out, "\t__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal(\"%s\"))\n", field.Column)
 		_, _ = fmt.Fprintf(&out, "\t__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal(\"?\"))\n")
-		_, _ = fmt.Fprintf(&out, "}\n")
+		_, _ = fmt.Fprintf(&out, "}\n\n")
 	}
 	return out.String()
 }
