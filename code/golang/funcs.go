@@ -52,6 +52,7 @@ func funcMap(dialect string) template.FuncMap {
 		funcs["initnew"] = spanner_initnewFn
 		funcs["embedvalues"] = spanner_embedvaluesFn
 		funcs["setupdatablefields"] = spanner_setupdatablefieldsFn
+		funcs["setoptionalfields"] = spanner_setoptionalfieldsFn
 		funcs["addrof"] = spanner_addrofFn
 	}
 
@@ -328,6 +329,27 @@ func spanner_setupdatablefieldsFn(modelFields []*ModelField) string {
 			_, _ = fmt.Fprintf(&out, "\t__values = append(__values, update.%s.value())\n", field.Name)
 		}
 		_, _ = fmt.Fprintf(&out, "\t__sets_sql.SQLs = append(__sets_sql.SQLs, __sqlbundle_Literal(\"%s = ?\"))\n", field.Column)
+		_, _ = fmt.Fprintf(&out, "}\n")
+	}
+	return out.String()
+}
+
+func spanner_setoptionalfieldsFn(modelFields []*ModelField) string {
+	var out bytes.Buffer
+
+	for _, field := range modelFields {
+		if field == nil {
+			continue
+		}
+
+		_, _ = fmt.Fprintf(&out, "if optional.%s._set {\n", field.Name)
+		if wrap := spannerWrapFunc(field.Underlying); wrap != "" {
+			_, _ = fmt.Fprintf(&out, "\t__values = append(__values, %v(optional.%s.value()))\n", wrap, field.Name)
+		} else {
+			_, _ = fmt.Fprintf(&out, "\t__values = append(__values, optional.%s.value())\n", field.Name)
+		}
+		_, _ = fmt.Fprintf(&out, "\t__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal(\"%s\"))\n", field.Column)
+		_, _ = fmt.Fprintf(&out, "\t__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal(\"?\"))\n")
 		_, _ = fmt.Fprintf(&out, "}\n")
 	}
 	return out.String()
