@@ -1804,7 +1804,7 @@ func (obj *spannerImpl) Create_Person(ctx context.Context,
 	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
 
 	if optional.ValueDefault._set {
-		__values = append(__values, optional.ValueDefault.value())
+		__values = append(__values, spannerConvertJSON(optional.ValueDefault.value()))
 		__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("value_default"))
 		__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal("?"))
 	}

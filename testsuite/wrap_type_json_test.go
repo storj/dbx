@@ -69,5 +69,22 @@ func TestWrapTypeJson(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t, true, deleted)
+
+		// Create another Person with a provided defaultable field.
+		person, err = db.Create_Person(ctx,
+			Person_Name("P1"),
+			Person_Value([]byte("100")),
+			Person_ValueUp([]byte("101")),
+			Person_Create_Fields{
+				ValueNull:    Person_ValueNull([]byte("102")),
+				ValueNullUp:  Person_ValueNullUp([]byte("103")),
+				ValueDefault: Person_ValueDefault([]byte("104")),
+			})
+		require.NoError(t, err)
+		require.Equal(t, []byte("100"), person.Value)
+		require.Equal(t, []byte("101"), person.ValueUp)
+		require.Equal(t, []byte("102"), person.ValueNull)
+		require.Equal(t, []byte("103"), person.ValueNullUp)
+		require.Equal(t, []byte("104"), person.ValueDefault)
 	})
 }

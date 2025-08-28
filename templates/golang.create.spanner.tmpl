@@ -26,13 +26,9 @@
 	{{ if .Struct.InsertableDynamicFields -}}
 	__optional_columns := __sqlbundle_Literals{Join: ", "}
 	__optional_placeholders := __sqlbundle_Literals{Join: ", "}
-	{{ range .Struct.InsertableDynamicFields }}
-	if optional.{{ .Name }}._set {
-		__values = append(__values, optional.{{ .Name }}.value())
-		__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("{{ .Column }}"))
-		__optional_placeholders.SQLs = append(__optional_placeholders.SQLs, __sqlbundle_Literal("?"))
-	}
-	{{ end }}
+
+	{{ setoptionalfields .Struct.InsertableDynamicFields }}
+
 	if len(__optional_columns.SQLs) == 0 && __columns.SQL == nil {
 	{{ range .Struct.InsertableDynamicFields }}
 		__optional_columns.SQLs = append(__optional_columns.SQLs, __sqlbundle_Literal("{{ .Column }}"))
