@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -27,7 +28,8 @@ func main() {
 
 		_ = os.MkdirAll(outdir, 0755)
 
-		out, err := exec.Command("dbx", "golang",
+		ctx := context.Background()
+		out, err := exec.CommandContext(ctx, "dbx", "golang",
 			"--package", pkgname,
 			"-d", "sqlite3",
 			"-d", "pgx",
@@ -42,7 +44,7 @@ func main() {
 			exitcode = 1
 		}
 
-		out, err = exec.Command("dbx", "schema",
+		out, err = exec.CommandContext(ctx, "dbx", "schema",
 			"-d", "sqlite3",
 			"-d", "pgx",
 			"-d", "pgxcockroach",
