@@ -28,11 +28,11 @@ func parseRead(node *tupleNode) (*ast.Read, error) {
 					read.Select.Pos)
 			}
 
-			refs, err := parseFieldRefs(node, false)
+			items, err := parseSelectItems(node)
 			if err != nil {
 				return err
 			}
-			read.Select = refs
+			read.Select = items
 
 			return nil
 		},

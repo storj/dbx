@@ -24,16 +24,46 @@ func VarFromSelectable(selectable ir.Selectable, full_name bool) (v *Var) {
 		} else {
 			v.Name = inflect.Camelize(v.Name)
 		}
+	case *ir.Aggregate:
+		v = VarFromAggregate(obj, full_name)
 	default:
 		panic(fmt.Sprintf("unhandled selectable type %T", obj))
 	}
 	return v
 }
 
+// VarFromAggregate creates a Var for an aggregate function result
+func VarFromAggregate(agg *ir.Aggregate, full_name bool) *Var {
+	// Build name like "SumAmount", "CountStar", "AvgPrice"
+	var name string
+	funcName := inflect.Camelize(string(agg.Func))
+
+	if agg.Field == nil {
+		// count(*) case
+		name = funcName
+	} else if full_name {
+		name = funcName + inflect.Camelize(agg.Field.Model.Name) + inflect.Camelize(agg.Field.Name)
+	} else {
+		name = funcName + inflect.Camelize(agg.Field.Name)
+	}
+
+	return &Var{
+		Name: name,
+		Type: valueType(agg.ResultType, agg.Nullable),
+		Underlying: UnderlyingType{
+			Type:     agg.ResultType,
+			Nullable: agg.Nullable,
+		},
+		ZeroVal: zeroVal(agg.ResultType, agg.Nullable),
+		InitVal: initVal(agg.ResultType, agg.Nullable),
+	}
+}
+
 func VarsFromSelectables(selectables []ir.Selectable) (vars []*Var) {
 	// we use a full name unless:
 	// 1. it is a single model as the selectable.
 	// 2. every selectable is a field with the same model.
+	// 3. every selectable is a field or aggregate with the same model.
 
 	full_name := false
 	field_model := (*ir.Model)(nil)
@@ -52,6 +82,19 @@ selectables:
 				full_name = true
 				break selectables
 			}
+
+		case *ir.Aggregate:
+			// For aggregates, check the model of the field if present
+			if selectable.Field != nil {
+				if field_model == nil {
+					field_model = selectable.Field.Model
+				}
+				if selectable.Field.Model != field_model {
+					full_name = true
+					break selectables
+				}
+			}
+			// count(*) has no field, but doesn't force full_name by itself
 
 		default:
 			full_name = true

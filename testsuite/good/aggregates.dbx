@@ -1,0 +1,42 @@
+model order (
+	key id
+
+	field id          serial64
+	field customer_id int64
+	field amount      int64
+	field price       float64
+)
+
+// Basic aggregations with count(*)
+read all (
+	select order.customer_id sum(order.amount) count(*)
+	groupby order.customer_id
+)
+
+// Count specific field (non-null values)
+read all (
+	select order.customer_id count(order.id)
+	groupby order.customer_id
+)
+
+// Scalar aggregation - only aggregates, no GROUP BY needed
+read scalar (
+	select sum(order.amount)
+)
+
+// Min/Max with GROUP BY
+read all (
+	select order.customer_id min(order.amount) max(order.amount)
+	groupby order.customer_id
+)
+
+// AVG function
+read all (
+	select order.customer_id avg(order.price)
+	groupby order.customer_id
+)
+
+// Multiple aggregates only (no regular fields) - no GROUP BY needed
+read scalar (
+	select count(*) sum(order.amount) avg(order.price)
+)

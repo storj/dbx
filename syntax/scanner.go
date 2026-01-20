@@ -29,6 +29,7 @@ const (
 	Float       Token = "Float"
 	Illegal     Token = "Illegal"
 	Negate      Token = "-"
+	Asterisk    Token = "*"
 )
 
 func (t Token) String() string {
@@ -65,6 +66,8 @@ func (t Token) String() string {
 		return "Illegal"
 	case Negate:
 		return "Negate"
+	case Asterisk:
+		return "Asterisk"
 	default:
 		return "Unknown"
 	}
@@ -254,6 +257,8 @@ func convertToken(tok rune) Token {
 		return Question
 	case '-':
 		return Negate
+	case '*':
+		return Asterisk
 	default:
 		return Illegal
 	}

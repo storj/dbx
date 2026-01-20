@@ -178,7 +178,7 @@ type Index struct {
 
 type Read struct {
 	Pos     scanner.Position
-	Select  *FieldRefs
+	Select  *SelectItems
 	Joins   []*Join
 	Where   []*Where
 	OrderBy *OrderBy
@@ -360,4 +360,38 @@ type OrderByEntry struct {
 type GroupBy struct {
 	Pos    scanner.Position
 	Fields *FieldRefs
+}
+
+// AggregateFunc represents an aggregate function call in SELECT (e.g., sum(order.amount), count(*))
+type AggregateFunc struct {
+	Pos      scanner.Position
+	Func     *String   // "sum", "count", "avg", "min", "max"
+	FieldRef *FieldRef // The field being aggregated (nil for count(*))
+}
+
+func (a *AggregateFunc) String() string {
+	if a.FieldRef == nil {
+		return fmt.Sprintf("%s(*)", a.Func.Value)
+	}
+	return fmt.Sprintf("%s(%s)", a.Func.Value, a.FieldRef)
+}
+
+// SelectItem represents an item in a SELECT clause - either a field reference or an aggregate function
+type SelectItem struct {
+	Pos       scanner.Position
+	FieldRef  *FieldRef      // Either a field reference...
+	Aggregate *AggregateFunc // ...or an aggregate function
+}
+
+func (s *SelectItem) String() string {
+	if s.Aggregate != nil {
+		return s.Aggregate.String()
+	}
+	return s.FieldRef.String()
+}
+
+// SelectItems represents a list of select items
+type SelectItems struct {
+	Pos   scanner.Position
+	Items []*SelectItem
 }

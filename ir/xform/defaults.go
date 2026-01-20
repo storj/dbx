@@ -39,6 +39,12 @@ func DefaultReadSuffix(read *ir.Read) []string {
 		case *ir.Field:
 			parts = append(parts, obj.Model.Name)
 			parts = append(parts, obj.Name)
+		case *ir.Aggregate:
+			parts = append(parts, strings.ToLower(string(obj.Func)))
+			if obj.Field != nil {
+				parts = append(parts, obj.Field.Model.Name)
+				parts = append(parts, obj.Field.Name)
+			}
 		default:
 			panic(fmt.Sprintf("unhandled selectable %T", selectable))
 		}

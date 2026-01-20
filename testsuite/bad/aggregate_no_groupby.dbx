@@ -1,0 +1,13 @@
+// Should fail: mixing aggregates with fields without GROUP BY
+model order (
+	key id
+
+	field id          serial64
+	field customer_id int64
+	field amount      int64
+)
+
+read all (
+	select order.customer_id sum(order.amount)
+	// Missing groupby - should error
+)

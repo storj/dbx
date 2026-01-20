@@ -34,7 +34,9 @@ func (r *Read) Signature() string {
 func (r *Read) Distinct() bool {
 	var targets []*Model
 	for _, selectable := range r.Selectables {
-		targets = append(targets, selectable.ModelOf())
+		if model := selectable.ModelOf(); model != nil {
+			targets = append(targets, model)
+		}
 	}
 	return queryUnique(distinctModels(targets), r.Joins, r.Where)
 }
@@ -81,3 +83,40 @@ type OrderByEntry struct {
 type GroupBy struct {
 	Fields []*Field
 }
+
+// AggregateFunc represents the type of aggregate function
+type AggregateFunc string
+
+const (
+	AggSum   AggregateFunc = "SUM"
+	AggCount AggregateFunc = "COUNT"
+	AggAvg   AggregateFunc = "AVG"
+	AggMin   AggregateFunc = "MIN"
+	AggMax   AggregateFunc = "MAX"
+)
+
+// Aggregate represents an aggregate function call in a SELECT clause
+type Aggregate struct {
+	Func       AggregateFunc
+	Field      *Field           // nil for count(*)
+	ResultType consts.FieldType // computed result type
+	Nullable   bool             // whether result can be null
+}
+
+// SelectRefs returns the SQL expression for this aggregate
+func (a *Aggregate) SelectRefs() []string {
+	if a.Field == nil { // count(*)
+		return []string{"COUNT(*)"}
+	}
+	return []string{fmt.Sprintf("%s(%s)", a.Func, a.Field.ColumnRef())}
+}
+
+// ModelOf returns the model of the aggregated field, or nil for count(*)
+func (a *Aggregate) ModelOf() *Model {
+	if a.Field == nil {
+		return nil
+	}
+	return a.Field.Model
+}
+
+func (a *Aggregate) selectable() {}
