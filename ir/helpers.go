@@ -93,7 +93,7 @@ func queryUnique(targets []*Model, joins []*Join, wheres []*Where) (out bool) {
 				}
 			}
 		default:
-			panic(fmt.Sprintf("unhandled join type %q", join.Type))
+			panic(fmt.Sprintf("unhandled join type %v", join.Type))
 		}
 	}
 

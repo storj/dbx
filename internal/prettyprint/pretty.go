@@ -113,7 +113,7 @@ func (pps *printerState) printValue(value reflect.Value, n int) {
 	vtype := value.Type()
 
 	switch vtype.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if value.IsNil() {
 			pps.printf("<nil>")
 		} else {

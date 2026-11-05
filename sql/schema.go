@@ -97,7 +97,7 @@ func SchemaFromIRModels(ir_models []*ir.Model, dialect Dialect) *Schema {
 					column.Reference.OnDelete = ""
 
 				default:
-					panic(fmt.Sprintf("unhandled relation kind %q",
+					panic(fmt.Sprintf("unhandled relation kind %v",
 						ir_field.Relation.Kind))
 				}
 			}
