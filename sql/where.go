@@ -24,6 +24,7 @@ func WhereSQL(wheres []*ir.Where, dialect Dialect) (out []sqlgen.SQL) {
 
 type whereGenerator struct {
 	conditions int
+	ins        int
 }
 
 func (g *whereGenerator) whereSQL(where *ir.Where, dialect Dialect) sqlgen.SQL {
@@ -47,6 +48,16 @@ func (g *whereGenerator) whereSQL(where *ir.Where, dialect Dialect) sqlgen.SQL {
 }
 
 func (g *whereGenerator) clauseSQL(clause *ir.Clause, dialect Dialect) sqlgen.SQL {
+	if clause.Op == consts.In {
+		// The hole starts with the column and the generated code replaces it
+		// at runtime with the dialect's InClause, e.g. "col = ANY(?)" or
+		// "col IN (?, ?)".
+		g.ins++
+		return &sqlgen.Hole{
+			Name: fmt.Sprintf("in_%d", g.ins-1),
+			SQL:  L(ExprSQL(clause.Left, dialect).Render()),
+		}
+	}
 	if clause.NeedsCondition() {
 		g.conditions++
 		return &sqlgen.Condition{

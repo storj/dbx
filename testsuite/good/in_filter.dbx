@@ -1,0 +1,82 @@
+model foo (
+	key pk
+
+	field pk  blob
+	field a   int64
+	field b   text
+	field tag text  ( nullable )
+	field val int   ( updatable )
+)
+
+create foo ( noreturn )
+
+read all (
+	select foo
+	where foo.pk in ?
+	orderby asc foo.a
+)
+
+read all (
+	select foo
+	where foo.tag = ?
+	where foo.b in ?
+	where foo.a > ?
+	orderby asc foo.a
+)
+
+read all (
+	select foo
+	where ( foo.a in ?, foo.b = ? )
+	orderby asc foo.a
+)
+
+read count (
+	select foo
+	where foo.a in ?
+)
+
+read limitoffset (
+	select foo.pk
+	where foo.a in ?
+	orderby asc foo.a
+)
+
+update foo (
+	where foo.pk = ?
+	where foo.a in ?
+	noreturn
+)
+
+delete foo (
+	where foo.a in ?
+)
+
+model bar (
+	key id
+
+	field id int
+	field ts utimestamp
+)
+
+create bar ( noreturn )
+
+read all (
+	select bar
+	where bar.ts in ?
+	orderby asc bar.id
+)
+
+model baz (
+	key id
+
+	field id  int
+	field day date
+)
+
+create baz ( noreturn )
+
+read all (
+	select baz
+	where baz.day in ?
+	orderby asc baz.id
+)

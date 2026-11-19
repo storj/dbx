@@ -20,5 +20,15 @@ func openpgx(source string) (*sql.DB, error) {
 }
 {{ end -}}
 
+{{- define "in-clause" }}
+// InClause builds "column = ANY(?)" for Postgres. The pgx driver natively
+// handles Go slices for array parameters via reflection, so the slice is
+// passed as a single argument. The caller is expected to call db.Rebind
+// on the assembled query so `?` is rewritten to `$N`.
+func (impl {{ .Receiver }}) InClause(column string, slice any) (string, []any) {
+	return column + " = ANY(?)", []any{slice}
+}
+{{ end -}}
+
 {{- define "definitions" }}
 {{ end -}}

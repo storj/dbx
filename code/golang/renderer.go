@@ -423,7 +423,10 @@ func (r *Renderer) renderDialectFuncs(w io.Writer, dialect sql.Dialect) (err err
 		return err
 	}
 
-	return tmplutil.Render(tmpl, w, "is-constraint-error", dialect_func)
+	if err := tmplutil.Render(tmpl, w, "is-constraint-error", dialect_func); err != nil {
+		return err
+	}
+	return tmplutil.Render(tmpl, w, "in-clause", dialect_func)
 }
 
 func (r *Renderer) renderDialectOpens(w io.Writer, dialects []sql.Dialect) (err error) {

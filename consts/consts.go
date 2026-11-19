@@ -22,6 +22,7 @@ const (
 	EQ   Operator = "="
 	NE   Operator = "!="
 	Like Operator = "like"
+	In   Operator = "in"
 )
 
 func (o Operator) Suffix() string {
@@ -40,6 +41,8 @@ func (o Operator) Suffix() string {
 		return "not"
 	case Like:
 		return "like"
+	case In:
+		return "in"
 	default:
 		panic(fmt.Sprintf("unhandled operation %q", o))
 	}

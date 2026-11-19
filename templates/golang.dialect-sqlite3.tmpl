@@ -54,5 +54,28 @@ func opensqlite3(source string) (*sql.DB, error) {
 }
 {{ end -}}
 
+{{- define "in-clause" }}
+// InClause builds "column IN (?, ?, ...)" for SQLite, with each slice
+// element flattened into the args slice. SQLite has no native array
+// placeholder, so slices are expanded at the SQL level.
+func (impl {{ .Receiver }}) InClause(column string, slice any) (string, []any) {
+	v := reflect.ValueOf(slice)
+	if v.Kind() != reflect.Slice {
+		return column + " IN (?)", []any{slice}
+	}
+	n := v.Len()
+	if n == 0 {
+		return "1=0", nil
+	}
+	parts := make([]string, n)
+	args := make([]any, n)
+	for i := 0; i < n; i++ {
+		parts[i] = "?"
+		args[i] = v.Index(i).Interface()
+	}
+	return column + " IN (" + strings.Join(parts, ", ") + ")", args
+}
+{{ end -}}
+
 {{- define "definitions" }}
 {{ end -}}

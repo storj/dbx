@@ -15,7 +15,13 @@ type ConditionArg struct {
 	Var         *Var
 	IsCondition bool
 	Condition   int
-	Underlying  UnderlyingType
+	// IsIn is set for "in" clauses. Var is then a slice of values and In is
+	// the index of the "__in_N" hole in the statement.
+	IsIn       bool
+	In         int
+	Underlying UnderlyingType
+	// Clause is the clause this argument was generated from.
+	Clause *ir.Clause
 }
 
 func ConditionArgsFromWheres(wheres []*ir.Where) (out []ConditionArg) {
@@ -28,6 +34,7 @@ func ConditionArgsFromWheres(wheres []*ir.Where) (out []ConditionArg) {
 
 type conditionArgGenerator struct {
 	condition int
+	in        int
 	names     map[string]int
 }
 
@@ -65,6 +72,15 @@ func (c *conditionArgGenerator) FromClause(clause *ir.Clause) *ConditionArg {
 		Name:       name,
 		Type:       modelField.StructName(),
 		Underlying: modelField.Underlying,
+	}
+	arg.Clause = clause
+
+	if clause.Op == consts.In {
+		arg.Var.Type = "[]" + valueType(expr.Field.Type, false)
+		arg.Var.Underlying.Nullable = false
+		arg.IsIn = true
+		arg.In = c.in
+		c.in++
 	}
 
 	if clause.NeedsCondition() {

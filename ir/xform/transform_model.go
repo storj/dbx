@@ -9,6 +9,7 @@ import (
 	"text/scanner"
 
 	"storj.io/dbx/ast"
+	"storj.io/dbx/consts"
 	"storj.io/dbx/errutil"
 	"storj.io/dbx/internal/inflect"
 	"storj.io/dbx/ir"
@@ -100,6 +101,14 @@ func transformModel(lookup *lookup, model_entry *modelEntry) (err error) {
 		where, err := transformWheres(lookup, models, ast_index.Where)
 		if err != nil {
 			return err
+		}
+		for _, ast_where := range ast_index.Where {
+			for _, ast_clause := range ast_where.Clauses {
+				if ast_clause.Op.Value == consts.In {
+					return errutil.New(ast_clause.Pos,
+						"\"in\" clauses are not supported in index conditions")
+				}
+			}
 		}
 
 		index := &ir.Index{

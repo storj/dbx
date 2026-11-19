@@ -50,6 +50,15 @@ func openspanner(source string) (*sql.DB, error) {
 }
 {{ end -}}
 
+{{- define "in-clause" }}
+// InClause builds "column IN UNNEST(?)" for Spanner. The go-sql-spanner
+// driver accepts Go slices natively, so the slice is passed as a single
+// argument.
+func (impl {{ .Receiver }}) InClause(column string, slice any) (string, []any) {
+	return column + " IN UNNEST(?)", []any{slice}
+}
+{{ end -}}
+
 {{- define "definitions" }}
 func spannerConvertJSON(v any) any {
 	if v == nil {

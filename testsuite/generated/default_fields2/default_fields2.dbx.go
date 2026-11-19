@@ -1731,6 +1731,27 @@ func (impl sqlite3Impl) isConstraintError(err error) (constraint string, ok bool
 	return "", false
 }
 
+// InClause builds "column IN (?, ?, ...)" for SQLite, with each slice
+// element flattened into the args slice. SQLite has no native array
+// placeholder, so slices are expanded at the SQL level.
+func (impl sqlite3Impl) InClause(column string, slice any) (string, []any) {
+	v := reflect.ValueOf(slice)
+	if v.Kind() != reflect.Slice {
+		return column + " IN (?)", []any{slice}
+	}
+	n := v.Len()
+	if n == 0 {
+		return "1=0", nil
+	}
+	parts := make([]string, n)
+	args := make([]any, n)
+	for i := 0; i < n; i++ {
+		parts[i] = "?"
+		args[i] = v.Index(i).Interface()
+	}
+	return column + " IN (" + strings.Join(parts, ", ") + ")", args
+}
+
 func (obj *sqlite3Impl) deleteAll(ctx context.Context) (count int64, err error) {
 	var __res sql.Result
 	var __count int64
@@ -1998,6 +2019,14 @@ func (impl pgxImpl) isConstraintError(err error) (constraint string, ok bool) {
 	return "", false
 }
 
+// InClause builds "column = ANY(?)" for Postgres. The pgx driver natively
+// handles Go slices for array parameters via reflection, so the slice is
+// passed as a single argument. The caller is expected to call db.Rebind
+// on the assembled query so `?` is rewritten to `$N`.
+func (impl pgxImpl) InClause(column string, slice any) (string, []any) {
+	return column + " = ANY(?)", []any{slice}
+}
+
 func (obj *pgxImpl) deleteAll(ctx context.Context) (count int64, err error) {
 	var __res sql.Result
 	var __count int64
@@ -2263,6 +2292,13 @@ func (impl pgxcockroachImpl) isConstraintError(err error) (constraint string, ok
 		}
 	}
 	return "", false
+}
+
+// InClause builds "column = ANY(?)" for CockroachDB (Postgres-compatible).
+// The pgx driver natively handles Go slices for array parameters; the
+// caller is expected to call db.Rebind on the assembled query.
+func (impl pgxcockroachImpl) InClause(column string, slice any) (string, []any) {
+	return column + " = ANY(?)", []any{slice}
 }
 
 func (obj *pgxcockroachImpl) deleteAll(ctx context.Context) (count int64, err error) {
@@ -2555,6 +2591,13 @@ func (impl spannerImpl) isConstraintError(err error) (constraint string, ok bool
 	return "", errcode == codes.AlreadyExists || errcode == codes.OutOfRange || errcode == codes.FailedPrecondition
 }
 
+// InClause builds "column IN UNNEST(?)" for Spanner. The go-sql-spanner
+// driver accepts Go slices natively, so the slice is passed as a single
+// argument.
+func (impl spannerImpl) InClause(column string, slice any) (string, []any) {
+	return column + " IN UNNEST(?)", []any{slice}
+}
+
 func (obj *spannerImpl) deleteAll(ctx context.Context) (count int64, err error) {
 	var __res sql.Result
 	var __count int64
@@ -2625,6 +2668,7 @@ type TxMethods interface {
 	Methods
 
 	Rebind(s string) string
+	InClause(column string, slice any) (string, []any)
 	Commit() error
 	Rollback() error
 }
@@ -2643,6 +2687,7 @@ type DBMethods interface {
 	DropSchema() []string
 
 	Rebind(sql string) string
+	InClause(column string, slice any) (string, []any)
 }
 
 type dbMethods interface {

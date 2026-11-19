@@ -8,6 +8,8 @@ import (
 	"text/scanner"
 
 	"storj.io/dbx/ast"
+	"storj.io/dbx/consts"
+	"storj.io/dbx/errutil"
 	"storj.io/dbx/ir"
 )
 
@@ -32,6 +34,23 @@ func transformClause(lookup *lookup, models map[string]scanner.Position, ast_cla
 	rexpr, err := transformExpr(lookup, models, ast_clause.Right, false)
 	if err != nil {
 		return nil, err
+	}
+
+	if ast_clause.Op.Value == consts.In {
+		// "in" takes a list of values at runtime, so it only supports a
+		// plain field on the left and a placeholder on the right.
+		if lexpr.Field == nil {
+			return nil, errutil.New(ast_clause.Pos,
+				"the left side of an \"in\" clause must be a field")
+		}
+		if rexpr.Placeholder == 0 {
+			return nil, errutil.New(ast_clause.Pos,
+				"the right side of an \"in\" clause must be a placeholder")
+		}
+		if lexpr.Field.Type == consts.JsonField {
+			return nil, errutil.New(ast_clause.Pos,
+				"\"in\" clauses are not supported on json fields")
+		}
 	}
 
 	return &ir.Clause{

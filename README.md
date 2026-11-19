@@ -479,6 +479,14 @@ read <views> (
 	// SQL function calls take an expression for each argument. Currently only
 	// "lower" is implemented.
 	//
+	// The "in" operation matches a field against a list of values:
+	//    where animal.id in ?
+	// The generated method takes a slice (e.g. []int64) for that argument. The
+	// left side must be a field and the right side a placeholder. Postgres,
+	// CockroachDB and Spanner bind the list as one array argument, so the
+	// statement text doesn't depend on the list length. SQLite expands it to
+	// "animal.id IN (?, ?, ...)". An empty list matches no rows.
+	//
 	// <limited-expr> is the same as <expr> except that it can only contain
 	// a model field reference, optionally wrapped in one or more function
 	// calls.

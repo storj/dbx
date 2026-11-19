@@ -9,6 +9,7 @@ type TxMethods interface {
 	Methods
 
 	Rebind(s string) string
+	InClause(column string, slice any) (string, []any)
 	Commit() error
 	Rollback() error
 }
@@ -27,6 +28,7 @@ type DBMethods interface {
 	DropSchema() []string
 
 	Rebind(sql string) string
+	InClause(column string, slice any) (string, []any)
 }
 
 type dbMethods interface {

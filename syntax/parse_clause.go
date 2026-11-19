@@ -31,6 +31,10 @@ func parseClause(node *tupleNode) (clause *ast.Clause, err error) {
 			clause.Op = operatorFromValue(token, consts.Like)
 			return nil
 		},
+		{Ident, "in"}: func(token *tokenNode) error {
+			clause.Op = operatorFromValue(token, consts.In)
+			return nil
+		},
 		Equal.tokenCase(): func(token *tokenNode) error {
 			clause.Op = operatorFromValue(token, consts.EQ)
 			return nil

@@ -258,6 +258,14 @@ func embedvaluesFn(args []ConditionArg, name string) string {
 	var run []string
 
 	for _, arg := range args {
+		if arg.IsIn {
+			if len(run) > 0 {
+				_, _ = fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+				run = run[:0]
+			}
+			embedInValue(&out, arg, name)
+			continue
+		}
 		if arg.IsCondition {
 			if len(run) > 0 {
 				_, _ = fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
@@ -278,11 +286,38 @@ func embedvaluesFn(args []ConditionArg, name string) string {
 	return out.String()
 }
 
+// embedInValue renders the code for an "in" argument: the "__in_N" hole holds
+// the column, and is replaced with the dialect's InClause, which also gives the
+// values to bind. Values of fields with a mutate function (utimestamp, date)
+// are normalized first, the same way the field constructors do it.
+func embedInValue(out *bytes.Buffer, arg ConditionArg, name string) {
+	hole := fmt.Sprintf("__in_%d", arg.In)
+	values := arg.Var.Name
+	_, _ = fmt.Fprintf(out, "{\n")
+	if fn := mutateFn(arg.Clause.Left.Field.Type); fn != "" {
+		values = "__in_list"
+		_, _ = fmt.Fprintf(out, "\t%s := make(%s, len(%s))\n", values, arg.Var.Type, arg.Var.Name)
+		_, _ = fmt.Fprintf(out, "\tfor i, v := range %s {\n\t\t%s[i] = %s(v)\n\t}\n", arg.Var.Name, values, fn)
+	}
+	_, _ = fmt.Fprintf(out, "\t__in_sql, __in_values := obj.InClause(%s.SQL.Render(), %s)\n", hole, values)
+	_, _ = fmt.Fprintf(out, "\t%s.SQL = __sqlbundle_Literal(__in_sql)\n", hole)
+	_, _ = fmt.Fprintf(out, "\t%s = append(%s, __in_values...)\n", name, name)
+	_, _ = fmt.Fprintf(out, "}\n")
+}
+
 func spanner_embedvaluesFn(args []ConditionArg, name string) string {
 	var out bytes.Buffer
 	var run []string
 
 	for _, arg := range args {
+		if arg.IsIn {
+			if len(run) > 0 {
+				_, _ = fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
+				run = run[:0]
+			}
+			embedInValue(&out, arg, name)
+			continue
+		}
 		if arg.IsCondition {
 			if len(run) > 0 {
 				_, _ = fmt.Fprintf(&out, "%s = append(%s, %s)\n", name, name, strings.Join(run, ", "))
